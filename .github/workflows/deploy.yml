@@ -28,10 +28,10 @@ jobs:
         env:
           FIREBASE_CONFIG_JSON: ${{ secrets.FIREBASE_CONFIG }}
         run: |
-          # *** 重要更新：使用更穩健的 Perl 指令 ***
-          # 這個指令會尋找 '__FIREBASE_CONFIG_JSON_PLACEHOLDER__'
+          # *** 重要更新：使用更穩健的 sed 指令 ***
+          # 這個指令會尋找 ##FIREBASE_CONFIG_JSON_PLACEHOLDER##
           # 並安全地將它替換成您存在 Secret 中的 Firebase 設定物件
-          perl -i -pe 's|__FIREBASE_CONFIG_JSON_PLACEHOLDER__|$ENV{FIREBASE_CONFIG_JSON}|g' index.html
+          sed -i "s|##FIREBASE_CONFIG_JSON_PLACEHOLDER##|${FIREBASE_CONFIG_JSON}|g" index.html
 
       - name: Deploy 🚀
         uses: peaceiris/actions-gh-pages@v3
