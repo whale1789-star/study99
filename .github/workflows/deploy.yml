@@ -28,18 +28,13 @@ jobs:
         env:
           FIREBASE_CONFIG_JSON: ${{ secrets.FIREBASE_CONFIG }}
         run: |
-          # *** 重要更新：使用最穩健的檔案替換方法 ***
-          # 1. 讀取 Secret 內容，並使用 'tr' 指令移除所有換行符號，將其壓平成一行
-          CONFIG_JSON_ONELINE=$(echo $FIREBASE_CONFIG_JSON | tr -d '\n\r')
-
-          # 2. 使用 sed 進行替換，這次 replacement string 是安全的單行文字
-          #    - 我們用雙引號包住整個 sed 命令
-          #    - 用 \| 作為分隔符
-          #    - 用 \\` 來轉義 `index.html` 中的反引號
-          sed -i.bak "s|\\\`##FIREBASE_CONFIG_JSON_PLACEHOLDER##\\\`|${CONFIG_JSON_ONELINE}|g" index.html
+          # 這個 sed 指令會尋找 '##FIREBASE_CONFIG_JSON_PLACEHOLDER##' (包含單引號)
+          # 並安全地將它替換成您存在 Secret 中的 Firebase 設定物件
+          sed -i "s|'##FIREBASE_CONFIG_JSON_PLACEHOLDER##'|${FIREBASE_CONFIG_JSON}|g" index.html
 
       - name: Deploy 🚀
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: . # 發布整個根目錄
+
