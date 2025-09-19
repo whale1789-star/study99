@@ -8,9 +8,9 @@ on:
 
 # 工作流程的權限設定
 permissions:
-  contents: write # *** 重要更新：從 read 改為 write，允許 Action 將程式碼推送到分支 ***
-  pages: write   # 允許寫入 GitHub Pages
-  id-token: write # 允許寫入 OIDC token
+  contents: write
+  pages: write
+  id-token: write
 
 # 並行控制：確保同時間只有一個部署流程在執行
 concurrency:
@@ -22,19 +22,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout 🛎️
-        # 將程式碼從倉庫中簽出
         uses: actions/checkout@v4
 
       - name: Replace Firebase Config 🤫
-        # 將儲存在 Secret 中的 Firebase 設定，寫入到 index.html 的預留位置中
         env:
           FIREBASE_CONFIG_JSON: ${{ secrets.FIREBASE_CONFIG }}
         run: |
-          # 使用 perl 指令來安全地取代預留位置，這個方法可以處理多行文字
-          perl -i -p0e 's/__FIREBASE_CONFIG_PLACEHOLDER__/$ENV{FIREBASE_CONFIG_JSON}/g' index2.html
+          # 這個 perl 指令會尋找 '__FIREBASE_CONFIG_JSON_PLACEHOLDER__' (包含引號)
+          # 並將它替換成您存在 Secret 中的 Firebase 設定物件
+          perl -i -p0e 's_'\''__FIREBASE_CONFIG_JSON_PLACEHOLDER__'\''_$ENV{FIREBASE_CONFIG_JSON}_g' index.html
 
       - name: Deploy 🚀
-        # 使用社群開發的 action 來部署到 GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
