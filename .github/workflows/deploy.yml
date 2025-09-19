@@ -28,10 +28,14 @@ jobs:
         env:
           FIREBASE_CONFIG_JSON: ${{ secrets.FIREBASE_CONFIG }}
         run: |
-          # *** 重要更新：使用更穩健的 sed 指令 ***
-          # 這個指令會尋找 ##FIREBASE_CONFIG_JSON_PLACEHOLDER##
-          # 並安全地將它替換成您存在 Secret 中的 Firebase 設定物件
-          sed -i "s|##FIREBASE_CONFIG_JSON_PLACEHOLDER##|${FIREBASE_CONFIG_JSON}|g" index.html
+          # *** 重要更新：使用最穩健的檔案替換方法 ***
+          # 1. 將 Secret 的內容寫入一個暫存檔案
+          echo "$FIREBASE_CONFIG_JSON" > firebase_config.json
+
+          # 2. 使用 sed 讀取暫存檔案的內容來進行替換
+          #    -r: 讀取檔案內容, -i: 直接修改, -f: 從檔案讀取腳本
+          #    這個方法可以完美處理任何特殊符號
+          sed -i.bak "s|`##FIREBASE_CONFIG_JSON_PLACEHOLDER##`|$(cat firebase_config.json)|g" index.html
 
       - name: Deploy 🚀
         uses: peaceiris/actions-gh-pages@v3
