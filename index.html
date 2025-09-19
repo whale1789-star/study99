@@ -42,9 +42,23 @@
         async function initializeFirebase() {
             try {
                 // *** 重要更新：使用更簡單的純文字預留位置 ***
-                const configStr = "__FIREBASE_CONFIG__";
+                const configStr = {
+  apiKey: "AIzaSyDfIw36T88S3xlGCoAP9nDGCRkpQlWKiLE",
+  authDomain: "ieka99.firebaseapp.com",
+  projectId: "ieka99",
+  storageBucket: "ieka99.firebasestorage.app",
+  messagingSenderId: "893665009867",
+  appId: "1:893665009867:web:d732e15cf792890c8a7b4e"
+};
                 
-                if (configStr.includes("__FIREBASE_CONFIG__")) {
+                if (configStr.includes({
+  apiKey: "AIzaSyDfIw36T88S3xlGCoAP9nDGCRkpQlWKiLE",
+  authDomain: "ieka99.firebaseapp.com",
+  projectId: "ieka99",
+  storageBucket: "ieka99.firebasestorage.app",
+  messagingSenderId: "893665009867",
+  appId: "1:893665009867:web:d732e15cf792890c8a7b4e"
+})) {
                     console.warn("Firebase config placeholder not replaced. Leaderboard will be disabled.");
                     db = null;
                     return;
