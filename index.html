@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>王公九九乘法冒險島</title>
+    <title>九九乘法冒險島v2</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap" rel="stylesheet">
@@ -41,11 +41,18 @@
         
         async function initializeFirebase() {
             try {
-                // *** 重要更新：預留位置現在是一個字串，如果替換失敗，JSON.parse會捕捉到錯誤 ***
-                const configStr = '__FIREBASE_CONFIG_JSON_PLACEHOLDER__';
+                // *** 重要更新：使用特殊的標記與反引號，讓部署腳本更容易替換 ***
+                const configStr = `##FIREBASE_CONFIG_JSON_PLACEHOLDER##`;
+                
+                // 檢查預留位置是否還在，如果還在就不要嘗試解析
+                if (configStr.includes("##FIREBASE_CONFIG_JSON_PLACEHOLDER##")) {
+                    console.warn("Firebase config placeholder not replaced. Leaderboard will be disabled.");
+                    db = null;
+                    return;
+                }
+
                 const firebaseConfig = JSON.parse(configStr);
 
-                // 檢查設定物件是否有效
                 if (typeof firebaseConfig !== 'object' || !firebaseConfig.apiKey) {
                      console.warn("Firebase config is invalid. Leaderboard will be disabled.");
                      db = null;
@@ -64,7 +71,7 @@
                 }
                 console.log("Firebase initialized and user signed in.");
             } catch (e) {
-                console.warn("Firebase config is not a valid JSON or not replaced. Leaderboard will be disabled.", e);
+                console.warn("Firebase config is not a valid JSON. Leaderboard will be disabled.", e);
                 db = null;
             }
         }
@@ -179,7 +186,7 @@
             drawCloud(150, 100, 1);
             drawCloud(canvas.width - 200, 150, 0.8);
 
-            drawText('王公九九乘法冒險島', canvas.width / 2, canvas.height * 0.25, canvas.width > 600 ? 50 : 36, '#000080');
+            drawText('九九乘法冒險島', canvas.width / 2, canvas.height * 0.25, canvas.width > 600 ? 50 : 36, '#000080');
             drawText('等你來挑戰！', canvas.width / 2, canvas.height * 0.35, canvas.width > 600 ? 24 : 18, '#000080');
 
             if (characterImage && characterImage.complete) {
@@ -641,8 +648,7 @@
                 canvas.height = window.innerHeight;
                 drawSystemText('載入中...');
 
-                // This is the primary change: We no longer await firebase here.
-                // We just call it and let it run in the background.
+                // We start firebase init right away, but don't wait for it
                 initializeFirebase(); 
 
                 try {
@@ -666,5 +672,4 @@
     </script>
 </body>
 </html>
-
 
