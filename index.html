@@ -42,7 +42,14 @@
         async function initializeFirebase() {
             try {
                 // *** 重要更新：預留位置現在是一個字串，如果替換失敗，JSON.parse會捕捉到錯誤 ***
-                const configStr = '__FIREBASE_CONFIG_JSON_PLACEHOLDER__';
+                const configStr = '{
+  apiKey: "AIzaSyDfIw36T88S3xlGCoAP9nDGCRkpQlWKiLE",
+  authDomain: "ieka99.firebaseapp.com",
+  projectId: "ieka99",
+  storageBucket: "ieka99.firebasestorage.app",
+  messagingSenderId: "893665009867",
+  appId: "1:893665009867:web:d732e15cf792890c8a7b4e"
+}';
                 const firebaseConfig = JSON.parse(configStr);
 
                 // 檢查設定物件是否有效
