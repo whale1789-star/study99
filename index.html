@@ -42,7 +42,7 @@
         async function initializeFirebase() {
             try {
                 // *** 重要更新：使用更簡單的字串預留位置，更容易被替換 ***
-                const configStr = '##FIREBASE_CONFIG_JSON_PLACEHOLDER##';
+                const configStr = {  apiKey: "AIzaSyDfIw36T88S3xlGCoAP9nDGCRkpQlWKiLE",  authDomain: "ieka99.firebaseapp.com",  projectId: "ieka99",  storageBucket: "ieka99.firebasestorage.app",  messagingSenderId: "893665009867",  appId: "1:893665009867:web:d732e15cf792890c8a7b4e"};
                 
                 if (configStr.includes("##FIREBASE_CONFIG_JSON_PLACEHOLDER##")) {
                     console.warn("Firebase config placeholder not replaced. Leaderboard will be disabled.");
