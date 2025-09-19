@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>九九乘法冒險島v</title>
+    <title>王公九九乘法冒險島</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap" rel="stylesheet">
@@ -41,13 +41,13 @@
         
         async function initializeFirebase() {
             try {
-                // *** 重要更新 ***
-                // 這個預留位置將在 GitHub Action 部署時被自動替換成您的 Firebase 設定物件。
-                const firebaseConfig = __FIREBASE_CONFIG_PLACEHOLDER__;
+                // *** 重要更新：預留位置現在是一個字串，如果替換失敗，JSON.parse會捕捉到錯誤 ***
+                const configStr = '__FIREBASE_CONFIG_JSON_PLACEHOLDER__';
+                const firebaseConfig = JSON.parse(configStr);
 
                 // 檢查設定物件是否有效
                 if (typeof firebaseConfig !== 'object' || !firebaseConfig.apiKey) {
-                     console.warn("Firebase config is invalid or not provided. Leaderboard will be disabled.");
+                     console.warn("Firebase config is invalid. Leaderboard will be disabled.");
                      db = null;
                      return;
                 }
@@ -64,8 +64,7 @@
                 }
                 console.log("Firebase initialized and user signed in.");
             } catch (e) {
-                console.error("Firebase initialization failed:", e);
-                // Gracefully fail by setting db to null, allowing the game to run without leaderboard.
+                console.warn("Firebase config is not a valid JSON or not replaced. Leaderboard will be disabled.", e);
                 db = null;
             }
         }
@@ -635,34 +634,36 @@
         });
 
         // --- Main App Startup ---
-        async function main() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            drawSystemText('載入中...');
+        // *** 重要更新：將主程式包在 window.onload 中，確保所有資源 (如 Tone.js) 都已載入 ***
+        window.onload = function() {
+            async function main() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                drawSystemText('載入中...');
 
-            // This is the primary change: We no longer await firebase here.
-            // We just call it and let it run in the background.
-            initializeFirebase(); 
+                // This is the primary change: We no longer await firebase here.
+                // We just call it and let it run in the background.
+                initializeFirebase(); 
 
-            try {
-                // We only await assets that are critical for the initial render.
-                await loadAssets();
-                
-                // Once critical assets are ready, draw the main screen.
-                resizeCanvas();
-                window.addEventListener('resize', resizeCanvas, false);
-                window.addEventListener('keydown', handleKeyPress);
-                
-            } catch (error) {
-                console.error("Asset loading failed:", error);
-                drawSystemText('遊戲圖片載入失敗', 'red');
+                try {
+                    // We only await assets that are critical for the initial render.
+                    await loadAssets();
+                    
+                    // Once critical assets are ready, draw the main screen.
+                    resizeCanvas();
+                    window.addEventListener('resize', resizeCanvas, false);
+                    window.addEventListener('keydown', handleKeyPress);
+                    
+                } catch (error) {
+                    console.error("Asset loading failed:", error);
+                    drawSystemText('遊戲圖片載入失敗', 'red');
+                }
             }
-        }
 
-        main();
+            main();
+        }
 
     </script>
 </body>
 </html>
-
 
