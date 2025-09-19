@@ -28,9 +28,9 @@ jobs:
         env:
           FIREBASE_CONFIG_JSON: ${{ secrets.FIREBASE_CONFIG }}
         run: |
-          # 這個 sed 指令會尋找 "__FIREBASE_CONFIG__" (包含雙引號)
-          # 並安全地將它替換成您存在 Secret 中的 Firebase 設定物件
-          sed -i "s|\"__FIREBASE_CONFIG__\"|${FIREBASE_CONFIG_JSON}|g" index.html
+          # *** 重要更新：使用最穩健的 awk 指令來處理替換 ***
+          # 這個指令將 Secret 作為變數傳遞給 awk，可以完美處理任何特殊符號
+          awk -v config="$FIREBASE_CONFIG_JSON" '{gsub(/"__FIREBASE_CONFIG__"/, config)}1' index.html > index.html.tmp && mv index.html.tmp index.html
 
       - name: Deploy 🚀
         uses: peaceiris/actions-gh-pages@v3
