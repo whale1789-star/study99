@@ -28,16 +28,9 @@ jobs:
         env:
           FIREBASE_CONFIG_JSON: ${{ secrets.FIREBASE_CONFIG }}
         run: |
-          # *** 重要更新：使用最穩健的 awk 指令來處理替換 ***
-          # 1. 將 Secret 的內容寫入一個暫存檔案
-          echo "$FIREBASE_CONFIG_JSON" > config.json
-
-          # 2. 使用 awk 指令讀取 config.json 的內容，並替換 index.html 中的預留位置
-          #    這個方法可以完美處理任何特殊符號與換行
-          awk '
-            NR==FNR { rep = rep $0; next }
-            { gsub(/\047##FIREBASE_CONFIG_JSON_PLACEHOLDER##\047/, rep); print }
-          ' config.json index.html > index.html.tmp && mv index.html.tmp index.html
+          # 這個 sed 指令會尋找 "__FIREBASE_CONFIG__" (包含雙引號)
+          # 並安全地將它替換成您存在 Secret 中的 Firebase 設定物件
+          sed -i "s|\"__FIREBASE_CONFIG__\"|${FIREBASE_CONFIG_JSON}|g" index.html
 
       - name: Deploy 🚀
         uses: peaceiris/actions-gh-pages@v3
