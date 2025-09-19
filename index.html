@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>九九乘法冒險島v3</title>
+    <title>九九乘法冒險島V4</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap" rel="stylesheet">
@@ -41,10 +41,10 @@
         
         async function initializeFirebase() {
             try {
-                // *** 重要更新：使用更簡單的字串預留位置，更容易被替換 ***
-                const configStr = {  apiKey: "AIzaSyDfIw36T88S3xlGCoAP9nDGCRkpQlWKiLE",  authDomain: "ieka99.firebaseapp.com",  projectId: "ieka99",  storageBucket: "ieka99.firebasestorage.app",  messagingSenderId: "893665009867",  appId: "1:893665009867:web:d732e15cf792890c8a7b4e"};
+                // *** 重要更新：使用更簡單的純文字預留位置 ***
+                const configStr = "__FIREBASE_CONFIG__";
                 
-                if (configStr.includes("##FIREBASE_CONFIG_JSON_PLACEHOLDER##")) {
+                if (configStr.includes("__FIREBASE_CONFIG__")) {
                     console.warn("Firebase config placeholder not replaced. Leaderboard will be disabled.");
                     db = null;
                     return;
@@ -185,7 +185,7 @@
             drawCloud(150, 100, 1);
             drawCloud(canvas.width - 200, 150, 0.8);
 
-            drawText('九九乘法冒險島v3', canvas.width / 2, canvas.height * 0.25, canvas.width > 600 ? 50 : 36, '#000080');
+            drawText('九九乘法冒險島V4', canvas.width / 2, canvas.height * 0.25, canvas.width > 600 ? 50 : 36, '#000080');
             drawText('等你來挑戰！', canvas.width / 2, canvas.height * 0.35, canvas.width > 600 ? 24 : 18, '#000080');
 
             if (characterImage && characterImage.complete) {
