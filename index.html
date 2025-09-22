@@ -2,12 +2,16 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>九九乘法冒險島</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>九九乘法冒險島V6</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap" rel="stylesheet"/>
   <style>
+    :root {
+      /* 讀取行動裝置底部安全區 */
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
     body { margin:0; overflow:hidden; background:#87ceeb; font-family:'M PLUS Rounded 1c', sans-serif; }
     canvas { display:block; }
   </style>
@@ -28,7 +32,7 @@
 
     /* ========= 圓角矩形 polyfill (取代 roundRect) ========= */
     function rr(ctx, x, y, w, h, r = 0) {
-      const radii = typeof r === 'number' ? {tl:r, tr:r, br:r, bl:r} : (r || {tl:0,tr:0,br:0,bl:0});
+      const radii = typeof r === 'number' ? {tl:r, tr:r, br:r, bl:r} : (r || {tl:0,tr:0,bl:0});
       ctx.beginPath();
       ctx.moveTo(x + radii.tl, y);
       ctx.lineTo(x + w - radii.tr, y);
@@ -39,6 +43,13 @@
       ctx.quadraticCurveTo(x, y + h, x, y + h - radii.bl);
       ctx.lineTo(x, y + radii.tl);
       ctx.quadraticCurveTo(x, y, x + radii.tl, y);
+    }
+
+    /* ========= 讀取安全區（CSS env） ========= */
+    function getSafeBottom() {
+      const v = getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom') || '0px';
+      const n = parseFloat(v);
+      return isNaN(n) ? 0 : n; // 單位：CSS 像素
     }
 
     /* ========= Firebase ========= */
@@ -135,7 +146,7 @@
       g.addColorStop(0,'#87CEEB'); g.addColorStop(1,'#66CDAA');
       ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
       drawCloud(150,100,1); drawCloud(canvas.width-200,150,0.8);
-      drawText('王公九九乘法冒險島', canvas.width/2, canvas.height*0.25, canvas.width>600?50:36, '#000080');
+      drawText('九九乘法冒險島V6', canvas.width/2, canvas.height*0.25, canvas.width>600?50:36, '#000080');
       drawText('等你來挑戰！', canvas.width/2, canvas.height*0.35, canvas.width>600?24:18, '#000080');
 
       if (characterImage && characterImage.complete && characterImage.naturalWidth>0) {
@@ -198,7 +209,9 @@
       drawText(`${currentQuestion.num1} x ${currentQuestion.num2} = ?`, bx,by, canvas.width>600?48:36, '#000080');
       if (feedbackMessage) drawText(feedbackMessage, canvas.width/2, canvas.height*0.35, canvas.width>600?36:24, '#FF4500');
 
-      drawScore(); drawTime(); drawCharacter(); drawAnswerButtons(); drawProgressBar();
+      drawScore(); drawTime(); drawCharacter(); 
+      drawAnswerButtons();   // 先畫按鈕
+      drawProgressBar();     // 再畫進度條（位置已避開）
     }
 
     function drawScore(){ drawText(`分數：${score}`, 30, 60, canvas.width>600?24:18, '#FFFFFF','left'); }
@@ -214,27 +227,85 @@
       }
     }
 
+    /* ========= 手機友善：答案按鈕自動避開底部 + 自動縮放 ========= */
     function drawAnswerButtons() {
-      const cols = canvas.width>700?3:2;
-      const bw=120, bh=60;
-      const tw = cols*(bw+20)-20;
-      const sx = (canvas.width - tw)/2 + bw/2;
-      const sy = canvas.height*0.7;
-      answerButtons.forEach((btn,i)=>{
-        const r=Math.floor(i/cols), c=i%cols;
-        const x = sx + c*(bw+20), y = sy + r*(bh+20);
-        drawButton(btn.value, x,y,bw,bh,'#FFD700','#8B4513');
-        btn.x=x; btn.y=y; btn.width=bw; btn.height=bh;
+      const cols = canvas.width > 700 ? 3 : 2;
+
+      // 基本尺寸
+      const baseW = 120;
+      const baseH = 60;
+      const baseGap = 20;
+
+      const rows = Math.ceil(answerButtons.length / cols);
+
+      // 進度條與安全區
+      const barH = 25;
+      const safeBottom = getSafeBottom();       // ex: iPhone 底部 Home Bar
+      const bottomReserve = safeBottom + barH + 24; // 24 為進度條與按鈕的間距
+
+      const availableBottomY = canvas.height - bottomReserve;
+
+      // 以「下緣對齊」推回來的排版：先估算原始總高
+      const totalH = rows * baseH + (rows - 1) * baseGap;
+
+      // 預設把整塊網格的「頂端」放在距底部 totalH + 10 的位置
+      let top = availableBottomY - totalH - 10;
+      const minTop = canvas.height * 0.52; // 題目區以下
+
+      // 若空間不足，等比縮小（含高度、寬度、間距）
+      let s = 1;
+      if (top < minTop) {
+        const avail = availableBottomY - 10 - minTop;           // 實際可用高度
+        const need = totalH;
+        s = Math.max(0.6, Math.min(1, avail / need));           // 不低於 0.6 倍
+        const scaledTotalH = rows * (baseH * s) + (rows - 1) * (baseGap * s);
+        top = availableBottomY - scaledTotalH - 10;             // 重新計算頂端
+      }
+
+      const bw = baseW * s;
+      const bh = baseH * s;
+      const gap = baseGap * s;
+
+      // 依螢幕寬度調整水平排版
+      const totalW = cols * bw + (cols - 1) * gap;
+      const startX = (canvas.width - totalW) / 2 + bw / 2;
+      const startY = top + bh / 2; // 第一列中心 y
+
+      answerButtons.forEach((btn, i) => {
+        const r = Math.floor(i / cols);
+        const c = i % cols;
+        const x = startX + c * (bw + gap);
+        const y = startY + r * (bh + gap);
+        drawButton(btn.value, x, y, bw, bh, '#FFD700', '#8B4513');
+        btn.x = x; btn.y = y; btn.width = bw; btn.height = bh;
       });
     }
 
+    /* ========= 進度條：避開安全區，貼齊底部 ========= */
     function drawProgressBar() {
-      const bw=canvas.width*0.6, bh=25, x=(canvas.width-bw)/2, y=canvas.height-50, maxQ=20;
-      ctx.fillStyle='#f0e68c'; rr(ctx,x,y,bw,bh,12); ctx.fill();
-      const prog = (correctAnswersCount/maxQ)*bw;
-      if (prog>0){ ctx.fillStyle='#FFC107'; rr(ctx,x,y,prog,bh,12); ctx.fill(); }
-      ctx.strokeStyle='#daa520'; ctx.lineWidth=3; rr(ctx,x,y,bw,bh,12); ctx.stroke();
-      drawText(`${correctAnswersCount} / ${maxQ}`, canvas.width/2, y+bh/2, 16, '#A52A2A');
+      const barWidth = canvas.width * 0.6;
+      const barHeight = 25;
+      const safeBottom = getSafeBottom();
+      const margin = 10;
+
+      const barX = (canvas.width - barWidth) / 2;
+      const barY = canvas.height - safeBottom - margin - barHeight;
+
+      const maxQuestions = 20;
+      ctx.fillStyle = '#f0e68c';
+      rr(ctx, barX, barY, barWidth, barHeight, 12); ctx.fill();
+
+      const progress = (correctAnswersCount / maxQuestions) * barWidth;
+      if (progress > 0) {
+        ctx.fillStyle = '#FFC107';
+        rr(ctx, barX, barY, progress, barHeight, 12); ctx.fill();
+      }
+
+      ctx.strokeStyle = '#daa520';
+      ctx.lineWidth = 3;
+      rr(ctx, barX, barY, barWidth, barHeight, 12); ctx.stroke();
+
+      drawText(`${correctAnswersCount} / ${maxQuestions}`, canvas.width / 2, barY + barHeight / 2, 16, '#A52A2A');
     }
 
     function drawGameOverPage() {
@@ -307,7 +378,7 @@
       ctx.shadowColor='rgba(0,0,0,0.3)'; ctx.shadowBlur=10; ctx.shadowOffsetX=4; ctx.shadowOffsetY=4;
       ctx.fillStyle=color; rr(ctx, x-w/2, y-h/2, w,h,15); ctx.fill();
       ctx.restore();
-      drawText(text, x,y,22, textColor);
+      drawText(text, x,y,Math.max(18, Math.min(22, w/6)), textColor); // 字體跟著寬度微調
     }
 
     /* ========= 遊戲邏輯 ========= */
@@ -316,16 +387,14 @@
       isCharacterJumping = true; jumpStartTime = Date.now();
     }
 
-    // ✅ 修好：保證湊滿 5 個錯誤選項，不會卡死
+    // 產生 5 個錯誤選項（避免無限迴圈）
     function generateWrongAnswers(answer, count=5) {
       const set = new Set();
-      // 先用鄰近值（±9）填滿
       for (let off = -9; off <= 9 && set.size < count; off++) {
         if (off === 0) continue;
         const v = answer + off;
         if (v > 0) set.add(v);
       }
-      // 若仍不足，再用較大範圍補齊（至少 1..max(answer+20, 30)）
       let tries = 0;
       const upper = Math.max(answer + 20, 30);
       while (set.size < count && tries < 500) {
@@ -542,4 +611,3 @@
   </script>
 </body>
 </html>
-
