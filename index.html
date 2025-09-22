@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>九九乘法冒險島V8</title>
+    <title>九九乘法冒險島V6</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap" rel="stylesheet">
@@ -133,7 +133,6 @@
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            // No need to call drawScreen here, the game loop will handle it
         }
 
         function drawScreen() {
@@ -180,7 +179,7 @@
             drawCloud(150, 100, 1);
             drawCloud(canvas.width - 200, 150, 0.8);
 
-            drawText('九九乘法冒險島V8', canvas.width / 2, canvas.height * 0.25, canvas.width > 600 ? 50 : 36, '#000080');
+            drawText('九九乘法冒險島V6', canvas.width / 2, canvas.height * 0.25, canvas.width > 600 ? 50 : 36, '#000080');
             drawText('等你來挑戰！', canvas.width / 2, canvas.height * 0.35, canvas.width > 600 ? 24 : 18, '#000080');
 
             if (characterImage && characterImage.complete) {
@@ -604,7 +603,6 @@
                 elapsedTime = Date.now() - startTime;
             }
             
-            // Animation Logic
             if (isCharacterJumping) {
                 const elapsedJumpTime = Date.now() - jumpStartTime;
                 if (elapsedJumpTime < JUMP_DURATION) {
