@@ -506,7 +506,7 @@
         async function saveScoreToLeaderboard(name, score, time) {
             if (!db) { console.error("Firestore is not initialized."); return; }
             try {
-                const leaderboardCol = collection(db, `/artifacts/${appId}/public/data/leaderboard`);
+                const leaderboardCol = collection(db, `leaderboard`);
                 await addDoc(leaderboardCol, { name, score, time, createdAt: new Date() });
                 console.log("Score saved successfully!");
             } catch (error) {
@@ -527,7 +527,7 @@
             }
 
             try {
-                const leaderboardCol = collection(db, `/artifacts/${appId}/public/data/leaderboard`);
+                const leaderboardCol = collection(db, `leaderboard`);
                 const snapshot = await getDocs(leaderboardCol);
                 const scores = snapshot.docs.map(doc => doc.data());
                 // Sort by score (desc), then time (asc)
@@ -542,18 +542,17 @@
         }
         
         // --- Audio Initialization ---
-        async function initializeAudio() {
-            if (audioInitialized) return;
-            try {
-                await Tone.start();
+        function initializeAudio() {
+            if (audioInitialized || typeof Tone === 'undefined') return;
+            Tone.start().then(() => {
                 correctSynth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'sine' }, envelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.2 } }).toDestination();
                 wrongSynth = new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.2 } }).toDestination();
                 clickSynth = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination();
                 audioInitialized = true;
                 console.log("Audio context started.");
-            } catch (e) {
+            }).catch(e => {
                 console.error("Could not start audio context:", e);
-            }
+            });
         }
 
         // --- Event Listeners ---
@@ -575,8 +574,8 @@
             drawScreen();
         }
 
-        canvas.addEventListener('click', async function(event) {
-            await initializeAudio();
+        canvas.addEventListener('click', function(event) {
+            initializeAudio();
             const rect = canvas.getBoundingClientRect();
             const mouseX = event.clientX - rect.left;
             const mouseY = event.clientY - rect.top;
@@ -599,7 +598,9 @@
                                 if (timerInterval) clearInterval(timerInterval);
                                 timerInterval = setInterval(() => {
                                     elapsedTime = Date.now() - startTime;
-                                    if (currentPage === 'practice') { drawScreen(); }
+                                    if (currentPage === 'practice' && !isAnswerLocked) { // *** 修正：避免在回饋時重繪 ***
+                                        drawScreen();
+                                    }
                                 }, 1000);
                                 break;
                             case 'save_score':
@@ -634,21 +635,17 @@
         });
 
         // --- Main App Startup ---
-        // *** 重要更新：將主程式包在 window.onload 中，確保所有資源 (如 Tone.js) 都已載入 ***
         window.onload = function() {
             async function main() {
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
                 drawSystemText('載入中...');
 
-                // We start firebase init right away, but don't wait for it
                 initializeFirebase(); 
 
                 try {
-                    // We only await assets that are critical for the initial render.
                     await loadAssets();
                     
-                    // Once critical assets are ready, draw the main screen.
                     resizeCanvas();
                     window.addEventListener('resize', resizeCanvas, false);
                     window.addEventListener('keydown', handleKeyPress);
@@ -665,4 +662,3 @@
     </script>
 </body>
 </html>
-
