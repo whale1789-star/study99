@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>九九乘法冒險島V8</title>
+    <title>九九乘法冒險島V6</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap" rel="stylesheet">
@@ -41,17 +41,16 @@
         
         async function initializeFirebase() {
             try {
-                // *** 修正：直接定義並使用您的 Firebase 設定物件 ***
                 const firebaseConfig = {
                     apiKey: "AIzaSyDfIw36T88S3xlGCoAP9nDGCRkpQlWKiLE",
                     authDomain: "ieka99.firebaseapp.com",
                     projectId: "ieka99",
-                    storageBucket: "ieka99.appspot.com", // 修正：通常結尾是 .appspot.com
+                    storageBucket: "ieka99.appspot.com",
                     messagingSenderId: "893665009867",
                     appId: "1:893665009867:web:d732e15cf792890c8a7b4e"
                 };
 
-                if (typeof firebaseConfig !== 'object' || !firebaseConfig.apiKey) {
+                if (!firebaseConfig.apiKey) {
                      console.warn("Firebase config is invalid. Leaderboard will be disabled.");
                      db = null;
                      return;
@@ -62,12 +61,8 @@
                 auth = getAuth(app);
                 setLogLevel('debug');
 
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-                console.log("Firebase initialized and user signed in.");
+                await signInAnonymously(auth);
+                console.log("Firebase initialized and user signed in anonymously.");
             } catch (e) {
                 console.error("Firebase initialization failed:", e);
                 db = null;
@@ -184,7 +179,7 @@
             drawCloud(150, 100, 1);
             drawCloud(canvas.width - 200, 150, 0.8);
 
-            drawText('九九乘法冒險島V8', canvas.width / 2, canvas.height * 0.25, canvas.width > 600 ? 50 : 36, '#000080');
+            drawText('九九乘法冒險島V6', canvas.width / 2, canvas.height * 0.25, canvas.width > 600 ? 50 : 36, '#000080');
             drawText('等你來挑戰！', canvas.width / 2, canvas.height * 0.35, canvas.width > 600 ? 24 : 18, '#000080');
 
             if (characterImage && characterImage.complete) {
