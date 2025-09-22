@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>九九乘法冒險島V6</title>
+    <title>九九乘法冒險島V8</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap" rel="stylesheet">
@@ -24,15 +24,29 @@
 <body>
     <canvas id="gameCanvas"></canvas>
 
-    
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+
+        // ---- 圓角矩形 polyfill（統一替代 roundRect）----
+        function rr(ctx, x, y, w, h, r = 0) {
+            const radii = typeof r === 'number' ? {tl:r, tr:r, br:r, bl:r} : (r || {tl:0,tr:0,br:0,bl:0});
+            ctx.beginPath();
+            ctx.moveTo(x + radii.tl, y);
+            ctx.lineTo(x + w - radii.tr, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + radii.tr);
+            ctx.lineTo(x + w, y + h - radii.br);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - radii.br, y + h);
+            ctx.lineTo(x + radii.bl, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - radii.bl);
+            ctx.lineTo(x, y + radii.tl);
+            ctx.quadraticCurveTo(x, y, x + radii.tl, y);
+        }
 
         // --- Firebase setup ---
         let db;
@@ -68,7 +82,6 @@
             }
         }
 
-
         // --- Game State Variables ---
         let currentPage = 'home';
         let currentQuestion = {};
@@ -90,6 +103,8 @@
         let jumpStartTime = 0;
         const JUMP_DURATION = 1000;
         const JUMP_HEIGHT = 50;
+        let feedbackEndTime = 0;
+        let lastAnswerWasCorrect = false;
 
         // Timer variables
         let startTime = 0;
@@ -98,7 +113,6 @@
         // --- Audio Synthesis ---
         let correctSynth, wrongSynth, clickSynth;
         let audioInitialized = false;
-
 
         // --- Image Loading ---
         let akitaImage, characterImage;
@@ -178,12 +192,12 @@
             drawCloud(150, 100, 1);
             drawCloud(canvas.width - 200, 150, 0.8);
 
-            drawText('九九乘法冒險島V6', canvas.width / 2, canvas.height * 0.25, canvas.width > 600 ? 50 : 36, '#000080');
+            drawText('九九乘法冒險島V8', canvas.width / 2, canvas.height * 0.25, canvas.width > 600 ? 50 : 36, '#000080');
             drawText('等你來挑戰！', canvas.width / 2, canvas.height * 0.35, canvas.width > 600 ? 24 : 18, '#000080');
 
-            if (characterImage && characterImage.complete) {
+            if (characterImage && characterImage.complete && characterImage.naturalWidth > 0) {
                 const imgWidth = canvas.width * 0.15;
-                const imgHeight = (characterImage.height / characterImage.width) * imgWidth;
+                const imgHeight = (characterImage.naturalHeight / characterImage.naturalWidth) * imgWidth;
                 ctx.drawImage(characterImage, canvas.width / 2 - imgWidth / 2, canvas.height / 2 - imgHeight / 2, imgWidth, imgHeight);
             }
 
@@ -267,9 +281,16 @@
         function drawTime() { const seconds = Math.floor(elapsedTime / 1000); drawText(`時間：${seconds} 秒`, canvas.width - 30, 60, canvas.width > 600 ? 24 : 18, '#FFFFFF', 'right'); }
         function drawCharacter() {
             const charWidth = canvas.width > 600 ? 150 : 100;
-            const charHeight = (akitaImage.height / akitaImage.width) * charWidth;
-            if (akitaImage && akitaImage.complete) {
-                ctx.drawImage(akitaImage, canvas.width / 2 - charWidth / 2, canvas.height * 0.45 + characterYOffset - charHeight / 2, charWidth, charHeight);
+            const nw = (akitaImage && akitaImage.naturalWidth) ? akitaImage.naturalWidth : 0;
+            const nh = (akitaImage && akitaImage.naturalHeight) ? akitaImage.naturalHeight : 0;
+            if (akitaImage && akitaImage.complete && nw > 0 && nh > 0) {
+                const charHeight = (nh / nw) * charWidth;
+                ctx.drawImage(
+                    akitaImage,
+                    canvas.width / 2 - charWidth / 2,
+                    canvas.height * 0.45 + characterYOffset - charHeight / 2,
+                    charWidth, charHeight
+                );
             }
         }
         
@@ -296,16 +317,23 @@
             const barX = (canvas.width - barWidth) / 2;
             const barY = canvas.height - 50;
             const maxQuestions = 20;
+
+            // 背景
             ctx.fillStyle = '#f0e68c';
-            ctx.beginPath(); ctx.roundRect(barX, barY, barWidth, barHeight, 12); ctx.fill();
+            rr(ctx, barX, barY, barWidth, barHeight, 12); ctx.fill();
+
+            // 進度
             const progress = (correctAnswersCount / maxQuestions) * barWidth;
             if (progress > 0) {
                 ctx.fillStyle = '#FFC107';
-                ctx.beginPath(); ctx.roundRect(barX, barY, progress, barHeight, 12); ctx.fill();
+                rr(ctx, barX, barY, progress, barHeight, 12); ctx.fill();
             }
+
+            // 邊框
             ctx.strokeStyle = '#daa520';
             ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.roundRect(barX, barY, barWidth, barHeight, 12); ctx.stroke();
+            rr(ctx, barX, barY, barWidth, barHeight, 12); ctx.stroke();
+
             drawText(`${correctAnswersCount} / ${maxQuestions}`, canvas.width / 2, barY + barHeight / 2, 16, '#A52A2A');
         }
         
@@ -316,7 +344,7 @@
             const modalWidth = canvas.width * 0.7; const modalHeight = canvas.height * 0.6;
             const modalX = (canvas.width - modalWidth) / 2; const modalY = (canvas.height - modalHeight) / 2;
             ctx.fillStyle = '#FFF8DC'; ctx.strokeStyle = '#F0E68C'; ctx.lineWidth = 10;
-            ctx.beginPath(); ctx.roundRect(modalX, modalY, modalWidth, modalHeight, 20); ctx.fill(); ctx.stroke();
+            rr(ctx, modalX, modalY, modalWidth, modalHeight, 20); ctx.fill(); ctx.stroke();
             const totalTime = Math.floor(elapsedTime / 1000);
             drawText('挑戰完成！', canvas.width / 2, modalY + modalHeight * 0.2, 40, '#D2691E');
             drawText(`總分：${score}`, canvas.width / 2, modalY + modalHeight * 0.4, 30, '#8B4513');
@@ -328,7 +356,7 @@
         }
 
         function drawEnterNamePage() {
-            drawGameOverPage(); // Show background
+            drawGameOverPage();
             ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -336,14 +364,14 @@
             const modalX = (canvas.width - modalWidth) / 2; const modalY = (canvas.height - modalHeight) / 2;
 
             ctx.fillStyle = '#FFFFFF';
-            ctx.beginPath(); ctx.roundRect(modalX, modalY, modalWidth, modalHeight, 20); ctx.fill();
+            rr(ctx, modalX, modalY, modalWidth, modalHeight, 20); ctx.fill();
 
             drawText('請輸入你的名字', canvas.width/2, modalY + modalHeight * 0.2, 32, '#333');
             
             const inputWidth = modalWidth * 0.8; const inputHeight = 60;
             const inputX = (canvas.width - inputWidth) / 2; const inputY = modalY + modalHeight * 0.4;
             ctx.strokeStyle = '#CCC'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.roundRect(inputX, inputY, inputWidth, inputHeight, 10); ctx.stroke();
+            rr(ctx, inputX, inputY, inputWidth, inputHeight, 10); ctx.stroke();
             
             let displayName = playerName;
             if (Math.floor(Date.now() / 500) % 2 === 0) {
@@ -397,7 +425,7 @@
             ctx.shadowColor = 'rgba(0, 0, 0, 0.3)'; ctx.shadowBlur = 10;
             ctx.shadowOffsetX = 4; ctx.shadowOffsetY = 4;
             ctx.fillStyle = color;
-            ctx.beginPath(); ctx.roundRect(x - width/2, y - height/2, width, height, 15); ctx.fill();
+            rr(ctx, x - width/2, y - height/2, width, height, 15); ctx.fill();
             ctx.restore();
             drawText(text, x, y, 22, textColor);
         }
@@ -441,6 +469,7 @@
         function checkAnswer(isCorrect) {
             if (isAnswerLocked) return;
             isAnswerLocked = true;
+            lastAnswerWasCorrect = isCorrect;
             
             if (isCorrect) {
                 feedbackMessage = '太棒了！答對囉！';
@@ -448,26 +477,12 @@
                 score += 5;
                 if(correctSynth) correctSynth.triggerAttackRelease(['C4', 'E4', 'G4'], '8n');
                 startCharacterAnimation();
-
-                setTimeout(() => {
-                    feedbackMessage = '';
-                    if (correctAnswersCount >= 20) {
-                        currentPage = 'gameOver';
-                    } else {
-                        generateNewQuestion();
-                        isAnswerLocked = false;
-                    }
-                }, 1500);
             } else {
                 feedbackMessage = '再想想看喔！';
                 score = Math.max(0, score - 2);
                 if(wrongSynth) wrongSynth.triggerAttackRelease('C3', '4n');
-
-                setTimeout(() => {
-                    feedbackMessage = '';
-                    isAnswerLocked = false;
-                }, 1500);
             }
+            feedbackEndTime = Date.now() + 1500;
         }
         
         function resetGame() {
@@ -603,22 +618,42 @@
         
         // --- Main Game Loop ---
         function gameLoop() {
-            if (currentPage === 'practice' && startTime > 0) {
-                elapsedTime = Date.now() - startTime;
-            }
-            
-            if (isCharacterJumping) {
-                const elapsedJumpTime = Date.now() - jumpStartTime;
-                if (elapsedJumpTime < JUMP_DURATION) {
-                    const progress = elapsedJumpTime / JUMP_DURATION;
-                    characterYOffset = -Math.sin(progress * Math.PI) * JUMP_HEIGHT;
-                } else {
-                    isCharacterJumping = false;
-                    characterYOffset = 0;
+            try {
+                if (currentPage === 'practice' && startTime > 0) {
+                    elapsedTime = Date.now() - startTime;
                 }
-            }
+                
+                if (isCharacterJumping) {
+                    const elapsedJumpTime = Date.now() - jumpStartTime;
+                    if (elapsedJumpTime < JUMP_DURATION) {
+                        const progress = elapsedJumpTime / JUMP_DURATION;
+                        characterYOffset = -Math.sin(progress * Math.PI) * JUMP_HEIGHT;
+                    } else {
+                        isCharacterJumping = false;
+                        characterYOffset = 0;
+                    }
+                }
 
-            drawScreen();
+                if (feedbackEndTime > 0 && Date.now() >= feedbackEndTime) {
+                    feedbackEndTime = 0;
+                    if (lastAnswerWasCorrect) {
+                        if (correctAnswersCount >= 20) {
+                            currentPage = 'gameOver';
+                        } else {
+                            generateNewQuestion();
+                            isAnswerLocked = false;
+                        }
+                    } else {
+                        feedbackMessage = '';
+                        isAnswerLocked = false;
+                    }
+                }
+
+                drawScreen();
+            } catch (e) {
+                console.error(e);
+                drawSystemText('發生錯誤：' + e.message, 'red');
+            }
             requestAnimationFrame(gameLoop);
         }
 
@@ -650,4 +685,3 @@
     </script>
 </body>
 </html>
-
