@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>九九乘法冒險島V6</title>
+    <title>九九乘法冒險島V8</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap" rel="stylesheet">
@@ -40,12 +40,11 @@
         
         async function initializeFirebase() {
             try {
-                // *** 修正：直接定義並使用您的 Firebase 設定物件 ***
                 const firebaseConfig = {
                     apiKey: "AIzaSyDfIw36T88S3xlGCoAP9nDGCRkpQlWKiLE",
                     authDomain: "ieka99.firebaseapp.com",
                     projectId: "ieka99",
-                    storageBucket: "ieka99.appspot.com", // 修正：通常結尾是 .appspot.com
+                    storageBucket: "ieka99.appspot.com",
                     messagingSenderId: "893665009867",
                     appId: "1:893665009867:web:d732e15cf792890c8a7b4e"
                 };
@@ -83,11 +82,15 @@
         let playerName = '';
         let leaderboardData = [];
         let isLeaderboardLoading = false;
-        let isAnswerLocked = false; // Lock to prevent multiple answer clicks
+        let isAnswerLocked = false;
         
         // Animation variables
         let characterYOffset = 0;
-        let animationFrameId = null;
+        let isCharacterJumping = false;
+        let jumpStartTime = 0;
+        const JUMP_DURATION = 1000;
+        const JUMP_HEIGHT = 50;
+
 
         // Timer variables
         let startTime = 0;
@@ -130,7 +133,7 @@
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            drawScreen();
+            // No need to call drawScreen here, the game loop will handle it
         }
 
         function drawScreen() {
@@ -158,11 +161,10 @@
             ctx.shadowColor = 'transparent';
         }
 
-        // --- New robust function for drawing loading/error messages ---
         function drawSystemText(text, color = '#333') {
             ctx.fillStyle = "white";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.font = "bold 30px sans-serif"; // Use a web-safe font
+            ctx.font = "bold 30px sans-serif";
             ctx.fillStyle = color;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
@@ -178,7 +180,7 @@
             drawCloud(150, 100, 1);
             drawCloud(canvas.width - 200, 150, 0.8);
 
-            drawText('九九乘法冒險島V6', canvas.width / 2, canvas.height * 0.25, canvas.width > 600 ? 50 : 36, '#000080');
+            drawText('九九乘法冒險島V8', canvas.width / 2, canvas.height * 0.25, canvas.width > 600 ? 50 : 36, '#000080');
             drawText('等你來挑戰！', canvas.width / 2, canvas.height * 0.35, canvas.width > 600 ? 24 : 18, '#000080');
 
             if (characterImage && characterImage.complete) {
@@ -340,13 +342,11 @@
 
             drawText('請輸入你的名字', canvas.width/2, modalY + modalHeight * 0.2, 32, '#333');
             
-            // Draw input box
             const inputWidth = modalWidth * 0.8; const inputHeight = 60;
             const inputX = (canvas.width - inputWidth) / 2; const inputY = modalY + modalHeight * 0.4;
             ctx.strokeStyle = '#CCC'; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.roundRect(inputX, inputY, inputWidth, inputHeight, 10); ctx.stroke();
             
-            // Draw player name with a blinking cursor
             let displayName = playerName;
             if (Math.floor(Date.now() / 500) % 2 === 0) {
                 displayName += '|';
@@ -406,20 +406,9 @@
 
         // --- Game Logic ---
         function startCharacterAnimation() {
-            cancelAnimationFrame(animationFrameId);
-            const jumpDuration = 1000, jumpHeight = 50;
-            const animationStartTime = Date.now();
-            function animate() {
-                const elapsed = Date.now() - animationStartTime;
-                const progress = elapsed / jumpDuration;
-                if (progress < 1) {
-                    characterYOffset = -Math.sin(progress * Math.PI) * jumpHeight;
-                    animationFrameId = requestAnimationFrame(animate);
-                } else {
-                    characterYOffset = 0;
-                }
-            }
-            animate();
+            if (isCharacterJumping) return;
+            isCharacterJumping = true;
+            jumpStartTime = Date.now();
         }
 
         function generateNewQuestion() {
@@ -614,6 +603,19 @@
             if (currentPage === 'practice' && startTime > 0) {
                 elapsedTime = Date.now() - startTime;
             }
+            
+            // Animation Logic
+            if (isCharacterJumping) {
+                const elapsedJumpTime = Date.now() - jumpStartTime;
+                if (elapsedJumpTime < JUMP_DURATION) {
+                    const progress = elapsedJumpTime / JUMP_DURATION;
+                    characterYOffset = -Math.sin(progress * Math.PI) * JUMP_HEIGHT;
+                } else {
+                    isCharacterJumping = false;
+                    characterYOffset = 0;
+                }
+            }
+
             drawScreen();
             requestAnimationFrame(gameLoop);
         }
@@ -632,7 +634,7 @@
                     resizeCanvas();
                     window.addEventListener('resize', resizeCanvas, false);
                     window.addEventListener('keydown', handleKeyPress);
-                    requestAnimationFrame(gameLoop); // Start the main game loop
+                    requestAnimationFrame(gameLoop);
                     
                 } catch (error) {
                     console.error("Asset loading failed:", error);
@@ -646,3 +648,4 @@
     </script>
 </body>
 </html>
+
