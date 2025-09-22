@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>九九乘法冒險島V8</title>
+    <title>九九乘法冒險島V6</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap" rel="stylesheet">
@@ -37,15 +37,15 @@
         // --- Firebase setup ---
         let db;
         let auth;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         
         async function initializeFirebase() {
             try {
+                // *** 修正：直接定義並使用您的 Firebase 設定物件 ***
                 const firebaseConfig = {
                     apiKey: "AIzaSyDfIw36T88S3xlGCoAP9nDGCRkpQlWKiLE",
                     authDomain: "ieka99.firebaseapp.com",
                     projectId: "ieka99",
-                    storageBucket: "ieka99.appspot.com",
+                    storageBucket: "ieka99.appspot.com", // 修正：通常結尾是 .appspot.com
                     messagingSenderId: "893665009867",
                     appId: "1:893665009867:web:d732e15cf792890c8a7b4e"
                 };
@@ -92,7 +92,6 @@
         // Timer variables
         let startTime = 0;
         let elapsedTime = 0;
-        let timerInterval = null;
         
         // --- Audio Synthesis ---
         let correctSynth, wrongSynth, clickSynth;
@@ -179,7 +178,7 @@
             drawCloud(150, 100, 1);
             drawCloud(canvas.width - 200, 150, 0.8);
 
-            drawText('九九乘法冒險島V8', canvas.width / 2, canvas.height * 0.25, canvas.width > 600 ? 50 : 36, '#000080');
+            drawText('九九乘法冒險島V6', canvas.width / 2, canvas.height * 0.25, canvas.width > 600 ? 50 : 36, '#000080');
             drawText('等你來挑戰！', canvas.width / 2, canvas.height * 0.35, canvas.width > 600 ? 24 : 18, '#000080');
 
             if (characterImage && characterImage.complete) {
@@ -415,11 +414,9 @@
                 const progress = elapsed / jumpDuration;
                 if (progress < 1) {
                     characterYOffset = -Math.sin(progress * Math.PI) * jumpHeight;
-                    // drawScreen(); // Let the main loop handle drawing
                     animationFrameId = requestAnimationFrame(animate);
                 } else {
                     characterYOffset = 0;
-                    // drawScreen();
                 }
             }
             animate();
@@ -455,7 +452,7 @@
         }
 
         function checkAnswer(isCorrect) {
-            isAnswerLocked = true; // Lock input at the beginning
+            isAnswerLocked = true;
             if (isCorrect) {
                 feedbackMessage = '太棒了！答對囉！';
                 correctAnswersCount++;
@@ -467,7 +464,7 @@
                         currentPage = 'gameOver';
                     } else {
                         generateNewQuestion();
-                        isAnswerLocked = false; // Unlock for the next question
+                        isAnswerLocked = false;
                     }
                 }, 1500);
             } else {
@@ -476,7 +473,7 @@
                 if(wrongSynth) wrongSynth.triggerAttackRelease('C3', '4n');
                 setTimeout(() => {
                     feedbackMessage = '';
-                    isAnswerLocked = false; // Unlock after feedback
+                    isAnswerLocked = false;
                 }, 1500);
             }
         }
@@ -487,12 +484,10 @@
             score = 0;
             startTime = 0;
             elapsedTime = 0;
-            if (timerInterval) clearInterval(timerInterval);
-            timerInterval = null;
             feedbackMessage = '';
             lastQuestion = {};
             playerName = '';
-            isAnswerLocked = false; // Reset the lock
+            isAnswerLocked = false;
         }
 
         // --- Firestore Logic ---
@@ -509,14 +504,12 @@
 
         async function fetchLeaderboard() {
             isLeaderboardLoading = true;
-
             if (!db) {
                 console.warn("Firestore is not initialized. Leaderboard is disabled.");
                 leaderboardData = [];
                 isLeaderboardLoading = false;
                 return;
             }
-
             try {
                 const leaderboardCol = collection(db, `leaderboard`);
                 const snapshot = await getDocs(leaderboardCol);
@@ -585,8 +578,6 @@
                                 lastQuestion = {};
                                 generateNewQuestion();
                                 startTime = Date.now();
-                                elapsedTime = 0;
-                                if (timerInterval) clearInterval(timerInterval);
                                 break;
                             case 'save_score':
                                 currentPage = 'enterName';
