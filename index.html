@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>九九乘法冒險島V6</title>
+    <title>九九乘法冒險島V8</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap" rel="stylesheet">
@@ -76,7 +76,7 @@
         let correctAnswersCount = 0;
         let score = 0;
         let answerButtons = [];
-        let uiButtons = []; // Generic button array for navigation
+        let uiButtons = [];
         let questionRange = 0;
         let lastQuestion = {};
         let playerName = '';
@@ -84,13 +84,14 @@
         let isLeaderboardLoading = false;
         let isAnswerLocked = false;
         
-        // Animation variables
+        // Animation & State Timers
         let characterYOffset = 0;
         let isCharacterJumping = false;
         let jumpStartTime = 0;
         const JUMP_DURATION = 1000;
         const JUMP_HEIGHT = 50;
-
+        let feedbackEndTime = 0;
+        let lastAnswerWasCorrect = false;
 
         // Timer variables
         let startTime = 0;
@@ -179,7 +180,7 @@
             drawCloud(150, 100, 1);
             drawCloud(canvas.width - 200, 150, 0.8);
 
-            drawText('九九乘法冒險島V6', canvas.width / 2, canvas.height * 0.25, canvas.width > 600 ? 50 : 36, '#000080');
+            drawText('九九乘法冒險島V8', canvas.width / 2, canvas.height * 0.25, canvas.width > 600 ? 50 : 36, '#000080');
             drawText('等你來挑戰！', canvas.width / 2, canvas.height * 0.35, canvas.width > 600 ? 24 : 18, '#000080');
 
             if (characterImage && characterImage.complete) {
@@ -441,29 +442,19 @@
 
         function checkAnswer(isCorrect) {
             isAnswerLocked = true;
+            lastAnswerWasCorrect = isCorrect; // Store the result for the game loop
             if (isCorrect) {
                 feedbackMessage = '太棒了！答對囉！';
                 correctAnswersCount++;
                 score += 5;
                 if(correctSynth) correctSynth.triggerAttackRelease(['C4', 'E4', 'G4'], '8n');
                 startCharacterAnimation();
-                setTimeout(() => {
-                    if (correctAnswersCount >= 20) {
-                        currentPage = 'gameOver';
-                    } else {
-                        generateNewQuestion();
-                        isAnswerLocked = false;
-                    }
-                }, 1500);
             } else {
                 feedbackMessage = '再想想看喔！';
                 score = Math.max(0, score - 2);
                 if(wrongSynth) wrongSynth.triggerAttackRelease('C3', '4n');
-                setTimeout(() => {
-                    feedbackMessage = '';
-                    isAnswerLocked = false;
-                }, 1500);
             }
+            feedbackEndTime = Date.now() + 1500;
         }
         
         function resetGame() {
@@ -611,6 +602,21 @@
                 } else {
                     isCharacterJumping = false;
                     characterYOffset = 0;
+                }
+            }
+
+            if (feedbackEndTime > 0 && Date.now() >= feedbackEndTime) {
+                feedbackEndTime = 0;
+                feedbackMessage = '';
+                if (lastAnswerWasCorrect) {
+                    if (correctAnswersCount >= 20) {
+                        currentPage = 'gameOver';
+                    } else {
+                        generateNewQuestion();
+                        isAnswerLocked = false;
+                    }
+                } else {
+                    isAnswerLocked = false;
                 }
             }
 
