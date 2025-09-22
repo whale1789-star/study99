@@ -42,14 +42,14 @@
         async function initializeFirebase() {
             try {
                 // *** 重要更新：使用更簡單的純文字預留位置 ***
-                const configStr = {
+                const configStr = JSON.stringify({
   apiKey: "AIzaSyDfIw36T88S3xlGCoAP9nDGCRkpQlWKiLE",
   authDomain: "ieka99.firebaseapp.com",
   projectId: "ieka99",
   storageBucket: "ieka99.firebasestorage.app",
   messagingSenderId: "893665009867",
   appId: "1:893665009867:web:d732e15cf792890c8a7b4e"
-};
+});
                 
                 if (configStr.includes({
   apiKey: "AIzaSyDfIw36T88S3xlGCoAP9nDGCRkpQlWKiLE",
@@ -685,4 +685,5 @@
     </script>
 </body>
 </html>
+
 
