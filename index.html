@@ -3,21 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>九九乘法冒險島V6</title>
+  <title>九九乘法冒險島V8</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap" rel="stylesheet"/>
   <style>
     body { margin:0; overflow:hidden; background:#87ceeb; font-family:'M PLUS Rounded 1c', sans-serif; }
-    canvas { display:block; }
+    canvas { display:block; /* 無額外 CSS 尺寸，避免與 width/height 屬性不一致 */ }
   </style>
-  <!-- Tone.js for sound effects -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.min.js"></script>
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
 
-  <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -26,7 +24,7 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // ========== 工具：圓角矩形 polyfill ==========
+    // ---- 圓角矩形 polyfill ----
     function rr(ctx, x, y, w, h, r = 0) {
       const radii = typeof r === 'number' ? {tl:r, tr:r, br:r, bl:r} : (r || {tl:0,tr:0,br:0,bl:0});
       ctx.beginPath();
@@ -41,16 +39,7 @@
       ctx.quadraticCurveTo(x, y, x + radii.tl, y);
     }
 
-    // ========== 小工具：Promise 超時、非阻塞呼叫 ==========
-    function withTimeout(p, ms, onTimeoutMsg='timeout') {
-      return Promise.race([
-        p,
-        new Promise((_, rej) => setTimeout(() => rej(new Error(onTimeoutMsg)), ms))
-      ]);
-    }
-    function fireAndForget(fn) { try { Promise.resolve(fn()).catch(console.error); } catch(e){ console.error(e);} }
-
-    // ========== Firebase ==========
+    // ---- Firebase ----
     let db, auth;
     async function initializeFirebase() {
       try {
@@ -62,23 +51,18 @@
           messagingSenderId: "893665009867",
           appId: "1:893665009867:web:d732e15cf792890c8a7b4e"
         };
-        if (!firebaseConfig.apiKey) {
-          console.warn("Firebase config is invalid. Leaderboard disabled.");
-          db = null; return;
-        }
+        if (!firebaseConfig.apiKey) { db=null; return; }
         const app = initializeApp(firebaseConfig);
         db = getFirestore(app);
         auth = getAuth(app);
-        setLogLevel('error'); // 避免大量 debug log 造成卡頓
-        await withTimeout(signInAnonymously(auth), 3000, 'auth timeout');
-        console.log("Firebase initialized + anonymous sign-in.");
-      } catch (e) {
-        console.error("Firebase initialization failed:", e);
+        setLogLevel('error');
+        await signInAnonymously(auth).catch(()=>{ /* 排行榜失敗不致命 */ db = null; });
+      } catch {
         db = null;
       }
     }
 
-    // ========== 狀態 ==========
+    // ---- 狀態 ----
     let currentPage = 'home';
     let currentQuestion = {};
     let feedbackMessage = '';
@@ -93,30 +77,20 @@
     let isLeaderboardLoading = false;
     let isAnswerLocked = false;
 
-    // 動畫
+    // 動畫與計時
     let characterYOffset = 0;
     let isCharacterJumping = false;
     let jumpStartTime = 0;
-    const JUMP_DURATION = 1000;
-    const JUMP_HEIGHT = 50;
-    let feedbackEndTime = 0;
-    let lastAnswerWasCorrect = false;
-
-    // 計時
-    let startTime = 0;
-    let elapsedTime = 0;
+    const JUMP_DURATION = 1000, JUMP_HEIGHT = 50;
+    let feedbackEndTime = 0, lastAnswerWasCorrect = false;
+    let startTime = 0, elapsedTime = 0;
 
     // 音效
     let correctSynth, wrongSynth, clickSynth;
     let audioInitialized = false;
 
-    // 影像
+    // 圖片
     let akitaImage, characterImage;
-
-    // 偵錯／監控
-    let debugOverlay = true;           // 按 D 切換
-    let lastFrameStamp = performance.now();
-    let frameCount = 0, lastFpsStamp = performance.now(), fps = 0;
 
     function loadAssets() {
       return new Promise((resolve, reject) => {
@@ -126,16 +100,15 @@
         characterImage.src = 'S876553.png';
         let loaded = 0;
         function done(){ if(++loaded===2) resolve(); }
-        akitaImage.onload = done;
-        characterImage.onload = done;
-        akitaImage.onerror = (e)=>reject(new Error('akitaImage load fail'));
-        characterImage.onerror = (e)=>reject(new Error('characterImage load fail'));
-        // 加上圖片載入超時防護（5秒）
-        setTimeout(()=> reject(new Error('image load timeout')), 5000);
+        akitaImage.onload = done; characterImage.onload = done;
+        akitaImage.onerror = ()=>reject(new Error('akita load fail'));
+        characterImage.onerror = ()=>reject(new Error('character load fail'));
+        setTimeout(()=>reject(new Error('image timeout')), 8000);
       });
     }
 
     function resizeCanvas() {
+      // 使用 CSS 像素，不做 DPR 放大，避免座標不對齊
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     }
@@ -146,45 +119,37 @@
       ctx.textAlign = align;
       ctx.textBaseline = baseline;
       ctx.shadowColor = 'rgba(0,0,0,0.2)';
-      ctx.shadowBlur = 5;
-      ctx.shadowOffsetX = 2;
-      ctx.shadowOffsetY = 2;
+      ctx.shadowBlur = 5; ctx.shadowOffsetX = 2; ctx.shadowOffsetY = 2;
       ctx.fillText(text, x, y);
       ctx.shadowColor = 'transparent';
     }
 
     function drawSystemText(text, color='#333') {
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(0,0,canvas.width,canvas.height);
-      ctx.font = "bold 30px sans-serif";
-      ctx.fillStyle = color;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
+      ctx.fillStyle="#fff"; ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.font="bold 30px sans-serif"; ctx.fillStyle=color;
+      ctx.textAlign="center"; ctx.textBaseline="middle";
       ctx.fillText(text, canvas.width/2, canvas.height/2);
     }
 
     function drawHomePage() {
-      const grad = ctx.createLinearGradient(0,0,0,canvas.height);
-      grad.addColorStop(0, '#87CEEB');
-      grad.addColorStop(1, '#66CDAA');
-      ctx.fillStyle = grad; ctx.fillRect(0,0,canvas.width,canvas.height);
-      drawCloud(150,100,1);
-      drawCloud(canvas.width-200,150,0.8);
-      drawText('九九乘法冒險島V6', canvas.width/2, canvas.height*0.25, canvas.width>600?50:36, '#000080');
+      const g=ctx.createLinearGradient(0,0,0,canvas.height);
+      g.addColorStop(0,'#87CEEB'); g.addColorStop(1,'#66CDAA');
+      ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
+      drawCloud(150,100,1); drawCloud(canvas.width-200,150,0.8);
+      drawText('九九乘法冒險島V8', canvas.width/2, canvas.height*0.25, canvas.width>600?50:36, '#000080');
       drawText('等你來挑戰！', canvas.width/2, canvas.height*0.35, canvas.width>600?24:18, '#000080');
 
       if (characterImage && characterImage.complete && characterImage.naturalWidth>0) {
-        const imgW = canvas.width*0.15;
-        const imgH = (characterImage.naturalHeight/characterImage.naturalWidth)*imgW;
-        ctx.drawImage(characterImage, canvas.width/2 - imgW/2, canvas.height/2 - imgH/2, imgW, imgH);
+        const w = canvas.width*0.15, h = (characterImage.naturalHeight/characterImage.naturalWidth)*w;
+        ctx.drawImage(characterImage, canvas.width/2 - w/2, canvas.height/2 - h/2, w, h);
       }
 
-      const bw=220,bh=70, startY=canvas.height*0.7, rankY=startY+bh+20;
-      drawButton('開始冒險！', canvas.width/2, startY, bw, bh, '#FF69B4', '#FFFFFF');
-      drawButton('排行榜', canvas.width/2, rankY, bw, bh, '#17a2b8', '#FFFFFF');
+      const bw=220,bh=70, y1=canvas.height*0.7, y2=y1+bh+20;
+      drawButton('開始冒險！', canvas.width/2, y1, bw, bh, '#FF69B4', '#FFFFFF');
+      drawButton('排行榜', canvas.width/2, y2, bw, bh, '#17a2b8', '#FFFFFF');
       uiButtons = [
-        {id:'start', x:canvas.width/2, y:startY, width:bw, height:bh},
-        {id:'show_leaderboard', x:canvas.width/2, y:rankY, width:bw, height:bh}
+        {id:'start', x:canvas.width/2, y:y1, width:bw, height:bh},
+        {id:'show_leaderboard', x:canvas.width/2, y:y2, width:bw, height:bh}
       ];
     }
 
@@ -198,28 +163,34 @@
     }
 
     function drawSelectionPage() {
-      const grad = ctx.createLinearGradient(0,0,0,canvas.height);
-      grad.addColorStop(0,'#9ACD32'); grad.addColorStop(1,'#FFD700');
-      ctx.fillStyle=grad; ctx.fillRect(0,0,canvas.width,canvas.height);
+      const g=ctx.createLinearGradient(0,0,0,canvas.height);
+      g.addColorStop(0,'#9ACD32'); g.addColorStop(1,'#FFD700');
+      ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
       drawText('選擇你的乘法挑戰！', canvas.width/2, canvas.height*0.1, canvas.width>600?40:28, '#8B4513');
+
       uiButtons = [];
-      const nums=[1,2,3,4,5,6,7,8,9,10,'混合'];
+      const nums = [1,2,3,4,5,6,7,8,9,10,'混合'];
       const cols = canvas.width>800?4:3;
-      const bw = (canvas.width*0.8)/cols, bh=60;
-      const sx = (canvas.width - (cols*(bw+20)-20))/2 + bw/2;
-      const sy = canvas.height*0.25;
-      nums.forEach((num, idx)=>{
-        const r=Math.floor(idx/cols), c=idx%cols;
-        const x=sx + c*(bw+20), y=sy + r*(bh+20);
-        drawButton(num==='混合'?'混合':`${num} 的乘法`, x,y,bw,bh,'#4CAF50','#FFFFFF');
-        uiButtons.push({id:'select', value:num, x, y, width:bw, height:bh});
+      const bw = Math.floor((canvas.width*0.8)/cols);
+      const bh = 60;
+      const spacingX = bw + 20;
+      const spacingY = bh + 20;
+      const startX = (canvas.width - (cols*spacingX - 20))/2 + bw/2;
+      const startY = canvas.height*0.25;
+
+      nums.forEach((num, i)=>{
+        const r = Math.floor(i/cols), c = i%cols;
+        const x = startX + c*spacingX;
+        const y = startY + r*spacingY;
+        drawButton(num==='混合'?'混合':`${num} 的乘法`, x, y, bw, bh, '#4CAF50', '#FFFFFF');
+        uiButtons.push({ id:'select', value:num, x, y, width:bw, height:bh });
       });
     }
 
     function drawPracticePage() {
-      const grad = ctx.createLinearGradient(0,0,0,canvas.height);
-      grad.addColorStop(0,'#1E90FF'); grad.addColorStop(1,'#87CEFA');
-      ctx.fillStyle=grad; ctx.fillRect(0,0,canvas.width,canvas.height);
+      const g=ctx.createLinearGradient(0,0,0,canvas.height);
+      g.addColorStop(0,'#1E90FF'); g.addColorStop(1,'#87CEFA');
+      ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
 
       const bx=canvas.width/2, by=canvas.height*0.2, br=canvas.width>600?100:70;
       ctx.fillStyle='rgba(255,255,255,0.8)';
@@ -232,7 +203,7 @@
     }
 
     function drawScore(){ drawText(`分數：${score}`, 30, 60, canvas.width>600?24:18, '#FFFFFF','left'); }
-    function drawTime(){ const s=Math.floor(elapsedTime/1000); drawText(`時間：${s} 秒`, canvas.width-30,60, canvas.width>600?24:18, '#FFFFFF','right'); }
+    function drawTime(){ const s=Math.floor(elapsedTime/1000); drawText(`時間：${s} 秒`, canvas.width-30, 60, canvas.width>600?24:18, '#FFFFFF','right'); }
 
     function drawCharacter() {
       const w = canvas.width>600?150:100;
@@ -259,8 +230,7 @@
     }
 
     function drawProgressBar() {
-      const bw = canvas.width*0.6, bh=25;
-      const x=(canvas.width-bw)/2, y=canvas.height-50, maxQ=20;
+      const bw=canvas.width*0.6, bh=25, x=(canvas.width-bw)/2, y=canvas.height-50, maxQ=20;
       ctx.fillStyle='#f0e68c'; rr(ctx,x,y,bw,bh,12); ctx.fill();
       const prog = (correctAnswersCount/maxQ)*bw;
       if (prog>0){ ctx.fillStyle='#FFC107'; rr(ctx,x,y,prog,bh,12); ctx.fill(); }
@@ -304,9 +274,9 @@
     }
 
     function drawLeaderboardPage() {
-      const grad = ctx.createLinearGradient(0,0,0,canvas.height);
-      grad.addColorStop(0,'#4e54c8'); grad.addColorStop(1,'#8f94fb');
-      ctx.fillStyle=grad; ctx.fillRect(0,0,canvas.width,canvas.height);
+      const g=ctx.createLinearGradient(0,0,0,canvas.height);
+      g.addColorStop(0,'#4e54c8'); g.addColorStop(1,'#8f94fb');
+      ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
       drawText('速度挑戰排行榜', canvas.width/2, canvas.height*0.1, 40, '#fff');
 
       if (isLeaderboardLoading) {
@@ -314,7 +284,7 @@
       } else if (!db) {
         drawText('排行榜功能暫時無法使用', canvas.width/2, canvas.height/2, 24, '#FFD700');
       } else {
-        const startY = canvas.height*0.2, lh=40;
+        const startY=canvas.height*0.2, lh=40;
         drawText('排名', canvas.width*0.2, startY, 20, '#FFD700');
         drawText('名字', canvas.width*0.4, startY, 20, '#FFD700');
         drawText('分數', canvas.width*0.6, startY, 20, '#FFD700');
@@ -341,7 +311,7 @@
       drawText(text, x,y,22, textColor);
     }
 
-    // ========== 遊戲邏輯 ==========
+    // ---- 遊戲邏輯 ----
     function startCharacterAnimation(){
       if (isCharacterJumping) return;
       isCharacterJumping = true; jumpStartTime = Date.now();
@@ -398,14 +368,13 @@
       playerName=''; isAnswerLocked=false;
     }
 
-    // ========== Firestore ==========
+    // ---- Firestore ----
     async function saveScoreToLeaderboard(name, score, time) {
-      if (!db) { console.error("Firestore not initialized."); return; }
+      if (!db) return;
       try {
         const col = collection(db,'leaderboard');
-        await withTimeout(addDoc(col, {name,score,time,createdAt:new Date()}), 3000, 'addDoc timeout');
-        console.log('Score saved');
-      } catch (e) { console.error('save error', e); }
+        await addDoc(col, {name,score,time,createdAt:new Date()});
+      } catch {}
     }
 
     async function fetchLeaderboard(){
@@ -413,37 +382,31 @@
       if (!db) { leaderboardData=[]; isLeaderboardLoading=false; return; }
       try{
         const col = collection(db,'leaderboard');
-        const snap = await withTimeout(getDocs(col), 3000, 'getDocs timeout');
+        const snap = await getDocs(col);
         const scores = snap.docs.map(d=>d.data());
         scores.sort((a,b)=> b.score - a.score || a.time - b.time);
         leaderboardData = scores;
-      } catch(e){
-        console.error('fetch error', e); leaderboardData=[];
-      }
+      } catch { leaderboardData=[]; }
       isLeaderboardLoading = false;
     }
 
-    // ========== 音效 ==========
+    // ---- 音效 ----
     function initializeAudio(){
       if (audioInitialized || typeof Tone==='undefined') return;
       Tone.start().then(()=>{
         correctSynth = new Tone.PolySynth(Tone.Synth,{oscillator:{type:'sine'}, envelope:{attack:0.01,decay:0.1,sustain:0.2,release:0.2}}).toDestination();
         wrongSynth   = new Tone.Synth({oscillator:{type:'square'}, envelope:{attack:0.01,decay:0.2,sustain:0.1,release:0.2}}).toDestination();
         clickSynth   = new Tone.Synth({oscillator:{type:'triangle'}, envelope:{attack:0.005,decay:0.1,sustain:0,release:0.1}}).toDestination();
-        audioInitialized = true; console.log('audio ok');
-      }).catch(e=>console.error('audio start fail', e));
+        audioInitialized = true;
+      }).catch(()=>{});
     }
 
-    // ========== 事件 ==========
+    // ---- 事件（重點：座標縮放校正）----
     function handleKeyPress(e){
-      if (e.key==='d' || e.key==='D') { debugOverlay=!debugOverlay; return; }
       if (currentPage!=='enterName') return;
       if (e.key==='Enter') {
-        const confirm = uiButtons.find(b=>b.id==='confirm_name');
-        if (confirm) {
-          // 以非阻塞方式觸發
-          clickConfirmName();
-        }
+        const btn = uiButtons.find(b=>b.id==='confirm_name');
+        if (btn) clickConfirmName();
       } else if (e.key==='Backspace') {
         playerName = playerName.slice(0,-1);
       } else if (playerName.length<10 && e.key.length===1 && /[\w\d\s]/i.test(e.key)) {
@@ -453,18 +416,23 @@
 
     canvas.addEventListener('click', (event)=>{
       initializeAudio();
+
       const rect = canvas.getBoundingClientRect();
-      const mx = event.clientX - rect.left;
-      const my = event.clientY - rect.top;
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const mouseX = (event.clientX - rect.left) * scaleX;
+      const mouseY = (event.clientY - rect.top)  * scaleY;
+
+      const hit = (b) => (mouseX > b.x - b.width/2 && mouseX < b.x + b.width/2 &&
+                          mouseY > b.y - b.height/2 && mouseY < b.y + b.height/2);
 
       if (['home','selection','gameOver','leaderboard','enterName'].includes(currentPage)) {
-        uiButtons.forEach(btn=>{
-          if (mx > btn.x - btn.width/2 && mx < btn.x + btn.width/2 && my > btn.y - btn.height/2 && my < btn.y + btn.height/2) {
+        for (const btn of uiButtons) {
+          if (hit(btn)) {
             if (clickSynth) clickSynth.triggerAttackRelease('C5','16n');
             switch(btn.id){
               case 'start':
-                currentPage='selection';
-                break;
+                currentPage='selection'; break;
               case 'select':
                 isAnswerLocked=false;
                 questionRange=btn.value; currentPage='practice';
@@ -472,44 +440,36 @@
                 generateNewQuestion(); startTime=Date.now();
                 break;
               case 'save_score':
-                currentPage='enterName';
-                break;
+                currentPage='enterName'; break;
               case 'confirm_name':
-                clickConfirmName(); // 非阻塞
-                break;
+                clickConfirmName(); break;
               case 'show_leaderboard':
-                currentPage='leaderboard';
-                isLeaderboardLoading=true;
-                fireAndForget(fetchLeaderboard);
+                currentPage='leaderboard'; isLeaderboardLoading=true; fetchLeaderboard();
                 break;
               case 'back_home':
-                resetGame();
-                break;
+                resetGame(); break;
             }
+            break;
           }
-        });
+        }
       } else if (currentPage==='practice') {
         if (isAnswerLocked) return;
-        answerButtons.forEach(btn=>{
-          if (mx > btn.x - btn.width/2 && mx < btn.x + btn.width/2 && my > btn.y - btn.height/2 && my < btn.y + btn.height/2) {
-            checkAnswer(btn.correct);
-          }
-        });
+        for (const btn of answerButtons) {
+          if (hit(btn)) { checkAnswer(btn.correct); break; }
+        }
       }
     });
 
     function clickConfirmName(){
       if (!playerName.trim()) return;
-      // 先切頁面，讓 UI 不被等待卡住
-      currentPage='leaderboard';
-      isLeaderboardLoading=true;
-      fireAndForget(async ()=>{
+      currentPage='leaderboard'; isLeaderboardLoading=true;
+      Promise.resolve().then(async ()=>{
         await saveScoreToLeaderboard(playerName, score, Math.floor(elapsedTime/1000));
         await fetchLeaderboard();
       });
     }
 
-    // ========== 主迴圈 + 看門狗 ==========
+    // ---- 主迴圈 ----
     function drawScreen(){
       ctx.clearRect(0,0,canvas.width,canvas.height);
       switch(currentPage){
@@ -520,37 +480,11 @@
         case 'enterName': drawEnterNamePage(); break;
         case 'leaderboard': drawLeaderboardPage(); break;
       }
-      if (debugOverlay) drawDebugOverlay();
-    }
-
-    function drawDebugOverlay(){
-      const now = performance.now();
-      frameCount++;
-      const dt = now - lastFpsStamp;
-      if (dt >= 500) { fps = Math.round(frameCount*1000/dt); frameCount=0; lastFpsStamp = now; }
-      const lines = [
-        `page: ${currentPage}`,
-        `fps: ${fps}`,
-        `elapsed(ms): ${elapsedTime}`,
-        `answers: ${correctAnswersCount}/20`,
-        `locked: ${isAnswerLocked}`,
-        `leaderboardLoading: ${isLeaderboardLoading}`,
-      ];
-      ctx.save();
-      ctx.globalAlpha = 0.7;
-      ctx.fillStyle = '#000';
-      rr(ctx, 10,10, 240, 20*lines.length+16, 8); ctx.fill();
-      ctx.globalAlpha = 1;
-      ctx.font = '12px monospace'; ctx.fillStyle='#0f0'; ctx.textAlign='left'; ctx.textBaseline='top';
-      lines.forEach((t,i)=> ctx.fillText(t, 18, 16 + i*20));
-      ctx.restore();
     }
 
     function gameLoop(){
       try{
         const now = Date.now();
-        lastFrameStamp = performance.now();
-
         if (currentPage==='practice' && startTime>0) elapsedTime = now - startTime;
 
         if (isCharacterJumping){
@@ -570,45 +504,27 @@
             feedbackMessage=''; isAnswerLocked=false;
           }
         }
-
         drawScreen();
       } catch(e){
-        console.error(e);
-        drawSystemText('發生錯誤：'+ e.message, 'red');
+        // 不中斷迴圈
       }
       requestAnimationFrame(gameLoop);
     }
 
-    // 看門狗：超過 1500ms 沒有新影格，就強制再掛一次 RAF
-    setInterval(()=>{
-      const delta = performance.now() - lastFrameStamp;
-      if (delta > 1500) {
-        console.warn('RAF watchdog kick, delta=', Math.round(delta));
+    // ---- 啟動 ----
+    window.onload = async function() {
+      resizeCanvas();
+      drawSystemText('載入中...');
+      initializeFirebase(); // 非阻塞
+      try{
+        await loadAssets();
+        window.addEventListener('resize', resizeCanvas, false);
+        window.addEventListener('keydown', handleKeyPress);
         requestAnimationFrame(gameLoop);
+      }catch{
+        drawSystemText('遊戲圖片載入失敗', 'red');
       }
-    }, 800);
-
-    // ========== 啟動 ==========
-    window.onload = function() {
-      (async function main(){
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        drawSystemText('載入中...');
-
-        fireAndForget(initializeFirebase); // 非阻塞初始化
-        try{
-          await loadAssets();
-          resizeCanvas();
-          window.addEventListener('resize', resizeCanvas, false);
-          window.addEventListener('keydown', handleKeyPress);
-          requestAnimationFrame(gameLoop);
-        }catch(err){
-          console.error("Asset loading failed:", err);
-          drawSystemText('遊戲圖片載入失敗', 'red');
-        }
-      })();
     };
-
   </script>
 </body>
 </html>
