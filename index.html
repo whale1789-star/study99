@@ -146,8 +146,8 @@
             return new Promise((resolve, reject) => {
                 akitaImage = new Image();
                 characterImage = new Image();
-                akitaImage.src = '可愛秋田.jpg'; // <-- 已修正為 .jpg
-                characterImage.src = 'S876553.png';
+                akitaImage.src = '可愛秋田.png'; // 已修正為 .png
+                characterImage.src = 'S876553.png'; // 已修正為 .png
                 let loaded = 0;
                 const done=()=>{ if(++loaded===2) resolve(); };
                 akitaImage.onload = done; characterImage.onload = done;
@@ -188,7 +188,7 @@
             ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
             drawCloud(150,100,1); drawCloud(canvas.width-200,150,0.8);
             drawText('王公九九乘法冒險島', canvas.width/2, canvas.height*0.25, canvas.width>600?50:36, '#000080');
-            drawText('等你來挑戰', canvas.width/2, canvas.height*0.35, canvas.width>600?24:18, '#000080');
+            drawText('等你來挑戰!!!', canvas.width/2, canvas.height*0.35, canvas.width>600?24:18, '#000080');
 
             if (characterImage && characterImage.complete && characterImage.naturalWidth>0) {
                 const w = canvas.width*0.15, h = (characterImage.naturalHeight/characterImage.naturalWidth)*w;
@@ -263,11 +263,11 @@
 
         function drawCharacter() {
             const w = canvas.width>600?150:100;
-            const nw = (akitaImage&&akitaImage.naturalWidth)||0;
-            const nh = (akitaImage&&akitaImage.naturalHeight)||0;
-            if (akitaImage && akitaImage.complete && nw>0 && nh>0) {
-                const h = (nh/nw)*w;
-                ctx.drawImage(akitaImage, canvas.width/2 - w/2, canvas.height*0.45 + characterYOffset - h/2, w, h);
+            const nw = (akitaImage && akitaImage.naturalWidth) || 0;
+            const nh = (akitaImage && akitaImage.naturalHeight) || 0;
+            if (akitaImage && akitaImage.complete && nw > 0 && nh > 0) {
+                const h = (nh / nw) * w;
+                ctx.drawImage(akitaImage, canvas.width / 2 - w / 2, canvas.height * 0.45 + characterYOffset - h / 2, w, h);
             }
         }
 
@@ -366,7 +366,6 @@
             drawButton('確認', bx,by,bw,bh,'#007bff','#FFFFFF');
             uiButtons=[{id:'confirm_name', x:bx, y:by, width:bw, height:bh}];
             
-            // ✅ 新增：確保輸入框顯示且定位正確
             showNameInput();
             positionNameInput();
         }
@@ -690,4 +689,3 @@
     </script>
 </body>
 </html>
-
