@@ -11,6 +11,7 @@
     :root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
     body { margin:0; overflow:hidden; background:#87ceeb; font-family:'M PLUS Rounded 1c', sans-serif; }
     canvas { display:block; }
+
     /* 覆蓋在 Canvas 上方的實體輸入框（enterName 時顯示、可喚出平板軟鍵盤） */
     #nameInput {
       position: fixed;
@@ -26,19 +27,29 @@
       z-index: 10;
     }
   </style>
+
   <!-- Tone.js（可留可拿掉，不影響是否能跑起來） -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.min.js"></script>
 
   <!-- ✅ Firebase 以「非模組 Compat 版」載入，避免舊瀏覽器不支援 ES Modules -->
-  <!-- v9 compat 是最穩定的非模組選擇 -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
-  <!-- ★ 實體輸入框（平板會叫出軟鍵盤） -->
-  <input id="nameInput" type="text" inputmode="text" autocomplete="off" autocapitalize="none" maxlength="10" placeholder="請在此輸入名字" />
+  <!-- ★ 實體輸入框（平板會叫出軟鍵盤；桌機支援中文輸入法的 composition） -->
+  <input
+    id="nameInput"
+    type="text"
+    lang="zh-Hant"
+    inputmode="text"
+    autocomplete="off"
+    autocapitalize="none"
+    autocorrect="off"
+    maxlength="10"
+    placeholder="請在此輸入名字"
+  />
 
   <!-- ✅ 不用 type="module"；所有瀏覽器都能跑 -->
   <script>
@@ -161,7 +172,7 @@
       ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
       drawCloud(150,100,1); drawCloud(canvas.width-200,150,0.8);
       drawText('王公九九乘法冒險島', canvas.width/2, canvas.height*0.25, canvas.width>600?50:36, '#000080');
-      drawText('等你來挑戰！', canvas.width/2, canvas.height*0.35, canvas.width>600?24:18, '#000080');
+      drawText('等你來挑戰!！', canvas.width/2, canvas.height*0.35, canvas.width>600?24:18, '#000080');
 
       if (characterImage && characterImage.complete && characterImage.naturalWidth>0) {
         const w = canvas.width*0.15, h = (characterImage.naturalHeight/characterImage.naturalWidth)*w;
@@ -381,7 +392,7 @@
       drawText(text, x,y,Math.max(18, Math.min(22, w/6)), textColor);
     }
 
-    /* ========= 覆蓋輸入框的控制 ========= */
+    /* ========= 覆蓋輸入框的控制（支援中文輸入） ========= */
     function computeEnterNameGeom() {
       const mw=canvas.width*0.7, mh=canvas.height*0.5;
       const mx=(canvas.width-mw)/2, my=(canvas.height-mh)/2;
@@ -411,11 +422,24 @@
       nameInputEl.style.display = 'none';
       if (document.activeElement === nameInputEl) nameInputEl.blur();
     }
-    nameInputEl.addEventListener('input', () => {
-      playerName = (nameInputEl.value || '').trim().slice(0, 10);
+
+    // ★ 中文輸入法支援：composition + input
+    let isComposing = false;
+    nameInputEl.addEventListener('compositionstart', () => { isComposing = true; });
+    nameInputEl.addEventListener('compositionend', () => {
+      isComposing = false;
+      playerName = (nameInputEl.value || '').slice(0, 10);
     });
+    nameInputEl.addEventListener('input', () => {
+      if (isComposing) return;                  // 組字中不更新，避免斷字
+      playerName = (nameInputEl.value || '').slice(0, 10);
+    });
+    // Enter 送出
     nameInputEl.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); clickConfirmName(); }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        clickConfirmName();
+      }
     });
 
     /* ========= 遊戲邏輯 ========= */
@@ -513,14 +537,24 @@
       }).catch(()=>{});
     }
 
+    /* ========= 鍵盤事件：只處理 Enter（避免干擾中文輸入法） ========= */
     function handleKeyPress(e){
-      if (currentPage!=='enterName') return;
-      if (e.key==='Enter') clickConfirmName();
-      else if (e.key==='Backspace') playerName = playerName.slice(0,-1);
-      else if (playerName.length<10 && e.key.length===1 && /[\w\d\s]/i.test(e.key)) playerName += e.key;
-      nameInputEl.value = playerName;
+      if (currentPage !== 'enterName') return;
+
+      // 焦點在真實 input：不手動拼字，只攔 Enter
+      if (document.activeElement === nameInputEl) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          clickConfirmName();
+        }
+        return; // 其餘交給輸入法（composition）
+      }
+
+      // 焦點不在 input（例如直接按 Enter）
+      if (e.key === 'Enter') clickConfirmName();
     }
 
+    /* ========= 滑鼠點擊 ========= */
     canvas.addEventListener('click', (event)=>{
       initializeAudio();
       const rect = canvas.getBoundingClientRect();
@@ -570,14 +604,14 @@
     });
 
     function clickConfirmName(){
-      if (!playerName.trim()) {
+      if (!playerName || !playerName.trim()) {
         if (currentPage==='enterName') showNameInput();
         return;
       }
       currentPage='leaderboard'; isLeaderboardLoading=true;
       hideNameInput();
       Promise.resolve().then(async ()=>{
-        await saveScoreToLeaderboard(playerName, score, Math.floor(elapsedTime/1000));
+        await saveScoreToLeaderboard(playerName.trim(), score, Math.floor(elapsedTime/1000));
         await fetchLeaderboard();
       });
     }
