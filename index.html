@@ -146,8 +146,8 @@
             return new Promise((resolve, reject) => {
                 akitaImage = new Image();
                 characterImage = new Image();
-                akitaImage.src = '可愛秋田.png'; // 已修正為 .png
-                characterImage.src = 'S876553.png'; // 已修正為 .png
+                akitaImage.src = '可愛秋田.png';
+                characterImage.src = 'S876553.png';
                 let loaded = 0;
                 const done=()=>{ if(++loaded===2) resolve(); };
                 akitaImage.onload = done; characterImage.onload = done;
@@ -188,7 +188,7 @@
             ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
             drawCloud(150,100,1); drawCloud(canvas.width-200,150,0.8);
             drawText('王公九九乘法冒險島', canvas.width/2, canvas.height*0.25, canvas.width>600?50:36, '#000080');
-            drawText('等你來挑戰!!!', canvas.width/2, canvas.height*0.35, canvas.width>600?24:18, '#000080');
+            drawText('等你來挑戰！', canvas.width/2, canvas.height*0.35, canvas.width>600?24:18, '#000080');
 
             if (characterImage && characterImage.complete && characterImage.naturalWidth>0) {
                 const w = canvas.width*0.15, h = (characterImage.naturalHeight/characterImage.naturalWidth)*w;
@@ -426,9 +426,9 @@
             nameInputEl.style.lineHeight = `${Math.round(ih)}px`;
         }
         function showNameInput() {
-            // 只在切換到輸入頁時呼叫一次
             nameInputEl.style.display = 'block';
             nameInputEl.value = playerName; // 初始化顯示
+            // 修正：使用 requestAnimationFrame 來確保在 DOM 渲染後再 focus
             requestAnimationFrame(()=> {
                 nameInputEl.focus({ preventScroll: true });
                 const len = nameInputEl.value.length;
@@ -500,22 +500,6 @@
             answerButtons = [{value:answer, correct:true}, ...wrongs.map(v=>({value:v, correct:false}))];
             answerButtons.sort(()=>Math.random()-0.5);
             feedbackMessage = '';
-        }
-        function checkAnswer(isCorrect){
-            if (isAnswerLocked) return;
-            isAnswerLocked = true;
-            lastAnswerWasCorrect = isCorrect;
-            if (isCorrect){
-                feedbackMessage='太棒了！答對囉！';
-                correctAnswersCount++; score+=5;
-                if (correctSynth) correctSynth.triggerAttackRelease(['C4','E4','G4'],'8n');
-                startCharacterAnimation();
-            } else {
-                feedbackMessage='再想想看喔！';
-                score = Math.max(0, score-2);
-                if (wrongSynth) wrongSynth.triggerAttackRelease('C3','4n');
-            }
-            feedbackEndTime = Date.now()+1500;
         }
         function resetGame(){
             currentPage='home';
@@ -621,6 +605,7 @@
         function clickConfirmName(){
             if (!playerName || !playerName.trim()) {
                 if (currentPage==='enterName') {
+                    // 如果名字是空的，給予提示並確保輸入框還在
                     positionNameInput();
                     showNameInput();
                 }
