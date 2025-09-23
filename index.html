@@ -12,7 +12,7 @@
     body { margin:0; overflow:hidden; background:#87ceeb; font-family:'M PLUS Rounded 1c', sans-serif; }
     canvas { display:block; }
 
-    /* 覆蓋在 Canvas 上方的實體輸入框 */
+    /* 覆蓋在 Canvas 上方的實體輸入框（enterName 顯示） */
     #nameInput {
       position: fixed;
       display: none;
@@ -24,8 +24,8 @@
       text-align: center;
       outline: none;
       box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      z-index: 9999;          /* 確保永遠在最上層 */
-      pointer-events: auto;   /* 能接到滑鼠/觸控事件 */
+      z-index: 9999;
+      pointer-events: auto;
     }
   </style>
 
@@ -236,7 +236,9 @@
       drawScore(); drawTime(); drawCharacter();
       drawAnswerButtons();
       drawProgressBar();
-      hideNameInput();
+
+      /* ✅ 關鍵修正：只有在不處於輸入名字頁時才隱藏 input */
+      if (currentPage !== 'enterName') hideNameInput();
     }
 
     function drawScore(){ drawText(`分數：${score}`, 30, 60, canvas.width>600?24:18, '#FFFFFF','left'); }
@@ -330,11 +332,10 @@
       const bw=200,bh=60,bx=canvas.width/2,by=my+mh*0.8;
       drawButton('儲存紀錄', bx,by,bw,bh,'#28a745','#FFFFFF');
       uiButtons=[{id:'save_score', x:bx, y:by, width:bw, height:bh}];
-      /* ← 不再呼叫 hideNameInput() */
     }
 
     function drawEnterNamePage() {
-      // 只負責畫面；input 的顯示/focus 在切換頁面時處理
+      // 只負責畫面；input 的顯示/focus 在切頁時處理
       drawGameOverPage();
       ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(0,0,canvas.width,canvas.height);
       const mw=canvas.width*0.7, mh=canvas.height*0.5;
@@ -436,6 +437,8 @@
         clickConfirmName();
       }
     });
+    // 避免點輸入框時點到 Canvas（保險）
+    nameInputEl.addEventListener('click', (e)=>e.stopPropagation());
 
     /* ========== 遊戲邏輯 ========== */
     function startCharacterAnimation(){
