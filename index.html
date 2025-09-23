@@ -8,20 +8,32 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap" rel="stylesheet"/>
   <style>
-    :root {
-      /* 讀取行動裝置底部安全區 */
-      --safe-bottom: env(safe-area-inset-bottom, 0px);
-    }
+    :root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
     body { margin:0; overflow:hidden; background:#87ceeb; font-family:'M PLUS Rounded 1c', sans-serif; }
     canvas { display:block; }
+
+    /* 覆蓋在 Canvas 上方的真實輸入框（enterName 時顯示） */
+    #nameInput {
+      position: fixed; /* 直接定位在視窗上，避免因捲動偏移 */
+      display: none;   /* 預設不顯示，進入輸入頁才顯示 */
+      border: 2px solid #CCC;
+      border-radius: 10px;
+      background: #FFF;
+      color: #000;
+      font-weight: 700;
+      text-align: center;
+      outline: none;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      z-index: 10;     /* 高於 Canvas */
+    }
   </style>
-  <!-- Tone.js (可留可拿掉，不影響卡住問題) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.min.js"></script>
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
+  <!-- ★ 真實輸入框（平板會叫出軟鍵盤） -->
+  <input id="nameInput" type="text" inputmode="text" autocomplete="off" autocapitalize="none" maxlength="10" placeholder="請在此輸入名字" />
 
-  <!-- Firebase SDKs（保留，但初始化失敗不致命） -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -29,8 +41,9 @@
 
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+    const nameInputEl = document.getElementById('nameInput');
 
-    /* ========= 圓角矩形 polyfill (取代 roundRect) ========= */
+    /* ========= 圓角矩形 polyfill ========= */
     function rr(ctx, x, y, w, h, r = 0) {
       const radii = typeof r === 'number' ? {tl:r, tr:r, br:r, bl:r} : (r || {tl:0,tr:0,bl:0});
       ctx.beginPath();
@@ -45,11 +58,10 @@
       ctx.quadraticCurveTo(x, y, x + radii.tl, y);
     }
 
-    /* ========= 讀取安全區（CSS env） ========= */
     function getSafeBottom() {
       const v = getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom') || '0px';
       const n = parseFloat(v);
-      return isNaN(n) ? 0 : n; // 單位：CSS 像素
+      return isNaN(n) ? 0 : n;
     }
 
     /* ========= Firebase ========= */
@@ -64,7 +76,6 @@
           messagingSenderId: "893665009867",
           appId: "1:893665009867:web:d732e15cf792890c8a7b4e"
         };
-        if (!firebaseConfig.apiKey) { db=null; return; }
         const app = initializeApp(firebaseConfig);
         db = getFirestore(app);
         auth = getAuth(app);
@@ -121,6 +132,8 @@
     function resizeCanvas() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      // 進入輸入頁時，重新定位覆蓋輸入框
+      if (currentPage === 'enterName') positionNameInput();
     }
 
     function drawText(text, x, y, fontSize, color, align='center', baseline='middle') {
@@ -161,6 +174,7 @@
         {id:'start', x:canvas.width/2, y:y1, width:bw, height:bh},
         {id:'show_leaderboard', x:canvas.width/2, y:y2, width:bw, height:bh}
       ];
+      hideNameInput(); // 回首頁時確保隱藏
     }
 
     function drawCloud(x,y,s) {
@@ -195,6 +209,7 @@
         drawButton(label, x, y, bw, bh, '#4CAF50', '#FFFFFF');
         uiButtons.push({ id:'select', value:num, x, y, width:bw, height:bh });
       });
+      hideNameInput();
     }
 
     function drawPracticePage() {
@@ -209,9 +224,10 @@
       drawText(`${currentQuestion.num1} x ${currentQuestion.num2} = ?`, bx,by, canvas.width>600?48:36, '#000080');
       if (feedbackMessage) drawText(feedbackMessage, canvas.width/2, canvas.height*0.35, canvas.width>600?36:24, '#FF4500');
 
-      drawScore(); drawTime(); drawCharacter(); 
-      drawAnswerButtons();   // 先畫按鈕
-      drawProgressBar();     // 再畫進度條（位置已避開）
+      drawScore(); drawTime(); drawCharacter();
+      drawAnswerButtons();
+      drawProgressBar();
+      hideNameInput();
     }
 
     function drawScore(){ drawText(`分數：${score}`, 30, 60, canvas.width>600?24:18, '#FFFFFF','left'); }
@@ -227,49 +243,31 @@
       }
     }
 
-    /* ========= 手機友善：答案按鈕自動避開底部 + 自動縮放 ========= */
     function drawAnswerButtons() {
       const cols = canvas.width > 700 ? 3 : 2;
-
-      // 基本尺寸
-      const baseW = 120;
-      const baseH = 60;
-      const baseGap = 20;
-
+      const baseW = 120, baseH = 60, baseGap = 20;
       const rows = Math.ceil(answerButtons.length / cols);
-
-      // 進度條與安全區
       const barH = 25;
-      const safeBottom = getSafeBottom();       // ex: iPhone 底部 Home Bar
-      const bottomReserve = safeBottom + barH + 24; // 24 為進度條與按鈕的間距
-
+      const safeBottom = getSafeBottom();
+      const bottomReserve = safeBottom + barH + 24;
       const availableBottomY = canvas.height - bottomReserve;
-
-      // 以「下緣對齊」推回來的排版：先估算原始總高
       const totalH = rows * baseH + (rows - 1) * baseGap;
 
-      // 預設把整塊網格的「頂端」放在距底部 totalH + 10 的位置
       let top = availableBottomY - totalH - 10;
-      const minTop = canvas.height * 0.52; // 題目區以下
+      const minTop = canvas.height * 0.52;
 
-      // 若空間不足，等比縮小（含高度、寬度、間距）
       let s = 1;
       if (top < minTop) {
-        const avail = availableBottomY - 10 - minTop;           // 實際可用高度
+        const avail = availableBottomY - 10 - minTop;
         const need = totalH;
-        s = Math.max(0.6, Math.min(1, avail / need));           // 不低於 0.6 倍
+        s = Math.max(0.6, Math.min(1, avail / need));
         const scaledTotalH = rows * (baseH * s) + (rows - 1) * (baseGap * s);
-        top = availableBottomY - scaledTotalH - 10;             // 重新計算頂端
+        top = availableBottomY - scaledTotalH - 10;
       }
-
-      const bw = baseW * s;
-      const bh = baseH * s;
-      const gap = baseGap * s;
-
-      // 依螢幕寬度調整水平排版
+      const bw = baseW * s, bh = baseH * s, gap = baseGap * s;
       const totalW = cols * bw + (cols - 1) * gap;
       const startX = (canvas.width - totalW) / 2 + bw / 2;
-      const startY = top + bh / 2; // 第一列中心 y
+      const startY = top + bh / 2;
 
       answerButtons.forEach((btn, i) => {
         const r = Math.floor(i / cols);
@@ -281,7 +279,6 @@
       });
     }
 
-    /* ========= 進度條：避開安全區，貼齊底部 ========= */
     function drawProgressBar() {
       const barWidth = canvas.width * 0.6;
       const barHeight = 25;
@@ -322,9 +319,11 @@
       const bw=200,bh=60,bx=canvas.width/2,by=my+mh*0.8;
       drawButton('儲存紀錄', bx,by,bw,bh,'#28a745','#FFFFFF');
       uiButtons=[{id:'save_score', x:bx, y:by, width:bw, height:bh}];
+      hideNameInput();
     }
 
     function drawEnterNamePage() {
+      // 底層仍畫出視覺樣式（白框）
       drawGameOverPage();
       ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(0,0,canvas.width,canvas.height);
       const mw=canvas.width*0.7, mh=canvas.height*0.5;
@@ -332,283 +331,20 @@
       ctx.fillStyle='#fff'; rr(ctx,mx,my,mw,mh,20); ctx.fill();
       drawText('請輸入你的名字', canvas.width/2, my+mh*0.2, 32, '#333');
 
+      // 輸入框的幾何（和視覺一致）
       const iw=mw*0.8, ih=60, ix=(canvas.width-iw)/2, iy=my+mh*0.4;
       ctx.strokeStyle='#CCC'; ctx.lineWidth=2; rr(ctx,ix,iy,iw,ih,10); ctx.stroke();
 
-      let disp = playerName + ((Math.floor(Date.now()/500)%2===0)?'|':'');
-      drawText(disp, canvas.width/2, iy+ih/2, 28, '#000');
-
+      // 不再在 Canvas 上畫名字，改由真實 input 呈現
       const bw=200,bh=60,bx=canvas.width/2,by=my+mh*0.8;
       drawButton('確認', bx,by,bw,bh,'#007bff','#FFFFFF');
       uiButtons=[{id:'confirm_name', x:bx, y:by, width:bw, height:bh}];
+
+      // ★ 顯示與定位真實輸入框
+      positionNameInput({ ix, iy, iw, ih });
+      showNameInput();
     }
 
     function drawLeaderboardPage() {
       const g=ctx.createLinearGradient(0,0,0,canvas.height);
-      g.addColorStop(0,'#4e54c8'); g.addColorStop(1,'#8f94fb');
-      ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
-      drawText('速度挑戰排行榜', canvas.width/2, canvas.height*0.1, 40, '#fff');
-
-      if (isLeaderboardLoading) {
-        drawText('讀取中...', canvas.width/2, canvas.height/2, 30, '#fff');
-      } else if (!db) {
-        drawText('排行榜功能暫時無法使用', canvas.width/2, canvas.height/2, 24, '#FFD700');
-      } else {
-        const startY=canvas.height*0.2, lh=40;
-        drawText('排名', canvas.width*0.2, startY, 20, '#FFD700');
-        drawText('名字', canvas.width*0.4, startY, 20, '#FFD700');
-        drawText('分數', canvas.width*0.6, startY, 20, '#FFD700');
-        drawText('時間(秒)', canvas.width*0.8, startY, 20, '#FFD700');
-        leaderboardData.slice(0,10).forEach((e,i)=>{
-          const y = startY + (i+1)*lh;
-          drawText(i+1, canvas.width*0.2, y, 18, '#fff');
-          drawText(e.name, canvas.width*0.4, y, 18, '#fff');
-          drawText(e.score, canvas.width*0.6, y, 18, '#fff');
-          drawText(e.time, canvas.width*0.8, y, 18, '#fff');
-        });
-      }
-
-      const bw=200,bh=60,bx=canvas.width/2,by=canvas.height-80;
-      drawButton('返回首頁', bx,by,bw,bh,'#6c757d','#fff');
-      uiButtons=[{id:'back_home', x:bx, y:by, width:bw, height:bh}];
-    }
-
-    function drawButton(text, x,y,w,h, color, textColor) {
-      ctx.save();
-      ctx.shadowColor='rgba(0,0,0,0.3)'; ctx.shadowBlur=10; ctx.shadowOffsetX=4; ctx.shadowOffsetY=4;
-      ctx.fillStyle=color; rr(ctx, x-w/2, y-h/2, w,h,15); ctx.fill();
-      ctx.restore();
-      drawText(text, x,y,Math.max(18, Math.min(22, w/6)), textColor); // 字體跟著寬度微調
-    }
-
-    /* ========= 遊戲邏輯 ========= */
-    function startCharacterAnimation(){
-      if (isCharacterJumping) return;
-      isCharacterJumping = true; jumpStartTime = Date.now();
-    }
-
-    // 產生 5 個錯誤選項（避免無限迴圈）
-    function generateWrongAnswers(answer, count=5) {
-      const set = new Set();
-      for (let off = -9; off <= 9 && set.size < count; off++) {
-        if (off === 0) continue;
-        const v = answer + off;
-        if (v > 0) set.add(v);
-      }
-      let tries = 0;
-      const upper = Math.max(answer + 20, 30);
-      while (set.size < count && tries < 500) {
-        const v = Math.floor(Math.random() * upper) + 1;
-        if (v !== answer) set.add(v);
-        tries++;
-      }
-      return Array.from(set).slice(0, count);
-    }
-
-    function generateNewQuestion() {
-      let num1, num2, nq;
-      do {
-        if (questionRange==='混合') {
-          num1 = Math.floor(Math.random()*10)+1; // 1..10
-          num2 = Math.floor(Math.random()*9)+1;  // 1..9
-        } else {
-          num1 = questionRange;                  // 固定段
-          num2 = Math.floor(Math.random()*9)+1;
-        }
-        nq = {num1,num2};
-      } while (lastQuestion.num1===nq.num1 && lastQuestion.num2===nq.num2);
-
-      const answer = num1*num2;
-      currentQuestion = {num1,num2,answer};
-      lastQuestion = nq;
-
-      const wrongs = generateWrongAnswers(answer, 5);
-      answerButtons = [{value:answer, correct:true}, ...wrongs.map(v=>({value:v, correct:false}))];
-      answerButtons.sort(()=>Math.random()-0.5);
-      feedbackMessage = '';
-    }
-
-    function checkAnswer(isCorrect){
-      if (isAnswerLocked) return;
-      isAnswerLocked = true;
-      lastAnswerWasCorrect = isCorrect;
-      if (isCorrect){
-        feedbackMessage='太棒了！答對囉！';
-        correctAnswersCount++; score+=5;
-        if (correctSynth) correctSynth.triggerAttackRelease(['C4','E4','G4'],'8n');
-        startCharacterAnimation();
-      } else {
-        feedbackMessage='再想想看喔！';
-        score = Math.max(0, score-2);
-        if (wrongSynth) wrongSynth.triggerAttackRelease('C3','4n');
-      }
-      feedbackEndTime = Date.now()+1500;
-    }
-
-    function resetGame(){
-      currentPage='home';
-      correctAnswersCount=0; score=0;
-      startTime=0; elapsedTime=0;
-      feedbackMessage=''; lastQuestion={};
-      playerName=''; isAnswerLocked=false;
-    }
-
-    /* ========= Firestore ========= */
-    async function saveScoreToLeaderboard(name, score, time) {
-      if (!db) return;
-      try {
-        const colRef = collection(db,'leaderboard');
-        await addDoc(colRef, {name,score,time,createdAt:new Date()});
-      } catch {}
-    }
-    async function fetchLeaderboard(){
-      isLeaderboardLoading = true;
-      if (!db) { leaderboardData=[]; isLeaderboardLoading=false; return; }
-      try{
-        const colRef = collection(db,'leaderboard');
-        const snap = await getDocs(colRef);
-        const scores = snap.docs.map(d=>d.data());
-        scores.sort((a,b)=> b.score - a.score || a.time - b.time);
-        leaderboardData = scores;
-      } catch { leaderboardData=[]; }
-      isLeaderboardLoading = false;
-    }
-
-    /* ========= 音效 ========= */
-    function initializeAudio(){
-      if (audioInitialized || typeof Tone==='undefined') return;
-      Tone.start().then(()=>{
-        correctSynth = new Tone.PolySynth(Tone.Synth,{oscillator:{type:'sine'}, envelope:{attack:0.01,decay:0.1,sustain:0.2,release:0.2}}).toDestination();
-        wrongSynth   = new Tone.Synth({oscillator:{type:'square'}, envelope:{attack:0.01,decay:0.2,sustain:0.1,release:0.2}}).toDestination();
-        clickSynth   = new Tone.Synth({oscillator:{type:'triangle'}, envelope:{attack:0.005,decay:0.1,sustain:0,release:0.1}}).toDestination();
-        audioInitialized = true;
-      }).catch(()=>{});
-    }
-
-    /* ========= 事件（含座標校正） ========= */
-    function handleKeyPress(e){
-      if (currentPage!=='enterName') return;
-      if (e.key==='Enter') {
-        const btn = uiButtons.find(b=>b.id==='confirm_name');
-        if (btn) clickConfirmName();
-      } else if (e.key==='Backspace') {
-        playerName = playerName.slice(0,-1);
-      } else if (playerName.length<10 && e.key.length===1 && /[\w\d\s]/i.test(e.key)) {
-        playerName += e.key;
-      }
-    }
-
-    canvas.addEventListener('click', (event)=>{
-      initializeAudio();
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      const mouseX = (event.clientX - rect.left) * scaleX;
-      const mouseY = (event.clientY - rect.top)  * scaleY;
-
-      const hit = (b) => (mouseX > b.x - b.width/2 && mouseX < b.x + b.width/2 &&
-                          mouseY > b.y - b.height/2 && mouseY < b.y + b.height/2);
-
-      if (['home','selection','gameOver','leaderboard','enterName'].includes(currentPage)) {
-        for (const btn of uiButtons) {
-          if (hit(btn)) {
-            if (clickSynth) clickSynth.triggerAttackRelease('C5','16n');
-            switch(btn.id){
-              case 'start':
-                currentPage='selection'; break;
-              case 'select':
-                isAnswerLocked=false;
-                questionRange=btn.value; currentPage='practice';
-                correctAnswersCount=0; score=0; lastQuestion={};
-                generateNewQuestion(); startTime=Date.now();
-                break;
-              case 'save_score':
-                currentPage='enterName'; break;
-              case 'confirm_name':
-                clickConfirmName(); break;
-              case 'show_leaderboard':
-                currentPage='leaderboard'; isLeaderboardLoading=true; fetchLeaderboard();
-                break;
-              case 'back_home':
-                resetGame(); break;
-            }
-            break;
-          }
-        }
-      } else if (currentPage==='practice') {
-        if (isAnswerLocked) return;
-        for (const btn of answerButtons) {
-          if (hit(btn)) { checkAnswer(btn.correct); break; }
-        }
-      }
-    });
-
-    function clickConfirmName(){
-      if (!playerName.trim()) return;
-      currentPage='leaderboard'; isLeaderboardLoading=true;
-      Promise.resolve().then(async ()=>{
-        await saveScoreToLeaderboard(playerName, score, Math.floor(elapsedTime/1000));
-        await fetchLeaderboard();
-      });
-    }
-
-    /* ========= 主迴圈 ========= */
-    function drawScreen(){
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      switch(currentPage){
-        case 'home': drawHomePage(); break;
-        case 'selection': drawSelectionPage(); break;
-        case 'practice': drawPracticePage(); break;
-        case 'gameOver': drawGameOverPage(); break;
-        case 'enterName': drawEnterNamePage(); break;
-        case 'leaderboard': drawLeaderboardPage(); break;
-      }
-    }
-
-    function gameLoop(){
-      try{
-        const now = Date.now();
-        if (currentPage==='practice' && startTime>0) elapsedTime = now - startTime;
-
-        if (isCharacterJumping){
-          const ej = now - jumpStartTime;
-          if (ej < JUMP_DURATION) {
-            const p = ej / JUMP_DURATION;
-            characterYOffset = -Math.sin(p*Math.PI)*JUMP_HEIGHT;
-          } else { isCharacterJumping=false; characterYOffset=0; }
-        }
-
-        if (feedbackEndTime>0 && now>=feedbackEndTime){
-          feedbackEndTime=0;
-          if (lastAnswerWasCorrect){
-            if (correctAnswersCount>=20) currentPage='gameOver';
-            else { generateNewQuestion(); isAnswerLocked=false; }
-          } else {
-            feedbackMessage=''; isAnswerLocked=false;
-          }
-        }
-        drawScreen();
-      } catch(e){
-        // 不中斷迴圈
-      }
-      requestAnimationFrame(gameLoop);
-    }
-
-    /* ========= 啟動 ========= */
-    window.onload = async function() {
-      resizeCanvas();
-      drawSystemText('載入中...');
-      initializeFirebase(); // 失敗也不影響遊戲
-      try{
-        await loadAssets();
-        window.addEventListener('resize', resizeCanvas, false);
-        window.addEventListener('keydown', handleKeyPress);
-        requestAnimationFrame(gameLoop);
-      }catch{
-        drawSystemText('遊戲圖片載入失敗', 'red');
-      }
-    };
-  </script>
-</body>
-</html>
-
+      g.addColorStop(0,'#4e54c8');
