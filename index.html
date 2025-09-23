@@ -31,7 +31,7 @@
   <!-- Tone.js（可留可拿掉，不影響是否能跑起來） -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.min.js"></script>
 
-  <!-- ✅ Firebase 以「非模組 Compat 版」載入，避免舊瀏覽器不支援 ES Modules -->
+  <!-- Firebase 以「非模組 Compat 版」載入，兼容舊瀏覽器 -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
@@ -51,7 +51,6 @@
     placeholder="請在此輸入名字"
   />
 
-  <!-- ✅ 不用 type="module"；所有瀏覽器都能跑 -->
   <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -145,6 +144,7 @@
     function resizeCanvas() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      // 只有在輸入名字頁才重新定位輸入框
       if (currentPage === 'enterName') positionNameInput();
     }
 
@@ -172,7 +172,7 @@
       ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
       drawCloud(150,100,1); drawCloud(canvas.width-200,150,0.8);
       drawText('王公九九乘法冒險島', canvas.width/2, canvas.height*0.25, canvas.width>600?50:36, '#000080');
-      drawText('等你來挑戰!！', canvas.width/2, canvas.height*0.35, canvas.width>600?24:18, '#000080');
+      drawText('等你來挑戰！', canvas.width/2, canvas.height*0.35, canvas.width>600?24:18, '#000080');
 
       if (characterImage && characterImage.complete && characterImage.naturalWidth>0) {
         const w = canvas.width*0.15, h = (characterImage.naturalHeight/characterImage.naturalWidth)*w;
@@ -186,7 +186,7 @@
         {id:'start', x:canvas.width/2, y:y1, width:bw, height:bh},
         {id:'show_leaderboard', x:canvas.width/2, y:y2, width:bw, height:bh}
       ];
-      hideNameInput();
+      hideNameInput(); // 回首頁時一定隱藏
     }
 
     function drawCloud(x,y,s) {
@@ -335,6 +335,7 @@
     }
 
     function drawEnterNamePage() {
+      // 只負責「畫面呈現」，不再顯示/回寫 input（避免每幀覆蓋正在輸入的內容）
       drawGameOverPage();
       ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(0,0,canvas.width,canvas.height);
       const mw=canvas.width*0.7, mh=canvas.height*0.5;
@@ -348,9 +349,7 @@
       const bw=200,bh=60,bx=canvas.width/2,by=my+mh*0.8;
       drawButton('確認', bx,by,bw,bh,'#007bff','#FFFFFF');
       uiButtons=[{id:'confirm_name', x:bx, y:by, width:bw, height:bh}];
-
-      positionNameInput({ ix, iy, iw, ih });
-      showNameInput();
+      // ❌ 不要在這裡呼叫 showNameInput() / positionNameInput()
     }
 
     function drawLeaderboardPage() {
@@ -407,11 +406,11 @@
       nameInputEl.style.height = `${Math.round(ih)}px`;
       nameInputEl.style.fontSize = `${Math.max(22, Math.min(28, Math.round(ih*0.5)))}px`;
       nameInputEl.style.lineHeight = `${Math.round(ih)}px`;
-      nameInputEl.style.display = 'block';
     }
     function showNameInput() {
-      if (nameInputEl.style.display !== 'block') nameInputEl.style.display = 'block';
-      nameInputEl.value = playerName;
+      // 只在切換到輸入頁時呼叫一次
+      nameInputEl.style.display = 'block';
+      nameInputEl.value = playerName; // 初始化顯示
       requestAnimationFrame(()=> {
         nameInputEl.focus({ preventScroll: true });
         const len = nameInputEl.value.length;
@@ -581,8 +580,8 @@
                 break;
               case 'save_score':
                 currentPage='enterName';
-                positionNameInput();
-                showNameInput();
+                positionNameInput();   // ✅ 只在切換頁面時定位一次
+                showNameInput();       // ✅ 只在切換頁面時顯示+focus 一次
                 break;
               case 'confirm_name':
                 clickConfirmName(); break;
@@ -605,7 +604,10 @@
 
     function clickConfirmName(){
       if (!playerName || !playerName.trim()) {
-        if (currentPage==='enterName') showNameInput();
+        if (currentPage==='enterName') {
+          positionNameInput(); // 以防視窗改變
+          showNameInput();     // 引導再次聚焦
+        }
         return;
       }
       currentPage='leaderboard'; isLeaderboardLoading=true;
