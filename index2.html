@@ -163,7 +163,7 @@
       ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
       drawCloud(150,100,1); drawCloud(canvas.width-200,150,0.8);
       drawText('王公九九乘法冒險島', canvas.width/2, canvas.height*0.25, canvas.width>600?50:36, '#000080');
-      drawText('等你來挑戰！', canvas.width/2, canvas.height*0.35, canvas.width>600?24:18, '#000080');
+      drawText('等你來挑戰！3', canvas.width/2, canvas.height*0.35, canvas.width>600?24:18, '#000080');
 
       if (characterImage && characterImage.complete && characterImage.naturalWidth>0) {
         const w = canvas.width*0.15, h = (characterImage.naturalHeight/characterImage.naturalWidth)*w;
@@ -356,13 +356,21 @@
       uiButtons=[{id:'back_home', x:bx, y:by, width:bw, height:bh}];
       hideNameInput();
     }
-    function drawButton(text,x,y,w,h,color,textColor){
-      ctx.save();
-      ctx.shadowColor='rgba(0,0,0,0.3)'; ctx.shadowBlur=10; ctx.shadowOffsetX=4; ctx.shadowOffsetY=4;
-      ctx.fillStyle=color; rr(ctx, x-w/2, y-h/2, w, h, 15); ctx.fill();
-      ctx.restore();
-      drawText(text, x,y, Math.max(18, Math.min(22, w/6)), textColor);
-    }
+    function drawButton(text, x, y, w, h, color, textColor){
+  // 繪製按鈕本身，並設定陰影
+  ctx.save();
+  ctx.shadowColor='rgba(0,0,0,0.3)';
+  ctx.shadowBlur=10;
+  ctx.shadowOffsetX=4;
+  ctx.shadowOffsetY=4;
+  ctx.fillStyle=color;
+  rr(ctx, x-w/2, y-h/2, w, h, 15);
+  ctx.fill();
+  ctx.restore();
+
+  // 獨立繪製文字，不被陰影設定影響
+  drawText(text, x, y, Math.max(18, Math.min(22, w/6)), textColor);
+}
 
     /* ========== Name Input Overlay ========== */
     function computeEnterNameGeom(){
