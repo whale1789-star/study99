@@ -6,10 +6,15 @@
   <title>九九乘法冒險島</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap" rel="stylesheet"/>
+  <!-- 載入 M PLUS Rounded 1c + Noto Sans TC（作為繁中後備） -->
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&family=Noto+Sans+TC:wght@500;700&display=swap" rel="stylesheet"/>
   <style>
     :root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
-    body { margin:0; overflow:hidden; background:#87ceeb; font-family:'M PLUS Rounded 1c', sans-serif; }
+    body {
+      margin:0; overflow:hidden; background:#87ceeb;
+      /* 頁面整體也使用有繁中後備的字體鏈 */
+      font-family: 'M PLUS Rounded 1c', 'Noto Sans TC', 'Microsoft JhengHei', 'PingFang TC', sans-serif;
+    }
     canvas { display:block; }
     /* 覆蓋在 Canvas 上方的實體輸入框（enterName 時顯示、可喚出平板軟鍵盤） */
     #nameInput{
@@ -40,7 +45,7 @@
       const r = e.reason;
       const msg = (r && (r.message || r.toString())) || '';
       if (msg.includes('Extension context invalidated')) {
-        e.preventDefault(); // 不讓它干擾頁面或 DevTools 停住
+        e.preventDefault();
       }
     });
 
@@ -118,14 +123,9 @@
       characterImage = new Image();
       const akitaCandidates = ['可愛秋田.png','可愛秋田.jpg'];
       const charCandidates  = ['S876553.png','S876553.jpg','S__876553.jpg'];
-
       function tryLoad(img, list){
         let i=0;
-        const loadNext=()=>{
-          if(i>=list.length) return;
-          img.src = list[i++];
-          img.onerror = loadNext;
-        };
+        const loadNext=()=>{ if(i>=list.length) return; img.src=list[i++]; img.onerror=loadNext; };
         loadNext();
       }
       tryLoad(akitaImage, akitaCandidates);
@@ -135,10 +135,10 @@
     function resizeCanvas(){ canvas.width=innerWidth; canvas.height=innerHeight;
       if(currentPage==='enterName') positionNameInput(); }
 
-    /* —— 修正版：不外溢的 drawText（含正確 transparent）—— */
+    /* —— 不外溢的 drawText + 加入繁中後備字體 —— */
     function drawText(text, x, y, fontSize, color, align='center', baseline='middle') {
       ctx.save();
-      ctx.font = `bold ${fontSize}px 'M PLUS Rounded 1c', sans-serif`;
+      ctx.font = `bold ${fontSize}px "M PLUS Rounded 1c","Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif`;
       ctx.fillStyle = color;
       ctx.textAlign = align;
       ctx.textBaseline = baseline;
@@ -153,7 +153,8 @@
     function drawSystemText(t,color='#333'){
       ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
       ctx.save();
-      ctx.font='bold 30px sans-serif'; ctx.fillStyle=color; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.font='bold 30px "Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif';
+      ctx.fillStyle=color; ctx.textAlign='center'; ctx.textBaseline='middle';
       ctx.fillText(t, canvas.width/2, canvas.height/2);
       ctx.restore();
     }
@@ -521,7 +522,10 @@
     });
 
     function clickConfirmName(){
-      if(!playerName || !playerName.trim()){ if(currentPage==='enterName'){ positionNameInput(); showNameInput(); } return; }
+      if(!playerName || !playerName.trim()){
+        if(currentPage==='enterName'){ positionNameInput(); showNameInput(); }
+        return;
+      }
       currentPage='leaderboard'; isLeaderboardLoading=true; hideNameInput();
       const typeString=(questionRange==='混合')?'混合':String(questionRange);
       (async()=>{
@@ -563,7 +567,6 @@
       requestAnimationFrame(gameLoop);
     }
 
-    /* ========== Startup：不等待圖片，立即跑 ========== */
     window.onload = function(){
       resizeCanvas();
       drawSystemText('載入中...');
