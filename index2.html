@@ -135,16 +135,27 @@
     function resizeCanvas(){ canvas.width=innerWidth; canvas.height=innerHeight;
       if(currentPage==='enterName') positionNameInput(); }
 
-    function drawText(t,x,y,fs,color,align='center',base='middle'){
-      ctx.font=`bold ${fs}px 'M PLUS Rounded 1c', sans-serif`;
-      ctx.fillStyle=color; ctx.textAlign=align; ctx.textBaseline=base;
-      ctx.shadowColor='rgba(0,0,0,0.2)'; ctx.shadowBlur=5; ctx.shadowOffsetX=2; ctx.shadowOffsetY=2;
-      ctx.fillText(t,x,y); ctx.shadowColor='透明';
+    /* —— 修正版：不外溢的 drawText（含正確 transparent）—— */
+    function drawText(text, x, y, fontSize, color, align='center', baseline='middle') {
+      ctx.save();
+      ctx.font = `bold ${fontSize}px 'M PLUS Rounded 1c', sans-serif`;
+      ctx.fillStyle = color;
+      ctx.textAlign = align;
+      ctx.textBaseline = baseline;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+      ctx.shadowBlur = Math.max(1, Math.round(fontSize / 10));
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+      ctx.fillText(text, x, y);
+      ctx.restore();
     }
+
     function drawSystemText(t,color='#333'){
       ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.save();
       ctx.font='bold 30px sans-serif'; ctx.fillStyle=color; ctx.textAlign='center'; ctx.textBaseline='middle';
       ctx.fillText(t, canvas.width/2, canvas.height/2);
+      ctx.restore();
     }
 
     /* ========== Screens ========== */
@@ -171,12 +182,14 @@
       hideNameInput();
     }
     function drawCloud(x,y,s){
+      ctx.save();
       ctx.fillStyle='rgba(255,255,255,0.9)';
       ctx.beginPath(); ctx.arc(x,y,30*s,0,Math.PI*2);
       ctx.arc(x+35*s,y-10*s,40*s,0,Math.PI*2);
       ctx.arc(x+70*s,y,30*s,0,Math.PI*2);
       ctx.arc(x+35*s,y+15*s,40*s,0,Math.PI*2);
       ctx.closePath(); ctx.fill();
+      ctx.restore();
     }
     function drawSelectionPage(){
       const g=ctx.createLinearGradient(0,0,0,canvas.height);
@@ -207,7 +220,9 @@
       ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
 
       const bx=canvas.width/2, by=canvas.height*0.2, br=canvas.width>600?100:70;
+      ctx.save();
       ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.arc(bx,by,br,0,Math.PI*2); ctx.fill();
+      ctx.restore();
 
       drawText(`${currentQuestion.num1} x ${currentQuestion.num2} = ?`, bx,by, canvas.width>600?48:36, '#000080');
       if(feedbackMessage) drawText(feedbackMessage, canvas.width/2, canvas.height*0.35, canvas.width>600?36:24, '#FF4500');
@@ -259,37 +274,48 @@
       const barWidth=canvas.width*0.6, barHeight=25, safeBottom=getSafeBottom(), margin=10;
       const barX=(canvas.width-barWidth)/2, barY=canvas.height-safeBottom-margin-barHeight;
       const maxQuestions=20;
+      ctx.save();
       ctx.fillStyle='#f0e68c'; rr(ctx,barX,barY,barWidth,barHeight,12); ctx.fill();
       const progress=(correctAnswersCount/maxQuestions)*barWidth;
       if(progress>0){ ctx.fillStyle='#FFC107'; rr(ctx,barX,barY,progress,barHeight,12); ctx.fill(); }
       ctx.strokeStyle='#daa520'; ctx.lineWidth=3; rr(ctx,barX,barY,barWidth,barHeight,12); ctx.stroke();
+      ctx.restore();
       drawText(`${correctAnswersCount} / ${maxQuestions}`, canvas.width/2, barY+barHeight/2, 16, '#A52A2A');
     }
     function drawGameOverPage(){
       drawPracticePage();
+      ctx.save();
       ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,canvas.width,canvas.height);
       const mw=canvas.width*0.7, mh=canvas.height*0.6;
       const mx=(canvas.width-mw)/2, my=(canvas.height-mh)/2;
       ctx.fillStyle='#FFF8DC'; ctx.strokeStyle='#F0E68C'; ctx.lineWidth=10;
       rr(ctx,mx,my,mw,mh,20); ctx.fill(); ctx.stroke();
+      ctx.restore();
+
       const totalSec=Math.floor(elapsedTime/1000);
       drawText('挑戰完成！', canvas.width/2, my+mh*0.2, 40,'#D2691E');
       drawText(`總分：${score}`, canvas.width/2, my+mh*0.4, 30,'#8B4513');
       drawText(`總共花了 ${totalSec} 秒`, canvas.width/2, my+mh*0.55, 30,'#8B4513');
+
       const bw=200,bh=60,bx=canvas.width/2,by=my+mh*0.8;
       drawButton('儲存紀錄', bx,by,bw,bh,'#28a745','#FFFFFF');
       uiButtons=[{id:'save_score', x:bx, y:by, width:bw, height:bh}];
     }
     function drawEnterNamePage(){
       drawGameOverPage();
+      ctx.save();
       ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(0,0,canvas.width,canvas.height);
       const mw=canvas.width*0.7, mh=canvas.height*0.5;
       const mx=(canvas.width-mw)/2, my=(canvas.height-mh)/2;
       ctx.fillStyle='#fff'; rr(ctx,mx,my,mw,mh,20); ctx.fill();
+      ctx.restore();
+
       drawText('請輸入你的名字', canvas.width/2, my+mh*0.2, 32, '#333');
 
       const iw=mw*0.8, ih=60, ix=(canvas.width-iw)/2, iy=my+mh*0.4;
+      ctx.save();
       ctx.strokeStyle='#CCC'; ctx.lineWidth=2; rr(ctx,ix,iy,iw,ih,10); ctx.stroke();
+      ctx.restore();
 
       const bw=200,bh=60,bx=canvas.width/2,by=my+mh*0.8;
       drawButton('確認', bx,by,bw,bh,'#007bff','#FFFFFF');
@@ -428,7 +454,7 @@
       if(!db) return;
       try{ await db.collection('leaderboard').add({name,score,time,type,createdAt:new Date()}); }catch{}
     }
-    async function fetchLeaderboard(filterType=null){
+    async function fetchLeaderboard(){
       isLeaderboardLoading=true; leaderboardData=[];
       if(!db){ isLeaderboardLoading=false; return; }
       try{
