@@ -114,8 +114,8 @@
         function initImages(){
             akitaImage = new Image();
             characterImage = new Image();
-            const akitaCandidates = ['可愛秋田.jpg'];
-            const charCandidates  = ['S876553.jpg', 'S__876553.jpg'];
+            const akitaCandidates = ['可愛秋田.png'];
+            const charCandidates  = ['S876553.png', 'S__876553.png'];
             function tryLoad(img, list){
                 let i=0;
                 const loadNext=()=>{ if(i>=list.length) return; img.src=list[i++]; img.onerror=loadNext; };
