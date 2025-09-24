@@ -6,17 +6,16 @@
   <title>九九乘法冒險島</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <!-- 載入 M PLUS Rounded 1c + Noto Sans TC（作為繁中後備） -->
-  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&family=Noto+Sans+TC:wght@500;700&display=swap" rel="stylesheet"/>
+  <!-- 主要用 Noto Sans TC；M PLUS 當後備；display=swap 減少閃爍 -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700&family=M+PLUS+Rounded+1c:wght@700&display=swap" rel="stylesheet"/>
   <style>
     :root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
     body {
       margin:0; overflow:hidden; background:#87ceeb;
-      /* 頁面整體也使用有繁中後備的字體鏈 */
-      font-family: 'M PLUS Rounded 1c', 'Noto Sans TC', 'Microsoft JhengHei', 'PingFang TC', sans-serif;
+      /* 頁面整體字體鏈：先繁中、再 M PLUS */
+      font-family: 'Noto Sans TC','M PLUS Rounded 1c','Microsoft JhengHei','PingFang TC',sans-serif;
     }
     canvas { display:block; }
-    /* 覆蓋在 Canvas 上方的實體輸入框（enterName 時顯示、可喚出平板軟鍵盤） */
     #nameInput{
       position:fixed; display:none; z-index:9999; pointer-events:auto;
       border:2px solid #CCC; border-radius:10px; background:#FFF; color:#000;
@@ -44,9 +43,7 @@
     window.addEventListener('unhandledrejection', (e) => {
       const r = e.reason;
       const msg = (r && (r.message || r.toString())) || '';
-      if (msg.includes('Extension context invalidated')) {
-        e.preventDefault();
-      }
+      if (msg.includes('Extension context invalidated')) e.preventDefault();
     });
 
     const canvas = document.getElementById('gameCanvas');
@@ -135,10 +132,10 @@
     function resizeCanvas(){ canvas.width=innerWidth; canvas.height=innerHeight;
       if(currentPage==='enterName') positionNameInput(); }
 
-    /* —— 不外溢的 drawText + 加入繁中後備字體 —— */
+    /* —— drawText：把字型鏈改為「Noto Sans TC 優先」 —— */
     function drawText(text, x, y, fontSize, color, align='center', baseline='middle') {
       ctx.save();
-      ctx.font = `bold ${fontSize}px "M PLUS Rounded 1c","Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif`;
+      ctx.font = `bold ${fontSize}px "Noto Sans TC","M PLUS Rounded 1c","Microsoft JhengHei","PingFang TC",sans-serif`;
       ctx.fillStyle = color;
       ctx.textAlign = align;
       ctx.textBaseline = baseline;
@@ -166,7 +163,7 @@
       ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
       drawCloud(150,100,1); drawCloud(canvas.width-200,150,0.8);
       drawText('王公九九乘法冒險島', canvas.width/2, canvas.height*0.25, canvas.width>600?50:36, '#000080');
-      drawText('等你來挑戰！2', canvas.width/2, canvas.height*0.35, canvas.width>600?24:18, '#000080');
+      drawText('等你來挑戰！', canvas.width/2, canvas.height*0.35, canvas.width>600?24:18, '#000080');
 
       if (characterImage && characterImage.complete && characterImage.naturalWidth>0) {
         const w = canvas.width*0.15, h = (characterImage.naturalHeight/characterImage.naturalWidth)*w;
@@ -567,14 +564,31 @@
       requestAnimationFrame(gameLoop);
     }
 
-    window.onload = function(){
+    /* ====== 先把字型載好，再開跑 ====== */
+    async function loadFonts() {
+      try {
+        const sample = '開始冒險等你來挑戰混合乘法排行榜時間分數';
+        // 明確要求載入含中文的子集合（unicode-range）
+        await Promise.all([
+          document.fonts.load('700 48px "Noto Sans TC"', sample),
+          document.fonts.load('700 48px "M PLUS Rounded 1c"', sample),
+          document.fonts.ready
+        ]);
+      } catch (e) {
+        // 就算失敗也別擋流程，瀏覽器仍會有系統字體
+      }
+    }
+
+    window.onload = async function(){
       resizeCanvas();
-      drawSystemText('載入中...');
+      drawSystemText('載入字型中…');
+      await loadFonts();               // ★ 關鍵：等字型就緒
+      drawSystemText('載入中…');
       initFirebase();
-      initImages();               // 非阻塞載入
+      initImages();                    // 非阻塞載入
       window.addEventListener('resize', resizeCanvas, false);
       window.addEventListener('keydown', handleKeyPress);
-      requestAnimationFrame(gameLoop); // 立刻開始畫面更新
+      requestAnimationFrame(gameLoop); // 開始畫面更新
     };
   </script>
 </body>
