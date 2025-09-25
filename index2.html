@@ -25,7 +25,7 @@
     }
   </style>
 
-  <!-- 可保留；若要離線純本機測試可先註解掉 Firebase 三支 -->
+  <!-- 若要離線測試，可先註解掉 Firebase 三支 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
@@ -47,6 +47,9 @@
     const canvas=document.getElementById('gameCanvas');
     const ctx=canvas.getContext('2d');
     const nameInputEl=document.getElementById('nameInput');
+
+    /* ========== 全域邏輯寬高（CSS 單位）與像素比 ========== */
+    let W=0, H=0, DPR=1;
 
     /* ========== Helpers ========== */
     if(!CanvasRenderingContext2D.prototype.roundRect){
@@ -70,6 +73,57 @@
     function getSafeBottom(){
       const v=getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom')||'0px';
       const n=parseFloat(v); return isNaN(n)?0:n;
+    }
+
+    /* ===== 正確的 Retina 設定：所有排版用 W/H（CSS 單位） ===== */
+    function resizeCanvas(){
+      W = window.innerWidth;
+      H = window.innerHeight;
+      DPR = Math.max(1, window.devicePixelRatio || 1);
+      canvas.width  = Math.round(W * DPR);
+      canvas.height = Math.round(H * DPR);
+      canvas.style.width  = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.setTransform(1,0,0,1,0,0);   // 重置
+      ctx.scale(DPR, DPR);              // 之後的繪圖座標全部用 CSS 單位
+      if(currentPage==='enterName') positionNameInput();
+    }
+
+    /* ===== 量測字寬，讓字剛好塞進按鈕 ===== */
+    function fitTextSize(text, maxWidth, maxSize=28, minSize=14){
+      let size=maxSize;
+      while(size>minSize){
+        ctx.font = `700 ${size}px "Noto Sans TC","Noto Sans CJK TC","Microsoft JhengHei","PingFang TC","Heiti TC","PMingLiU",sans-serif`;
+        const w=ctx.measureText(String(text)).width;
+        if(w<=maxWidth) break;
+        size-=1;
+      }
+      return size;
+    }
+
+    function drawText(text,x,y,fontSize,color,align='center',baseline='middle'){
+      ctx.save();
+      ctx.font = `700 ${fontSize}px "Noto Sans TC","Noto Sans CJK TC","Microsoft JhengHei","PingFang TC","Heiti TC","PMingLiU",sans-serif`;
+      ctx.textAlign=align; ctx.textBaseline=baseline;
+      // 先描邊再填色，確保對比清楚
+      ctx.lineWidth = Math.max(1, Math.round(fontSize/12));
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+      ctx.strokeText(String(text), x, y);
+      ctx.fillStyle=color;
+      ctx.shadowColor='rgba(0,0,0,0.18)';
+      ctx.shadowBlur=Math.max(1, Math.round(fontSize/10));
+      ctx.shadowOffsetX=1; ctx.shadowOffsetY=1;
+      ctx.fillText(String(text), x, y);
+      ctx.restore();
+    }
+
+    function drawSystemText(t,color='#333'){
+      ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+      ctx.save();
+      ctx.font='700 30px "Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif';
+      ctx.fillStyle=color; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(t, W/2, H/2);
+      ctx.restore();
     }
 
     /* ========== Firebase (compat) ========== */
@@ -127,76 +181,26 @@
       tryLoad(characterImage, charCandidates);
     }
 
-    /* ===== DPI / 字清晰關鍵：依 devicePixelRatio 設定畫布 ===== */
-    function resizeCanvas(){
-      const dpr=Math.max(1, window.devicePixelRatio||1);
-      const cssW=window.innerWidth, cssH=window.innerHeight;
-      canvas.width = Math.round(cssW * dpr);
-      canvas.height= Math.round(cssH * dpr);
-      canvas.style.width = cssW + 'px';
-      canvas.style.height= cssH + 'px';
-      // 讓座標系仍以 CSS 像素為單位，但用高解析度繪製
-      ctx.setTransform(dpr,0,0,dpr,0,0);
-      if(currentPage==='enterName') positionNameInput();
-    }
-
-    /* ===== 量測字寬，讓字剛好塞進按鈕 ===== */
-    function fitTextSize(text, maxWidth, maxSize=28, minSize=14){
-      let size=maxSize;
-      while(size>minSize){
-        ctx.font = `700 ${size}px "Noto Sans TC","Noto Sans CJK TC","Microsoft JhengHei","PingFang TC","Heiti TC","PMingLiU",sans-serif`;
-        const w=ctx.measureText(String(text)).width;
-        if(w<=maxWidth) break;
-        size-=1;
-      }
-      return size;
-    }
-
-    function drawText(text,x,y,fontSize,color,align='center',baseline='middle'){
-      ctx.save();
-      ctx.font = `700 ${fontSize}px "Noto Sans TC","Noto Sans CJK TC","Microsoft JhengHei","PingFang TC","Heiti TC","PMingLiU",sans-serif`;
-      ctx.textAlign=align; ctx.textBaseline=baseline;
-      // 先描邊再填色，確保對比清楚
-      ctx.lineWidth = Math.max(1, Math.round(fontSize/12));
-      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
-      ctx.strokeText(String(text), x, y);
-      ctx.fillStyle=color;
-      ctx.shadowColor='rgba(0,0,0,0.18)';
-      ctx.shadowBlur=Math.max(1, Math.round(fontSize/10));
-      ctx.shadowOffsetX=1; ctx.shadowOffsetY=1;
-      ctx.fillText(String(text), x, y);
-      ctx.restore();
-    }
-
-    function drawSystemText(t,color='#333'){
-      ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
-      ctx.save();
-      ctx.font='700 30px "Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif';
-      ctx.fillStyle=color; ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillText(t, canvas.width/2, canvas.height/2);
-      ctx.restore();
-    }
-
     /* ========== Screens ========== */
     function drawHomePage(){
-      const g=ctx.createLinearGradient(0,0,0,canvas.height);
+      const g=ctx.createLinearGradient(0,0,0,H);
       g.addColorStop(0,'#87CEEB'); g.addColorStop(1,'#66CDAA');
-      ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
-      drawCloud(150,100,1); drawCloud(canvas.width-200,150,0.8);
-      drawText('王公九九乘法冒險島', canvas.width/2, canvas.height*0.25, canvas.width>600?50:36, '#000080');
-      drawText('等你來挑戰！@@@', canvas.width/2, canvas.height*0.35, canvas.width>600?24:18, '#000080');
+      ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+      drawCloud(150,100,1); drawCloud(W-200,150,0.8);
+      drawText('王公九九乘法冒險島', W/2, H*0.25, W>600?50:36, '#000080');
+      drawText('等你來挑戰！',        W/2, H*0.35, W>600?24:18, '#000080');
 
       if(characterImage && characterImage.complete && characterImage.naturalWidth>0){
-        const w=canvas.width*0.15, h=(characterImage.naturalHeight/characterImage.naturalWidth)*w;
-        ctx.drawImage(characterImage, canvas.width/2-w/2, canvas.height/2-h/2, w, h);
+        const w=W*0.15, h=(characterImage.naturalHeight/characterImage.naturalWidth)*w;
+        ctx.drawImage(characterImage, W/2-w/2, H/2-h/2, w, h);
       }
 
-      const bw=220,bh=70, y1=canvas.height*0.7, y2=y1+bh+20;
-      drawButton('開始冒險！', canvas.width/2, y1, bw, bh, '#FF69B4', '#FFFFFF');
-      drawButton('排行榜',   canvas.width/2, y2, bw, bh, '#17a2b8', '#FFFFFF');
+      const bw=220,bh=70, y1=H*0.7, y2=y1+bh+20;
+      drawButton('開始冒險！', W/2, y1, bw, bh, '#FF69B4', '#FFFFFF');
+      drawButton('排行榜',     W/2, y2, bw, bh, '#17a2b8', '#FFFFFF');
       uiButtons=[
-        {id:'start', x:canvas.width/2, y:y1, width:bw, height:bh},
-        {id:'show_leaderboard', x:canvas.width/2, y:y2, width:bw, height:bh}
+        {id:'start', x:W/2, y:y1, width:bw, height:bh},
+        {id:'show_leaderboard', x:W/2, y:y2, width:bw, height:bh}
       ];
       hideNameInput();
     }
@@ -211,18 +215,18 @@
       ctx.restore();
     }
     function drawSelectionPage(){
-      const g=ctx.createLinearGradient(0,0,0,canvas.height);
+      const g=ctx.createLinearGradient(0,0,0,H);
       g.addColorStop(0,'#9ACD32'); g.addColorStop(1,'#FFD700');
-      ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
-      drawText('選擇你的乘法挑戰！', canvas.width/2, canvas.height*0.1, canvas.width>600?40:28, '#8B4513');
+      ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+      drawText('選擇你的乘法挑戰！', W/2, H*0.1, W>600?40:28, '#8B4513');
 
       uiButtons=[];
       const nums=[1,2,3,4,5,6,7,8,9,10,'混合'];
-      const cols=canvas.width>800?4:3;
-      const bw=Math.floor((canvas.width*0.8)/cols), bh=60;
+      const cols=W>800?4:3;
+      const bw=Math.floor((W*0.8)/cols), bh=60;
       const spacingX=bw+20, spacingY=bh+20;
-      const startX=(canvas.width-(cols*spacingX-20))/2 + bw/2;
-      const startY=canvas.height*0.25;
+      const startX=(W-(cols*spacingX-20))/2 + bw/2;
+      const startY=H*0.25;
 
       nums.forEach((num,i)=>{
         const r=Math.floor(i/cols), c=i%cols;
@@ -234,42 +238,42 @@
       hideNameInput();
     }
     function drawPracticePage(){
-      const g=ctx.createLinearGradient(0,0,0,canvas.height);
+      const g=ctx.createLinearGradient(0,0,0,H);
       g.addColorStop(0,'#1E90FF'); g.addColorStop(1,'#87CEFA');
-      ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
 
-      const bx=canvas.width/2, by=canvas.height*0.2, br=canvas.width>600?100:70;
+      const bx=W/2, by=H*0.2, br=W>600?100:70;
       ctx.save();
       ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.arc(bx,by,br,0,Math.PI*2); ctx.fill();
       ctx.restore();
 
-      drawText(`${currentQuestion.num1} x ${currentQuestion.num2} = ?`, bx,by, canvas.width>600?48:36, '#000080');
-      if(feedbackMessage) drawText(feedbackMessage, canvas.width/2, canvas.height*0.35, canvas.width>600?36:24, '#FF4500');
+      drawText(`${currentQuestion.num1} x ${currentQuestion.num2} = ?`, bx,by, W>600?48:36, '#000080');
+      if(feedbackMessage) drawText(feedbackMessage, W/2, H*0.35, W>600?36:24, '#FF4500');
 
       drawScore(); drawTime(); drawCharacter();
       drawAnswerButtons(); drawProgressBar();
       if(currentPage!=='enterName') hideNameInput();
     }
-    function drawScore(){ drawText(`分數：${score}`, 30, 60, canvas.width>600?24:18, '#FFFFFF','left'); }
-    function drawTime(){ const s=Math.floor(elapsedTime/1000); drawText(`時間：${s} 秒`, canvas.width-30, 60, canvas.width>600?24:18, '#FFFFFF','right'); }
+    function drawScore(){ drawText(`分數：${score}`, 30, 60, W>600?24:18, '#FFFFFF','left'); }
+    function drawTime(){ const s=Math.floor(elapsedTime/1000); drawText(`時間：${s} 秒`, W-30, 60, W>600?24:18, '#FFFFFF','right'); }
     function drawCharacter(){
-      const w=canvas.width>600?150:100;
+      const w=W>600?150:100;
       if(akitaImage && akitaImage.complete && akitaImage.naturalWidth>0){
         const h=(akitaImage.naturalHeight/akitaImage.naturalWidth)*w;
-        ctx.drawImage(akitaImage, canvas.width/2-w/2, canvas.height*0.45+characterYOffset-h/2, w, h);
+        ctx.drawImage(akitaImage, W/2-w/2, H*0.45+characterYOffset-h/2, w, h);
       }
     }
     function drawAnswerButtons(){
-      const cols=canvas.width>700?3:2;
+      const cols=W>700?3:2;
       const baseW=120, baseH=60, baseGap=20;
       const rows=Math.ceil(answerButtons.length/cols);
       const barH=25, safeBottom=getSafeBottom();
       const bottomReserve=safeBottom+barH+24;
-      const availableBottomY=canvas.height-bottomReserve;
+      const availableBottomY=H-bottomReserve;
       const totalH=rows*baseH+(rows-1)*baseGap;
 
       let top=availableBottomY-totalH-10;
-      const minTop=canvas.height*0.52;
+      const minTop=H*0.52;
       let s=1;
       if(top<minTop){
         const avail=availableBottomY-10-minTop, need=totalH;
@@ -279,7 +283,7 @@
       }
       const bw=baseW*s, bh=baseH*s, gap=baseGap*s;
       const totalW=cols*bw+(cols-1)*gap;
-      const startX=(canvas.width-totalW)/2 + bw/2;
+      const startX=(W-totalW)/2 + bw/2;
       const startY=top+bh/2;
 
       answerButtons.forEach((btn,i)=>{
@@ -290,8 +294,8 @@
       });
     }
     function drawProgressBar(){
-      const barWidth=canvas.width*0.6, barHeight=25, safeBottom=getSafeBottom(), margin=10;
-      const barX=(canvas.width-barWidth)/2, barY=canvas.height-safeBottom-margin-barHeight;
+      const barWidth=W*0.6, barHeight=25, safeBottom=getSafeBottom(), margin=10;
+      const barX=(W-barWidth)/2, barY=H-safeBottom-margin-barHeight;
       const maxQuestions=20;
       ctx.save();
       ctx.fillStyle='#f0e68c'; rr(ctx,barX,barY,barWidth,barHeight,12); ctx.fill();
@@ -299,77 +303,77 @@
       if(progress>0){ ctx.fillStyle='#FFC107'; rr(ctx,barX,barY,progress,barHeight,12); ctx.fill(); }
       ctx.strokeStyle='#daa520'; ctx.lineWidth=3; rr(ctx,barX,barY,barWidth,barHeight,12); ctx.stroke();
       ctx.restore();
-      drawText(`${correctAnswersCount} / ${maxQuestions}`, canvas.width/2, barY+barHeight/2, 16, '#A52A2A');
+      drawText(`${correctAnswersCount} / ${maxQuestions}`, W/2, barY+barHeight/2, 16, '#A52A2A');
     }
     function drawGameOverPage(){
       drawPracticePage();
       ctx.save();
-      ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,canvas.width,canvas.height);
-      const mw=canvas.width*0.7, mh=canvas.height*0.6;
-      const mx=(canvas.width-mw)/2, my=(canvas.height-mh)/2;
+      ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,W,H);
+      const mw=W*0.7, mh=H*0.6;
+      const mx=(W-mw)/2, my=(H-mh)/2;
       ctx.fillStyle='#FFF8DC'; ctx.strokeStyle='#F0E68C'; ctx.lineWidth=10;
       rr(ctx,mx,my,mw,mh,20); ctx.fill(); ctx.stroke();
       ctx.restore();
 
       const totalSec=Math.floor(elapsedTime/1000);
-      drawText('挑戰完成！', canvas.width/2, my+mh*0.2, 40,'#D2691E');
-      drawText(`總分：${score}`, canvas.width/2, my+mh*0.4, 30,'#8B4513');
-      drawText(`總共花了 ${totalSec} 秒`, canvas.width/2, my+mh*0.55, 30,'#8B4513');
+      drawText('挑戰完成！', W/2, my+mh*0.2, 40,'#D2691E');
+      drawText(`總分：${score}`, W/2, my+mh*0.4, 30,'#8B4513');
+      drawText(`總共花了 ${totalSec} 秒`, W/2, my+mh*0.55, 30,'#8B4513');
 
-      const bw=200,bh=60,bx=canvas.width/2,by=my+mh*0.8;
+      const bw=200,bh=60,bx=W/2,by=my+mh*0.8;
       drawButton('儲存紀錄', bx,by,bw,bh,'#28a745','#FFFFFF');
       uiButtons=[{id:'save_score', x:bx, y:by, width:bw, height:bh}];
     }
     function drawEnterNamePage(){
       drawGameOverPage();
       ctx.save();
-      ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(0,0,canvas.width,canvas.height);
-      const mw=canvas.width*0.7, mh=canvas.height*0.5;
-      const mx=(canvas.width-mw)/2, my=(canvas.height-mh)/2;
+      ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(0,0,W,H);
+      const mw=W*0.7, mh=H*0.5;
+      const mx=(W-mw)/2, my=(H-mh)/2;
       ctx.fillStyle='#fff'; rr(ctx,mx,my,mw,mh,20); ctx.fill();
       ctx.restore();
 
-      drawText('請輸入你的名字', canvas.width/2, my+mh*0.2, 32, '#333');
+      drawText('請輸入你的名字', W/2, my+mh*0.2, 32, '#333');
 
-      const iw=mw*0.8, ih=60, ix=(canvas.width-iw)/2, iy=my+mh*0.4;
+      const iw=mw*0.8, ih=60, ix=(W-iw)/2, iy=my+mh*0.4;
       ctx.save(); ctx.strokeStyle='#CCC'; ctx.lineWidth=2; rr(ctx,ix,iy,iw,ih,10); ctx.stroke(); ctx.restore();
 
-      const bw=200,bh=60,bx=canvas.width/2,by=my+mh*0.8;
+      const bw=200,bh=60,bx=W/2,by=my+mh*0.8;
       drawButton('確認', bx,by,bw,bh,'#007bff','#FFFFFF');
       uiButtons=[{id:'confirm_name', x:bx, y:by, width:bw, height:bh}];
 
       showNameInput(); positionNameInput();
     }
     function drawLeaderboardPage(){
-      const g=ctx.createLinearGradient(0,0,0,canvas.height);
+      const g=ctx.createLinearGradient(0,0,0,H);
       g.addColorStop(0,'#4e54c8'); g.addColorStop(1,'#8f94fb');
-      ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
-      drawText('速度挑戰排行榜', canvas.width/2, canvas.height*0.1, 40, '#fff');
+      ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+      drawText('速度挑戰排行榜', W/2, H*0.1, 40, '#fff');
 
       if(isLeaderboardLoading){
-        drawText('讀取中...', canvas.width/2, canvas.height/2, 30, '#fff');
+        drawText('讀取中...', W/2, H/2, 30, '#fff');
       }else if(!db){
-        drawText('排行榜功能暫時無法使用', canvas.width/2, canvas.height/2, 24, '#FFD700');
+        drawText('排行榜功能暫時無法使用', W/2, H/2, 24, '#FFD700');
       }else{
-        const startY=canvas.height*0.2, lh=40;
-        drawText('排名', canvas.width*0.15, startY, 20, '#FFD700');
-        drawText('名字', canvas.width*0.35, startY, 20, '#FFD700');
-        drawText('類型', canvas.width*0.55, startY, 20, '#FFD700');
-        drawText('分數', canvas.width*0.75, startY, 20, '#FFD700');
-        drawText('時間(秒)', canvas.width*0.9,  startY, 20, '#FFD700');
+        const startY=H*0.2, lh=40;
+        drawText('排名',  W*0.15, startY, 20, '#FFD700');
+        drawText('名字',  W*0.35, startY, 20, '#FFD700');
+        drawText('類型',  W*0.55, startY, 20, '#FFD700');
+        drawText('分數',  W*0.75, startY, 20, '#FFD700');
+        drawText('時間(秒)', W*0.9,  startY, 20, '#FFD700');
 
         leaderboardData.slice(0,10).forEach((e,i)=>{
           const y=startY+(i+1)*lh;
           const typeLabel=(e.type==='混合')?'混合':(e.type?`${String(e.type)}的乘法`:'未標註');
-          drawText(i+1,      canvas.width*0.15, y, 18, '#fff');
-          drawText(e.name,   canvas.width*0.35, y, 18, '#fff');
-          drawText(typeLabel,canvas.width*0.55, y, 18, '#fff');
-          drawText(e.score,  canvas.width*0.75, y, 18, '#fff');
-          drawText(e.time,   canvas.width*0.9,  y, 18, '#fff');
+          drawText(i+1,      W*0.15, y, 18, '#fff');
+          drawText(e.name,   W*0.35, y, 18, '#fff');
+          drawText(typeLabel,W*0.55, y, 18, '#fff');
+          drawText(e.score,  W*0.75, y, 18, '#fff');
+          drawText(e.time,   W*0.9,  y, 18, '#fff');
         });
       }
 
-      const bw=200,bh=60,bx=canvas.width/2,by=canvas.height-80;
+      const bw=200,bh=60,bx=W/2,by=H-80;
       drawButton('返回首頁', bx,by,bw,bh,'#6c757d','#fff');
       uiButtons=[{id:'back_home', x:bx, y:by, width:bw, height:bh}];
       hideNameInput();
@@ -388,9 +392,9 @@
 
     /* ========== Name Input Overlay ========== */
     function computeEnterNameGeom(){
-      const mw=canvas.width*0.7, mh=canvas.height*0.5;
-      const mx=(canvas.width-mw)/2, my=(canvas.height-mh)/2;
-      const iw=mw*0.8, ih=60, ix=(canvas.width-iw)/2, iy=my+mh*0.4;
+      const mw=W*0.7, mh=H*0.5;
+      const mx=(W-mw)/2, my=(H-mh)/2;
+      const iw=mw*0.8, ih=60, ix=(W-iw)/2, iy=my+mh*0.4;
       return {ix,iy,iw,ih};
     }
     function positionNameInput(g){
@@ -509,11 +513,12 @@
       if(e.key==='Enter') clickConfirmName();
     }
 
+    /* ==== 點擊座標：直接用 CSS 單位（不要再乘像素比） ==== */
     canvas.addEventListener('click',(event)=>{
       initializeAudio();
       const rect=canvas.getBoundingClientRect();
-      const scaleX=canvas.width/rect.width, scaleY=canvas.height/rect.height;
-      const mouseX=(event.clientX-rect.left)*scaleX, mouseY=(event.clientY-rect.top)*scaleY;
+      const mouseX=(event.clientX-rect.left);
+      const mouseY=(event.clientY-rect.top);
       const hit=b=> (mouseX>b.x-b.width/2 && mouseX<b.x+b.width/2 && mouseY>b.y-b.height/2 && mouseY<b.y+b.height/2);
 
       if(['home','selection','gameOver','leaderboard','enterName'].includes(currentPage)){
@@ -553,7 +558,7 @@
     }
 
     function drawScreen(){
-      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.clearRect(0,0,W,H);
       switch(currentPage){
         case 'home':       drawHomePage(); break;
         case 'selection':  drawSelectionPage(); break;
@@ -592,7 +597,6 @@
 
     /* ===== 字型載入：最長等 1.5s；之後無論如何都啟動 ===== */
     async function loadFontsWithTimeout(timeoutMs=1500){
-      const start=performance.now();
       try{
         const sample='開始冒險等你來挑戰混合乘法排行榜時間分數';
         const p1=(document.fonts && document.fonts.load)
@@ -601,7 +605,6 @@
         const p2=(document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
         await Promise.race([ Promise.all([p1,p2]), new Promise(res=>setTimeout(res,timeoutMs)) ]);
       }catch(e){ /* 忽略 */ }
-      finally{ console.debug('[Fonts] waited ~', Math.round(performance.now()-start), 'ms'); }
     }
 
     function startGame(){
