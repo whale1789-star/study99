@@ -1,593 +1,628 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-    <title>九九乘法冒險島</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com"/>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700&display=swap" rel="stylesheet"/>
-    <style>
-        :root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
-        body {
-            margin:0; overflow:hidden; background:#87ceeb;
-            font-family: 'Noto Sans TC','Microsoft JhengHei','PingFang TC',sans-serif;
-        }
-        canvas { display:block; }
-        #nameInput{
-            position:fixed; display:none; z-index:9999; pointer-events:auto;
-            border:2px solid #CCC; border-radius:10px; background:#FFF; color:#000;
-            font-weight:700; text-align:center; outline:none; box-shadow:0 2px 6px rgba(0,0,0,.15);
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>九九乘法冒險島</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
+    html,body { height:100%; }
+    body {
+      margin:0; overflow:hidden; background:#87ceeb;
+      font-family:'Noto Sans TC','Microsoft JhengHei','PingFang TC',sans-serif;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    }
+    canvas { display:block; }
+    #nameInput{
+      position:fixed; display:none; z-index:9999; pointer-events:auto;
+      border:2px solid #CCC; border-radius:10px; background:#FFF; color:#000;
+      font-weight:700; text-align:center; outline:none; box-shadow:0 2px 6px rgba(0,0,0,.15);
+    }
+  </style>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <!-- 可保留；若要離線純本機測試可先註解掉 Firebase 三支 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
-    <canvas id="gameCanvas"></canvas>
-    <input
-        id="nameInput" type="text" lang="zh-Hant" inputmode="text"
-        autocomplete="off" autocapitalize="none" autocorrect="off"
-        maxlength="10" placeholder="請在此輸入名字"
-    />
+  <canvas id="gameCanvas"></canvas>
+  <input
+    id="nameInput" type="text" lang="zh-Hant" inputmode="text"
+    autocomplete="off" autocapitalize="none" autocorrect="off"
+    maxlength="10" placeholder="請在此輸入名字"
+  />
 
-    <script>
-        /* —— 忽略擴充功能造成的未捕捉 Promise 錯誤 —— */
-        window.addEventListener('unhandledrejection', (e) => {
-            const r = e.reason;
-            const msg = (r && (r.message || r.toString())) || '';
-            if (msg.includes('Extension context invalidated')) e.preventDefault();
+  <script>
+    /* —— 忽略特定瀏覽器擴充所致的未捕捉 Promise 錯誤 —— */
+    window.addEventListener('unhandledrejection', (e) => {
+      const r = e.reason;
+      const msg = (r && (r.message || r.toString())) || '';
+      if (msg.includes('Extension context invalidated')) e.preventDefault();
+    });
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const nameInputEl = document.getElementById('nameInput');
+
+    /* ========== Helpers ========== */
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+      CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r=0){
+        const k = typeof r === 'number' ? {tl:r,tr:r,br:r,bl:r} : (r||{tl:0,tr:0,br:0,bl:0});
+        this.beginPath();
+        this.moveTo(x+k.tl,y);
+        this.lineTo(x+w-k.tr,y);
+        this.quadraticCurveTo(x+w,y,x+w,y+k.tr);
+        this.lineTo(x+w,y+h-k.br);
+        this.quadraticCurveTo(x+w,y+h,x+w-k.br,y+h);
+        this.lineTo(x+k.bl,y+h);
+        this.quadraticCurveTo(x,y+h,x,y+h-k.bl);
+        this.lineTo(x,y+k.tl);
+        this.quadraticCurveTo(x,y,x+k.tl,y);
+        this.closePath();
+        return this;
+      };
+    }
+    function rr(c,x,y,w,h,r=0){ c.roundRect ? c.roundRect(x,y,w,h,r) : (c.beginPath(), c.rect(x,y,w,h)); }
+    function getSafeBottom(){
+      const v = getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom') || '0px';
+      const n = parseFloat(v); return isNaN(n)?0:n;
+    }
+
+    /* ========== Firebase (compat) ========== */
+    let db=null, auth=null;
+    function initFirebase(){
+      try{
+        const cfg={ apiKey:"AIzaSyDfIw36T88S3xlGCoAP9nDGCRkpQlWKiLE",
+          authDomain:"ieka99.firebaseapp.com", projectId:"ieka99",
+          storageBucket:"ieka99.appspot.com", messagingSenderId:"893665009867",
+          appId:"1:893665009867:web:d732e15cf792890c8a7b4e" };
+        if (window.firebase?.apps?.length) return;
+        firebase.initializeApp(cfg);
+        auth=firebase.auth(); db=firebase.firestore();
+        auth.signInAnonymously().catch(()=>{ db=null; });
+      }catch{ db=null; }
+    }
+
+    /* ========== State ========== */
+    let currentPage='home';
+    let currentQuestion={};
+    let feedbackMessage='';
+    let correctAnswersCount=0;
+    let score=0;
+    let answerButtons=[];
+    let uiButtons=[];
+    let questionRange=0; // 1..10 或 '混合'
+    let lastQuestion={};
+    let playerName='';
+    let leaderboardData=[];
+    let isLeaderboardLoading=false;
+    let isAnswerLocked=false;
+
+    // animation/time
+    let characterYOffset=0, isCharacterJumping=false, jumpStartTime=0;
+    const JUMP_DURATION=1000, JUMP_HEIGHT=50;
+    let feedbackEndTime=0, lastAnswerWasCorrect=false;
+    let startTime=0, elapsedTime=0;
+
+    // audio
+    let correctSynth, wrongSynth, clickSynth;
+    let audioInitialized=false;
+
+    // images（非阻塞載入 + 檔名 fallback）
+    let akitaImage=null, characterImage=null;
+    function initImages(){
+      akitaImage = new Image();
+      characterImage = new Image();
+      const akitaCandidates = ['可愛秋田.png'];
+      const charCandidates  = ['S876553.png', 'S__876553.png'];
+      function tryLoad(img, list){
+        let i=0;
+        const loadNext=()=>{ if(i>=list.length) return; img.src=list[i++]; img.onerror=loadNext; };
+        loadNext();
+      }
+      tryLoad(akitaImage, akitaCandidates);
+      tryLoad(characterImage, charCandidates);
+    }
+
+    function resizeCanvas(){
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      if(currentPage==='enterName') positionNameInput();
+    }
+
+    function drawText(text, x, y, fontSize, color, align='center', baseline='middle') {
+      ctx.save();
+      ctx.font = `bold ${fontSize}px "Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif`;
+      ctx.fillStyle = color;
+      ctx.textAlign = align;
+      ctx.textBaseline = baseline;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+      ctx.shadowBlur = Math.max(1, Math.round(fontSize / 10));
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+      ctx.fillText(text, x, y);
+      ctx.restore();
+    }
+
+    function drawSystemText(t,color='#333'){
+      ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.save();
+      ctx.font='bold 30px "Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif';
+      ctx.fillStyle=color; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(t, canvas.width/2, canvas.height/2);
+      ctx.restore();
+    }
+
+    /* ========== Screens ========== */
+    function drawHomePage(){
+      const g=ctx.createLinearGradient(0,0,0,canvas.height);
+      g.addColorStop(0,'#87CEEB'); g.addColorStop(1,'#66CDAA');
+      ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
+      drawCloud(150,100,1); drawCloud(canvas.width-200,150,0.8);
+      drawText('王公九九乘法冒險島', canvas.width/2, canvas.height*0.25, canvas.width>600?50:36, '#000080');
+      drawText('等你來挑戰！', canvas.width/2, canvas.height*0.35, canvas.width>600?24:18, '#000080');
+
+      if (characterImage && characterImage.complete && characterImage.naturalWidth>0) {
+        const w = canvas.width*0.15, h = (characterImage.naturalHeight/characterImage.naturalWidth)*w;
+        ctx.drawImage(characterImage, canvas.width/2-w/2, canvas.height/2-h/2, w, h);
+      }
+
+      const bw=220,bh=70, y1=canvas.height*0.7, y2=y1+bh+20;
+      drawButton('開始冒險！', canvas.width/2, y1, bw, bh, '#FF69B4', '#FFFFFF');
+      drawButton('排行榜', canvas.width/2, y2, bw, bh, '#17a2b8', '#FFFFFF');
+      uiButtons = [
+        {id:'start', x:canvas.width/2, y:y1, width:bw, height:bh},
+        {id:'show_leaderboard', x:canvas.width/2, y:y2, width:bw, height:bh}
+      ];
+      hideNameInput();
+    }
+    function drawCloud(x,y,s){
+      ctx.save();
+      ctx.fillStyle='rgba(255,255,255,0.9)';
+      ctx.beginPath(); ctx.arc(x,y,30*s,0,Math.PI*2);
+      ctx.arc(x+35*s,y-10*s,40*s,0,Math.PI*2);
+      ctx.arc(x+70*s,y,30*s,0,Math.PI*2);
+      ctx.arc(x+35*s,y+15*s,40*s,0,Math.PI*2);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    function drawSelectionPage(){
+      const g=ctx.createLinearGradient(0,0,0,canvas.height);
+      g.addColorStop(0,'#9ACD32'); g.addColorStop(1,'#FFD700');
+      ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
+      drawText('選擇你的乘法挑戰！', canvas.width/2, canvas.height*0.1, canvas.width>600?40:28, '#8B4513');
+
+      uiButtons=[];
+      const nums=[1,2,3,4,5,6,7,8,9,10,'混合'];
+      const cols=canvas.width>800?4:3;
+      const bw=Math.floor((canvas.width*0.8)/cols), bh=60;
+      const spacingX=bw+20, spacingY=bh+20;
+      const startX=(canvas.width-(cols*spacingX-20))/2 + bw/2;
+      const startY=canvas.height*0.25;
+
+      nums.forEach((num,i)=>{
+        const r=Math.floor(i/cols), c=i%cols;
+        const x=startX+c*spacingX, y=startY+r*spacingY;
+        const label=(num==='混合')?'混合':`${num} 的乘法`;
+        drawButton(label,x,y,bw,bh,'#4CAF50','#FFFFFF');
+        uiButtons.push({id:'select', value:num, x, y, width:bw, height:bh});
+      });
+      hideNameInput();
+    }
+    function drawPracticePage(){
+      const g=ctx.createLinearGradient(0,0,0,canvas.height);
+      g.addColorStop(0,'#1E90FF'); g.addColorStop(1,'#87CEFA');
+      ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      const bx=canvas.width/2, by=canvas.height*0.2, br=canvas.width>600?100:70;
+      ctx.save();
+      ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.arc(bx,by,br,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+
+      drawText(`${currentQuestion.num1} x ${currentQuestion.num2} = ?`, bx,by, canvas.width>600?48:36, '#000080');
+      if(feedbackMessage) drawText(feedbackMessage, canvas.width/2, canvas.height*0.35, canvas.width>600?36:24, '#FF4500');
+
+      drawScore(); drawTime(); drawCharacter();
+      drawAnswerButtons(); drawProgressBar();
+      if(currentPage!=='enterName') hideNameInput();
+    }
+    function drawScore(){ drawText(`分數：${score}`, 30, 60, canvas.width>600?24:18, '#FFFFFF','left'); }
+    function drawTime(){ const s=Math.floor(elapsedTime/1000); drawText(`時間：${s} 秒`, canvas.width-30, 60, canvas.width>600?24:18, '#FFFFFF','right'); }
+    function drawCharacter(){
+      const w=canvas.width>600?150:100;
+      if(akitaImage && akitaImage.complete && akitaImage.naturalWidth>0){
+        const h=(akitaImage.naturalHeight/akitaImage.naturalWidth)*w;
+        ctx.drawImage(akitaImage, canvas.width/2-w/2, canvas.height*0.45+characterYOffset-h/2, w, h);
+      }
+    }
+    function drawAnswerButtons(){
+      const cols=canvas.width>700?3:2;
+      const baseW=120, baseH=60, baseGap=20;
+      const rows=Math.ceil(answerButtons.length/cols);
+      const barH=25, safeBottom=getSafeBottom();
+      const bottomReserve=safeBottom+barH+24;
+      const availableBottomY=canvas.height-bottomReserve;
+      const totalH=rows*baseH+(rows-1)*baseGap;
+
+      let top=availableBottomY-totalH-10;
+      const minTop=canvas.height*0.52;
+      let s=1;
+      if(top<minTop){
+        const avail=availableBottomY-10-minTop, need=totalH;
+        s=Math.max(0.6, Math.min(1, avail/need));
+        const scaledTotalH=rows*(baseH*s)+(rows-1)*(baseGap*s);
+        top=availableBottomY-scaledTotalH-10;
+      }
+      const bw=baseW*s, bh=baseH*s, gap=baseGap*s;
+      const totalW=cols*bw+(cols-1)*gap;
+      const startX=(canvas.width-totalW)/2 + bw/2;
+      const startY=top+bh/2;
+
+      answerButtons.forEach((btn,i)=>{
+        const r=Math.floor(i/cols), c=i%cols;
+        const x=startX+c*(bw+gap), y=startY+r*(bh+gap);
+        drawButton(btn.value,x,y,bw,bh,'#FFD700','#8B4513');
+        btn.x=x; btn.y=y; btn.width=bw; btn.height=bh;
+      });
+    }
+    function drawProgressBar(){
+      const barWidth=canvas.width*0.6, barHeight=25, safeBottom=getSafeBottom(), margin=10;
+      const barX=(canvas.width-barWidth)/2, barY=canvas.height-safeBottom-margin-barHeight;
+      const maxQuestions=20;
+      ctx.save();
+      ctx.fillStyle='#f0e68c'; rr(ctx,barX,barY,barWidth,barHeight,12); ctx.fill();
+      const progress=(correctAnswersCount/maxQuestions)*barWidth;
+      if(progress>0){ ctx.fillStyle='#FFC107'; rr(ctx,barX,barY,progress,barHeight,12); ctx.fill(); }
+      ctx.strokeStyle='#daa520'; ctx.lineWidth=3; rr(ctx,barX,barY,barWidth,barHeight,12); ctx.stroke();
+      ctx.restore();
+      drawText(`${correctAnswersCount} / ${maxQuestions}`, canvas.width/2, barY+barHeight/2, 16, '#A52A2A');
+    }
+    function drawGameOverPage(){
+      drawPracticePage();
+      ctx.save();
+      ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+      const mw=canvas.width*0.7, mh=canvas.height*0.6;
+      const mx=(canvas.width-mw)/2, my=(canvas.height-mh)/2;
+      ctx.fillStyle='#FFF8DC'; ctx.strokeStyle='#F0E68C'; ctx.lineWidth=10;
+      rr(ctx,mx,my,mw,mh,20); ctx.fill(); ctx.stroke();
+      ctx.restore();
+
+      const totalSec=Math.floor(elapsedTime/1000);
+      drawText('挑戰完成！', canvas.width/2, my+mh*0.2, 40,'#D2691E');
+      drawText(`總分：${score}`, canvas.width/2, my+mh*0.4, 30,'#8B4513');
+      drawText(`總共花了 ${totalSec} 秒`, canvas.width/2, my+mh*0.55, 30,'#8B4513');
+
+      const bw=200,bh=60,bx=canvas.width/2,by=my+mh*0.8;
+      drawButton('儲存紀錄', bx,by,bw,bh,'#28a745','#FFFFFF');
+      uiButtons=[{id:'save_score', x:bx, y:by, width:bw, height:bh}];
+    }
+    function drawEnterNamePage(){
+      drawGameOverPage();
+      ctx.save();
+      ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+      const mw=canvas.width*0.7, mh=canvas.height*0.5;
+      const mx=(canvas.width-mw)/2, my=(canvas.height-mh)/2;
+      ctx.fillStyle='#fff'; rr(ctx,mx,my,mw,mh,20); ctx.fill();
+      ctx.restore();
+
+      drawText('請輸入你的名字', canvas.width/2, my+mh*0.2, 32, '#333');
+
+      const iw=mw*0.8, ih=60, ix=(canvas.width-iw)/2, iy=my+mh*0.4;
+      ctx.save();
+      ctx.strokeStyle='#CCC'; ctx.lineWidth=2; rr(ctx,ix,iy,iw,ih,10); ctx.stroke();
+      ctx.restore();
+
+      const bw=200,bh=60,bx=canvas.width/2,by=my+mh*0.8;
+      drawButton('確認', bx,by,bw,bh,'#007bff','#FFFFFF');
+      uiButtons=[{id:'confirm_name', x:bx, y:by, width:bw, height:bh}];
+
+      showNameInput(); positionNameInput();
+    }
+    function drawLeaderboardPage(){
+      const g=ctx.createLinearGradient(0,0,0,canvas.height);
+      g.addColorStop(0,'#4e54c8'); g.addColorStop(1,'#8f94fb');
+      ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
+      drawText('速度挑戰排行榜', canvas.width/2, canvas.height*0.1, 40, '#fff');
+
+      if(isLeaderboardLoading){
+        drawText('讀取中...', canvas.width/2, canvas.height/2, 30, '#fff');
+      }else if(!db){
+        drawText('排行榜功能暫時無法使用', canvas.width/2, canvas.height/2, 24, '#FFD700');
+      }else{
+        const startY=canvas.height*0.2, lh=40;
+        drawText('排名', canvas.width*0.15, startY, 20, '#FFD700');
+        drawText('名字', canvas.width*0.35, startY, 20, '#FFD700');
+        drawText('類型', canvas.width*0.55, startY, 20, '#FFD700');
+        drawText('分數', canvas.width*0.75, startY, 20, '#FFD700');
+        drawText('時間(秒)', canvas.width*0.9,  startY, 20, '#FFD700');
+
+        leaderboardData.slice(0,10).forEach((e,i)=>{
+          const y=startY+(i+1)*lh;
+          const typeLabel = (e.type==='混合') ? '混合'
+                          : (e.type ? `${String(e.type)}的乘法` : '未標註');
+          drawText(i+1,      canvas.width*0.15, y, 18, '#fff');
+          drawText(e.name,   canvas.width*0.35, y, 18, '#fff');
+          drawText(typeLabel,canvas.width*0.55, y, 18, '#fff');
+          drawText(e.score,  canvas.width*0.75, y, 18, '#fff');
+          drawText(e.time,   canvas.width*0.9,  y, 18, '#fff');
         });
+      }
 
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const nameInputEl = document.getElementById('nameInput');
+      const bw=200,bh=60,bx=canvas.width/2,by=canvas.height-80;
+      drawButton('返回首頁', bx,by,bw,bh,'#6c757d','#fff');
+      uiButtons=[{id:'back_home', x:bx, y:by, width:bw, height:bh}];
+      hideNameInput();
+    }
 
-        /* ========== Helpers ========== */
-        if (!CanvasRenderingContext2D.prototype.roundRect) {
-            CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r=0){
-                const k = typeof r === 'number' ? {tl:r,tr:r,br:r,bl:r} : (r||{tl:0,tr:0,br:0,bl:0});
-                this.beginPath();
-                this.moveTo(x+k.tl,y);
-                this.lineTo(x+w-k.tr,y);
-                this.quadraticCurveTo(x+w,y,x+w,y+k.tr);
-                this.lineTo(x+w,y+h-k.br);
-                this.quadraticCurveTo(x+w,y+h,x+w-k.br,y+h);
-                this.lineTo(x+k.bl,y+h);
-                this.quadraticCurveTo(x,y+h,x,y+h-k.bl);
-                this.lineTo(x,y+k.tl);
-                this.quadraticCurveTo(x,y,x+k.tl,y);
-                this.closePath();
-                return this;
-            };
-        }
-        function rr(c,x,y,w,h,r=0){ c.roundRect ? c.roundRect(x,y,w,h,r) : (c.beginPath(), c.rect(x,y,w,h)); }
-        function getSafeBottom(){
-            const v = getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom') || '0px';
-            const n = parseFloat(v); return isNaN(n)?0:n;
-        }
+    function drawButton(text,x,y,w,h,color,textColor){
+      ctx.save();
+      ctx.shadowColor='rgba(0,0,0,0.3)'; ctx.shadowBlur=10; ctx.shadowOffsetX=4; ctx.shadowOffsetY=4;
+      ctx.fillStyle=color; rr(ctx, x-w/2, y-h/2, w, h, 15); ctx.fill();
+      ctx.restore();
+      drawText(text, x,y, Math.max(18, Math.min(22, w/6)), textColor);
+    }
 
-        /* ========== Firebase (compat) ========== */
-        let db=null, auth=null;
-        function initFirebase(){
-            try{
-                const cfg={ apiKey:"AIzaSyDfIw36T88S3xlGCoAP9nDGCRkpQlWKiLE",
-                    authDomain:"ieka99.firebaseapp.com", projectId:"ieka99",
-                    storageBucket:"ieka99.appspot.com", messagingSenderId:"893665009867",
-                    appId:"1:893665009867:web:d732e15cf792890c8a7b4e" };
-                firebase.initializeApp(cfg);
-                auth=firebase.auth(); db=firebase.firestore();
-                auth.signInAnonymously().catch(()=>{ db=null; });
-            }catch{ db=null; }
-        }
+    /* ========== Name Input Overlay ========== */
+    function computeEnterNameGeom(){
+      const mw=canvas.width*0.7, mh=canvas.height*0.5;
+      const mx=(canvas.width-mw)/2, my=(canvas.height-mh)/2;
+      const iw=mw*0.8, ih=60, ix=(canvas.width-iw)/2, iy=my+mh*0.4;
+      return {ix,iy,iw,ih};
+    }
+    function positionNameInput(g){
+      const {ix,iy,iw,ih}=g||computeEnterNameGeom();
+      nameInputEl.style.left = `${Math.round(ix)}px`;
+      nameInputEl.style.top  = `${Math.round(iy)}px`;
+      nameInputEl.style.width  = `${Math.round(iw)}px`;
+      nameInputEl.style.height = `${Math.round(ih)}px`;
+      nameInputEl.style.fontSize = `${Math.max(22, Math.min(28, Math.round(ih*0.5)))}px`;
+      nameInputEl.style.lineHeight = `${Math.round(ih)}px`;
+    }
+    function showNameInput(){
+      nameInputEl.style.display='block';
+      nameInputEl.value=playerName;
+      requestAnimationFrame(()=>{
+        nameInputEl.focus({preventScroll:true});
+        const len=nameInputEl.value.length;
+        nameInputEl.setSelectionRange(len,len);
+      });
+    }
+    function hideNameInput(){
+      nameInputEl.style.display='none';
+      if(document.activeElement===nameInputEl) nameInputEl.blur();
+    }
+    let isComposing=false;
+    nameInputEl.addEventListener('compositionstart',()=>{isComposing=true;});
+    nameInputEl.addEventListener('compositionend',()=>{isComposing=false; playerName=(nameInputEl.value||'').slice(0,10);});
+    nameInputEl.addEventListener('input',()=>{ if(!isComposing) playerName=(nameInputEl.value||'').slice(0,10); });
+    nameInputEl.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); clickConfirmName(); }});
+    nameInputEl.addEventListener('click',(e)=>e.stopPropagation());
 
-        /* ========== State ========== */
-        let currentPage='home';
-        let currentQuestion={};
-        let feedbackMessage='';
-        let correctAnswersCount=0;
-        let score=0;
-        let answerButtons=[];
-        let uiButtons=[];
-        let questionRange=0; // 1..10 或 '混合'
-        let lastQuestion={};
-        let playerName='';
-        let leaderboardData=[];
-        let isLeaderboardLoading=false;
-        let isAnswerLocked=false;
+    /* ========== Game Logic ========== */
+    function startCharacterAnimation(){
+      if(isCharacterJumping) return; isCharacterJumping=true; jumpStartTime=Date.now();
+    }
+    function generateWrongAnswers(answer,count=5){
+      const set=new Set();
+      for(let off=-9; off<=9 && set.size<count; off++){
+        if(off===0) continue; const v=answer+off; if(v>0) set.add(v);
+      }
+      let tries=0, upper=Math.max(answer+20,30);
+      while(set.size<count && tries<500){
+        const v=Math.floor(Math.random()*upper)+1; if(v!==answer) set.add(v); tries++;
+      }
+      return Array.from(set).slice(0,count);
+    }
+    function generateNewQuestion(){
+      let num1,num2,nq;
+      do{
+        if(questionRange==='混合'){ num1=Math.floor(Math.random()*10)+1; num2=Math.floor(Math.random()*9)+1; }
+        else { num1=questionRange; num2=Math.floor(Math.random()*9)+1; }
+        nq={num1,num2};
+      }while(lastQuestion.num1===nq.num1 && lastQuestion.num2===nq.num2);
+      const answer=num1*num2;
+      currentQuestion={num1,num2,answer}; lastQuestion=nq;
 
-        // animation/time
-        let characterYOffset=0, isCharacterJumping=false, jumpStartTime=0;
-        const JUMP_DURATION=1000, JUMP_HEIGHT=50;
-        let feedbackEndTime=0, lastAnswerWasCorrect=false;
-        let startTime=0, elapsedTime=0;
+      const wrongs=generateWrongAnswers(answer,5);
+      answerButtons=[{value:answer, correct:true}, ...wrongs.map(v=>({value:v, correct:false}))];
+      answerButtons.sort(()=>Math.random()-0.5);
+      feedbackMessage='';
+    }
+    function checkAnswer(isCorrect){
+      if(isAnswerLocked) return; isAnswerLocked=true; lastAnswerWasCorrect=isCorrect;
+      if(isCorrect){
+        feedbackMessage='太棒了！答對囉！'; correctAnswersCount++; score+=5;
+        if(correctSynth) correctSynth.triggerAttackRelease(['C4','E4','G4'],'8n');
+        startCharacterAnimation();
+      }else{
+        feedbackMessage='再想想看喔！'; score=Math.max(0,score-2);
+        if(wrongSynth) wrongSynth.triggerAttackRelease('C3','4n');
+      }
+      feedbackEndTime=Date.now()+1500;
+    }
+    function resetGame(){
+      currentPage='home'; correctAnswersCount=0; score=0;
+      startTime=0; elapsedTime=0; feedbackMessage=''; lastQuestion={};
+      playerName=''; isAnswerLocked=false; hideNameInput();
+    }
 
-        // audio
-        let correctSynth, wrongSynth, clickSynth;
-        let audioInitialized=false;
-
-        // images（非阻塞載入 + 檔名 fallback）
-        let akitaImage=null, characterImage=null;
-        function initImages(){
-            akitaImage = new Image();
-            characterImage = new Image();
-            const akitaCandidates = ['可愛秋田.png'];
-            const charCandidates  = ['S876553.png', 'S__876553.png'];
-            function tryLoad(img, list){
-                let i=0;
-                const loadNext=()=>{ if(i>=list.length) return; img.src=list[i++]; img.onerror=loadNext; };
-                loadNext();
-            }
-            tryLoad(akitaImage, akitaCandidates);
-            tryLoad(characterImage, charCandidates);
-        }
-
-        function resizeCanvas(){ canvas.width=innerWidth; canvas.height=innerHeight;
-            if(currentPage==='enterName') positionNameInput(); }
-
-        /* —— drawText：把字型鏈改為「Noto Sans TC 優先」 —— */
-        function drawText(text, x, y, fontSize, color, align='center', baseline='middle') {
-            ctx.save();
-            ctx.font = `bold ${fontSize}px "Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif`;
-            ctx.fillStyle = color;
-            ctx.textAlign = align;
-            ctx.textBaseline = baseline;
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-            ctx.shadowBlur = Math.max(1, Math.round(fontSize / 10));
-            ctx.shadowOffsetX = 2;
-            ctx.shadowOffsetY = 2;
-            ctx.fillText(text, x, y);
-            ctx.restore();
-        }
-
-        function drawSystemText(t,color='#333'){
-            ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
-            ctx.save();
-            ctx.font='bold 30px "Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif';
-            ctx.fillStyle=color; ctx.textAlign='center'; ctx.textBaseline='middle';
-            ctx.fillText(t, canvas.width/2, canvas.height/2);
-            ctx.restore();
-        }
-
-        /* ========== Screens ========== */
-        function drawHomePage(){
-            const g=ctx.createLinearGradient(0,0,0,canvas.height);
-            g.addColorStop(0,'#87CEEB'); g.addColorStop(1,'#66CDAA');
-            ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
-            drawCloud(150,100,1); drawCloud(canvas.width-200,150,0.8);
-            drawText('王公九九乘法冒險島', canvas.width/2, canvas.height*0.25, canvas.width>600?50:36, '#000080');
-            drawText('等你來挑戰！ooo', canvas.width/2, canvas.height*0.35, canvas.width>600?24:18, '#000080');
-
-            if (characterImage && characterImage.complete && characterImage.naturalWidth>0) {
-                const w = canvas.width*0.15, h = (characterImage.naturalHeight/characterImage.naturalWidth)*w;
-                ctx.drawImage(characterImage, canvas.width/2-w/2, canvas.height/2-h/2, w, h);
-            }
-
-            const bw=220,bh=70, y1=canvas.height*0.7, y2=y1+bh+20;
-            drawButton('開始冒險！', canvas.width/2, y1, bw, bh, '#FF69B4', '#FFFFFF');
-            drawButton('排行榜', canvas.width/2, y2, bw, bh, '#17a2b8', '#FFFFFF');
-            uiButtons = [
-                {id:'start', x:canvas.width/2, y:y1, width:bw, height:bh},
-                {id:'show_leaderboard', x:canvas.width/2, y:y2, width:bw, height:bh}
-            ];
-            hideNameInput();
-        }
-        function drawCloud(x,y,s){
-            ctx.save();
-            ctx.fillStyle='rgba(255,255,255,0.9)';
-            ctx.beginPath(); ctx.arc(x,y,30*s,0,Math.PI*2);
-            ctx.arc(x+35*s,y-10*s,40*s,0,Math.PI*2);
-            ctx.arc(x+70*s,y,30*s,0,Math.PI*2);
-            ctx.arc(x+35*s,y+15*s,40*s,0,Math.PI*2);
-            ctx.closePath(); ctx.fill();
-            ctx.restore();
-        }
-        function drawSelectionPage(){
-            const g=ctx.createLinearGradient(0,0,0,canvas.height);
-            g.addColorStop(0,'#9ACD32'); g.addColorStop(1,'#FFD700');
-            ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
-            drawText('選擇你的乘法挑戰！', canvas.width/2, canvas.height*0.1, canvas.width>600?40:28, '#8B4513');
-
-            uiButtons=[];
-            const nums=[1,2,3,4,5,6,7,8,9,10,'混合'];
-            const cols=canvas.width>800?4:3;
-            const bw=Math.floor((canvas.width*0.8)/cols), bh=60;
-            const spacingX=bw+20, spacingY=bh+20;
-            const startX=(canvas.width-(cols*spacingX-20))/2 + bw/2;
-            const startY=canvas.height*0.25;
-
-            nums.forEach((num,i)=>{
-                const r=Math.floor(i/cols), c=i%cols;
-                const x=startX+c*spacingX, y=startY+r*spacingY;
-                const label=(num==='混合')?'混合':`${num} 的乘法`;
-                drawButton(label,x,y,bw,bh,'#4CAF50','#FFFFFF');
-                uiButtons.push({id:'select', value:num, x, y, width:bw, height:bh});
-            });
-            hideNameInput();
-        }
-        function drawPracticePage(){
-            const g=ctx.createLinearGradient(0,0,0,canvas.height);
-            g.addColorStop(0,'#1E90FF'); g.addColorStop(1,'#87CEFA');
-            ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
-
-            const bx=canvas.width/2, by=canvas.height*0.2, br=canvas.width>600?100:70;
-            ctx.save();
-            ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.arc(bx,by,br,0,Math.PI*2); ctx.fill();
-            ctx.restore();
-
-            drawText(`${currentQuestion.num1} x ${currentQuestion.num2} = ?`, bx,by, canvas.width>600?48:36, '#000080');
-            if(feedbackMessage) drawText(feedbackMessage, canvas.width/2, canvas.height*0.35, canvas.width>600?36:24, '#FF4500');
-
-            drawScore(); drawTime(); drawCharacter();
-            drawAnswerButtons(); drawProgressBar();
-            if(currentPage!=='enterName') hideNameInput();
-        }
-        function drawScore(){ drawText(`分數：${score}`, 30, 60, canvas.width>600?24:18, '#FFFFFF','left'); }
-        function drawTime(){ const s=Math.floor(elapsedTime/1000); drawText(`時間：${s} 秒`, canvas.width-30, 60, canvas.width>600?24:18, '#FFFFFF','right'); }
-        function drawCharacter(){
-            const w=canvas.width>600?150:100;
-            if(akitaImage && akitaImage.complete && akitaImage.naturalWidth>0){
-                const h=(akitaImage.naturalHeight/akitaImage.naturalWidth)*w;
-                ctx.drawImage(akitaImage, canvas.width/2-w/2, canvas.height*0.45+characterYOffset-h/2, w, h);
-            }
-        }
-        function drawAnswerButtons(){
-            const cols=canvas.width>700?3:2;
-            const baseW=120, baseH=60, baseGap=20;
-            const rows=Math.ceil(answerButtons.length/cols);
-            const barH=25, safeBottom=getSafeBottom();
-            const bottomReserve=safeBottom+barH+24;
-            const availableBottomY=canvas.height-bottomReserve;
-            const totalH=rows*baseH+(rows-1)*baseGap;
-
-            let top=availableBottomY-totalH-10;
-            const minTop=canvas.height*0.52;
-            let s=1;
-            if(top<minTop){
-                const avail=availableBottomY-10-minTop, need=totalH;
-                s=Math.max(0.6, Math.min(1, avail/need));
-                const scaledTotalH=rows*(baseH*s)+(rows-1)*(baseGap*s);
-                top=availableBottomY-scaledTotalH-10;
-            }
-            const bw=baseW*s, bh=baseH*s, gap=baseGap*s;
-            const totalW=cols*bw+(cols-1)*gap;
-            const startX=(canvas.width-totalW)/2 + bw/2;
-            const startY=top+bh/2;
-
-            answerButtons.forEach((btn,i)=>{
-                const r=Math.floor(i/cols), c=i%cols;
-                const x=startX+c*(bw+gap), y=startY+r*(bh+gap);
-                drawButton(btn.value,x,y,bw,bh,'#FFD700','#8B4513');
-                btn.x=x; btn.y=y; btn.width=bw; btn.height=bh;
-            });
-        }
-        function drawProgressBar(){
-            const barWidth=canvas.width*0.6, barHeight=25, safeBottom=getSafeBottom(), margin=10;
-            const barX=(canvas.width-barWidth)/2, barY=canvas.height-safeBottom-margin-barHeight;
-            const maxQuestions=20;
-            ctx.save();
-            ctx.fillStyle='#f0e68c'; rr(ctx,barX,barY,barWidth,barHeight,12); ctx.fill();
-            const progress=(correctAnswersCount/maxQuestions)*barWidth;
-            if(progress>0){ ctx.fillStyle='#FFC107'; rr(ctx,barX,barY,progress,barHeight,12); ctx.fill(); }
-            ctx.strokeStyle='#daa520'; ctx.lineWidth=3; rr(ctx,barX,barY,barWidth,barHeight,12); ctx.stroke();
-            ctx.restore();
-            drawText(`${correctAnswersCount} / ${maxQuestions}`, canvas.width/2, barY+barHeight/2, 16, '#A52A2A');
-        }
-        function drawGameOverPage(){
-            drawPracticePage();
-            ctx.save();
-            ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,canvas.width,canvas.height);
-            const mw=canvas.width*0.7, mh=canvas.height*0.6;
-            const mx=(canvas.width-mw)/2, my=(canvas.height-mh)/2;
-            ctx.fillStyle='#FFF8DC'; ctx.strokeStyle='#F0E68C'; ctx.lineWidth=10;
-            rr(ctx,mx,my,mw,mh,20); ctx.fill(); ctx.stroke();
-            ctx.restore();
-
-            const totalSec=Math.floor(elapsedTime/1000);
-            drawText('挑戰完成！', canvas.width/2, my+mh*0.2, 40,'#D2691E');
-            drawText(`總分：${score}`, canvas.width/2, my+mh*0.4, 30,'#8B4513');
-            drawText(`總共花了 ${totalSec} 秒`, canvas.width/2, my+mh*0.55, 30,'#8B4513');
-
-            const bw=200,bh=60,bx=canvas.width/2,by=my+mh*0.8;
-            drawButton('儲存紀錄', bx,by,bw,bh,'#28a745','#FFFFFF');
-            uiButtons=[{id:'save_score', x:bx, y:by, width:bw, height:bh}];
-        }
-        function drawEnterNamePage(){
-            drawGameOverPage();
-            ctx.save();
-            ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(0,0,canvas.width,canvas.height);
-            const mw=canvas.width*0.7, mh=canvas.height*0.5;
-            const mx=(canvas.width-mw)/2, my=(canvas.height-mh)/2;
-            ctx.fillStyle='#fff'; rr(ctx,mx,my,mw,mh,20); ctx.fill();
-            ctx.restore();
-
-            drawText('請輸入你的名字', canvas.width/2, my+mh*0.2, 32, '#333');
-
-            const iw=mw*0.8, ih=60, ix=(canvas.width-iw)/2, iy=my+mh*0.4;
-            ctx.save();
-            ctx.strokeStyle='#CCC'; ctx.lineWidth=2; rr(ctx,ix,iy,iw,ih,10); ctx.stroke();
-            ctx.restore();
-
-            const bw=200,bh=60,bx=canvas.width/2,by=my+mh*0.8;
-            drawButton('確認', bx,by,bw,bh,'#007bff','#FFFFFF');
-            uiButtons=[{id:'confirm_name', x:bx, y:by, width:bw, height:bh}];
-
-            showNameInput(); positionNameInput();
-        }
-        function drawLeaderboardPage(){
-            const g=ctx.createLinearGradient(0,0,0,canvas.height);
-            g.addColorStop(0,'#4e54c8'); g.addColorStop(1,'#8f94fb');
-            ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
-            drawText('速度挑戰排行榜', canvas.width/2, canvas.height*0.1, 40, '#fff');
-
-            if(isLeaderboardLoading){
-                drawText('讀取中...', canvas.width/2, canvas.height/2, 30, '#fff');
-            }else if(!db){
-                drawText('排行榜功能暫時無法使用', canvas.width/2, canvas.height/2, 24, '#FFD700');
-            }else{
-                const startY=canvas.height*0.2, lh=40;
-                drawText('排名', canvas.width*0.15, startY, 20, '#FFD700');
-                drawText('名字', canvas.width*0.35, startY, 20, '#FFD700');
-                drawText('類型', canvas.width*0.55, startY, 20, '#FFD700');
-                drawText('分數', canvas.width*0.75, startY, 20, '#FFD700');
-                drawText('時間(秒)', canvas.width*0.9,  startY, 20, '#FFD700');
-
-                leaderboardData.slice(0,10).forEach((e,i)=>{
-                    const y=startY+(i+1)*lh;
-                    const typeLabel = (e.type==='混合') ? '混合'
-                                    : (e.type ? `${String(e.type)}的乘法` : '未標註');
-                    drawText(i+1,      canvas.width*0.15, y, 18, '#fff');
-                    drawText(e.name,  canvas.width*0.35, y, 18, '#fff');
-                    drawText(typeLabel,canvas.width*0.55, y, 18, '#fff');
-                    drawText(e.score, canvas.width*0.75, y, 18, '#fff');
-                    drawText(e.time,  canvas.width*0.9,  y, 18, '#fff');
-                });
-            }
-
-            const bw=200,bh=60,bx=canvas.width/2,by=canvas.height-80;
-            drawButton('返回首頁', bx,by,bw,bh,'#6c757d','#fff');
-            uiButtons=[{id:'back_home', x:bx, y:by, width:bw, height:bh}];
-            hideNameInput();
-        }
-
-        // 修正後的 drawButton 函式
-        function drawButton(text,x,y,w,h,color,textColor){
-            ctx.save();
-            ctx.shadowColor='rgba(0,0,0,0.3)'; ctx.shadowBlur=10; ctx.shadowOffsetX=4; ctx.shadowOffsetY=4;
-            ctx.fillStyle=color; rr(ctx, x-w/2, y-h/2, w, h, 15); ctx.fill();
-            ctx.restore();
-            drawText(text, x,y, Math.max(18, Math.min(22, w/6)), textColor);
-        }
-
-        /* ========== Name Input Overlay ========== */
-        function computeEnterNameGeom(){
-            const mw=canvas.width*0.7, mh=canvas.height*0.5;
-            const mx=(canvas.width-mw)/2, my=(canvas.height-mh)/2;
-            const iw=mw*0.8, ih=60, ix=(canvas.width-iw)/2, iy=my+mh*0.4;
-            return {ix,iy,iw,ih};
-        }
-        function positionNameInput(g){
-            const {ix,iy,iw,ih}=g||computeEnterNameGeom();
-            nameInputEl.style.left = `${Math.round(ix)}px`;
-            nameInputEl.style.top  = `${Math.round(iy)}px`;
-            nameInputEl.style.width  = `${Math.round(iw)}px`;
-            nameInputEl.style.height = `${Math.round(ih)}px`;
-            nameInputEl.style.fontSize = `${Math.max(22, Math.min(28, Math.round(ih*0.5)))}px`;
-            nameInputEl.style.lineHeight = `${Math.round(ih)}px`;
-        }
-        function showNameInput(){
-            nameInputEl.style.display='block';
-            nameInputEl.value=playerName;
-            requestAnimationFrame(()=>{
-                nameInputEl.focus({preventScroll:true});
-                const len=nameInputEl.value.length;
-                nameInputEl.setSelectionRange(len,len);
-            });
-        }
-        function hideNameInput(){
-            nameInputEl.style.display='none';
-            if(document.activeElement===nameInputEl) nameInputEl.blur();
-        }
-        let isComposing=false;
-        nameInputEl.addEventListener('compositionstart',()=>{isComposing=true;});
-        nameInputEl.addEventListener('compositionend',()=>{isComposing=false; playerName=(nameInputEl.value||'').slice(0,10);});
-        nameInputEl.addEventListener('input',()=>{ if(!isComposing) playerName=(nameInputEl.value||'').slice(0,10); });
-        nameInputEl.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); clickConfirmName(); }});
-        nameInputEl.addEventListener('click',(e)=>e.stopPropagation());
-
-        /* ========== Game Logic ========== */
-        function startCharacterAnimation(){
-            if(isCharacterJumping) return; isCharacterJumping=true; jumpStartTime=Date.now();
-        }
-        function generateWrongAnswers(answer,count=5){
-            const set=new Set();
-            for(let off=-9; off<=9 && set.size<count; off++){
-                if(off===0) continue; const v=answer+off; if(v>0) set.add(v);
-            }
-            let tries=0, upper=Math.max(answer+20,30);
-            while(set.size<count && tries<500){
-                const v=Math.floor(Math.random()*upper)+1; if(v!==answer) set.add(v); tries++;
-            }
-            return Array.from(set).slice(0,count);
-        }
-        function generateNewQuestion(){
-            let num1,num2,nq;
-            do{
-                if(questionRange==='混合'){ num1=Math.floor(Math.random()*10)+1; num2=Math.floor(Math.random()*9)+1; }
-                else { num1=questionRange; num2=Math.floor(Math.random()*9)+1; }
-                nq={num1,num2};
-            }while(lastQuestion.num1===nq.num1 && lastQuestion.num2===nq.num2);
-            const answer=num1*num2;
-            currentQuestion={num1,num2,answer}; lastQuestion=nq;
-
-            const wrongs=generateWrongAnswers(answer,5);
-            answerButtons=[{value:answer, correct:true}, ...wrongs.map(v=>({value:v, correct:false}))];
-            answerButtons.sort(()=>Math.random()-0.5);
-            feedbackMessage='';
-        }
-        function checkAnswer(isCorrect){
-            if(isAnswerLocked) return; isAnswerLocked=true; lastAnswerWasCorrect=isCorrect;
-            if(isCorrect){
-                feedbackMessage='太棒了！答對囉！'; correctAnswersCount++; score+=5;
-                if(correctSynth) correctSynth.triggerAttackRelease(['C4','E4','G4'],'8n');
-                startCharacterAnimation();
-            }else{
-                feedbackMessage='再想想看喔！'; score=Math.max(0,score-2);
-                if(wrongSynth) wrongSynth.triggerAttackRelease('C3','4n');
-            }
-            feedbackEndTime=Date.now()+1500;
-        }
-        function resetGame(){
-            currentPage='home'; correctAnswersCount=0; score=0;
-            startTime=0; elapsedTime=0; feedbackMessage=''; lastQuestion={};
-            playerName=''; isAnswerLocked=false; hideNameInput();
-        }
-
-        async function saveScoreToLeaderboard(name,score,time,type){
-            if(!db) return;
-            try{ await db.collection('leaderboard').add({name,score,time,type,createdAt:new Date()}); }catch{}
-        }
-        async function fetchLeaderboard(){
-            isLeaderboardLoading=true; leaderboardData=[];
-            if(!db){ isLeaderboardLoading=false; return; }
-            try{
-                let q=db.collection('leaderboard');
-                q=q.orderBy('score','desc').orderBy('time','asc').limit(50);
-                const snap=await q.get();
-                leaderboardData=snap.docs.map(d=>{
-                    const x=d.data();
-                    const t=x.type;
-                    const norm=(t===undefined||t===null||t==='') ? '未標註' : (t==='混合'?'混合':String(t));
-                    return {...x, type:norm};
-                });
-            }catch{ leaderboardData=[]; }
-            isLeaderboardLoading=false;
-        }
-
-        function initializeAudio(){
-            if(audioInitialized || typeof Tone==='undefined') return;
-            Tone.start().then(()=>{
-                correctSynth=new Tone.PolySynth(Tone.Synth,{oscillator:{type:'sine'},envelope:{attack:.01,decay:.1,sustain:.2,release:.2}}).toDestination();
-                wrongSynth=new Tone.Synth({oscillator:{type:'square'},envelope:{attack:.01,decay:.2,sustain:.1,release:.2}}).toDestination();
-                clickSynth=new Tone.Synth({oscillator:{type:'triangle'},envelope:{attack:.005,decay:.1,sustain:0,release:.1}}).toDestination();
-                audioInitialized=true;
-            }).catch(()=>{});
-        }
-
-        function handleKeyPress(e){
-            if(currentPage!=='enterName') return;
-            if(document.activeElement===nameInputEl){
-                if(e.key==='Enter'){ e.preventDefault(); clickConfirmName(); }
-                return;
-            }
-            if(e.key==='Enter') clickConfirmName();
-        }
-
-        canvas.addEventListener('click',(event)=>{
-            initializeAudio();
-            const rect=canvas.getBoundingClientRect();
-            const scaleX=canvas.width/rect.width, scaleY=canvas.height/rect.height;
-            const mouseX=(event.clientX-rect.left)*scaleX, mouseY=(event.clientY-rect.top)*scaleY;
-            const hit=b=> (mouseX>b.x-b.width/2 && mouseX<b.x+b.width/2 && mouseY>b.y-b.height/2 && mouseY<b.y+b.height/2);
-
-            if(['home','selection','gameOver','leaderboard','enterName'].includes(currentPage)){
-                for(const btn of uiButtons){
-                    if(hit(btn)){
-                        if(clickSynth) clickSynth.triggerAttackRelease('C5','16n');
-                        switch(btn.id){
-                            case 'start': currentPage='selection'; break;
-                            case 'select':
-                                isAnswerLocked=false; questionRange=btn.value; currentPage='practice';
-                                correctAnswersCount=0; score=0; lastQuestion={}; generateNewQuestion(); startTime=Date.now(); break;
-                            case 'save_score': currentPage='enterName'; positionNameInput(); showNameInput(); break;
-                            case 'confirm_name': clickConfirmName(); break;
-                            case 'show_leaderboard': currentPage='leaderboard'; isLeaderboardLoading=true; fetchLeaderboard(); break;
-                            case 'back_home': resetGame(); break;
-                        }
-                        break;
-                    }
-                }
-            }else if(currentPage==='practice'){
-                if(isAnswerLocked) return;
-                for(const btn of answerButtons){ if(hit(btn)){ checkAnswer(btn.correct); break; } }
-            }
+    async function saveScoreToLeaderboard(name,score,time,type){
+      if(!db) return;
+      try{ await db.collection('leaderboard').add({name,score,time,type,createdAt:new Date()}); }catch{}
+    }
+    async function fetchLeaderboard(){
+      isLeaderboardLoading=true; leaderboardData=[];
+      if(!db){ isLeaderboardLoading=false; return; }
+      try{
+        let q=db.collection('leaderboard');
+        q=q.orderBy('score','desc').orderBy('time','asc').limit(50);
+        const snap=await q.get();
+        leaderboardData=snap.docs.map(d=>{
+          const x=d.data();
+          const t=x.type;
+          const norm=(t===undefined||t===null||t==='') ? '未標註' : (t==='混合'?'混合':String(t));
+          return {...x, type:norm};
         });
+      }catch{ leaderboardData=[]; }
+      isLeaderboardLoading=false;
+    }
 
-        function clickConfirmName(){
-            if(!playerName || !playerName.trim()){
-                if(currentPage==='enterName'){ positionNameInput(); showNameInput(); }
-                return;
+    function initializeAudio(){
+      if(audioInitialized || typeof Tone==='undefined') return;
+      Tone.start().then(()=>{
+        correctSynth=new Tone.PolySynth(Tone.Synth,{oscillator:{type:'sine'},envelope:{attack:.01,decay:.1,sustain:.2,release:.2}}).toDestination();
+        wrongSynth=new Tone.Synth({oscillator:{type:'square'},envelope:{attack:.01,decay:.2,sustain:.1,release:.2}}).toDestination();
+        clickSynth=new Tone.Synth({oscillator:{type:'triangle'},envelope:{attack:.005,decay:.1,sustain:0,release:.1}}).toDestination();
+        audioInitialized=true;
+      }).catch(()=>{});
+    }
+
+    function handleKeyPress(e){
+      if(currentPage!=='enterName') return;
+      if(document.activeElement===nameInputEl){
+        if(e.key==='Enter'){ e.preventDefault(); clickConfirmName(); }
+        return;
+      }
+      if(e.key==='Enter') clickConfirmName();
+    }
+
+    canvas.addEventListener('click',(event)=>{
+      initializeAudio();
+      const rect=canvas.getBoundingClientRect();
+      const scaleX=canvas.width/rect.width, scaleY=canvas.height/rect.height;
+      const mouseX=(event.clientX-rect.left)*scaleX, mouseY=(event.clientY-rect.top)*scaleY;
+      const hit=b=> (mouseX>b.x-b.width/2 && mouseX<b.x+b.width/2 && mouseY>b.y-b.height/2 && mouseY<b.y+b.height/2);
+
+      if(['home','selection','gameOver','leaderboard','enterName'].includes(currentPage)){
+        for(const btn of uiButtons){
+          if(hit(btn)){
+            if(clickSynth) clickSynth.triggerAttackRelease('C5','16n');
+            switch(btn.id){
+              case 'start': currentPage='selection'; break;
+              case 'select':
+                isAnswerLocked=false; questionRange=btn.value; currentPage='practice';
+                correctAnswersCount=0; score=0; lastQuestion={}; generateNewQuestion(); startTime=Date.now(); break;
+              case 'save_score': currentPage='enterName'; positionNameInput(); showNameInput(); break;
+              case 'confirm_name': clickConfirmName(); break;
+              case 'show_leaderboard': currentPage='leaderboard'; isLeaderboardLoading=true; fetchLeaderboard(); break;
+              case 'back_home': resetGame(); break;
             }
-            currentPage='leaderboard'; isLeaderboardLoading=true; hideNameInput();
-            const typeString=(questionRange==='混合')?'混合':String(questionRange);
-            (async()=>{
-                await saveScoreToLeaderboard(playerName.trim(), score, Math.floor(elapsedTime/1000), typeString);
-                await fetchLeaderboard();
-            })();
+            break;
+          }
         }
+      }else if(currentPage==='practice'){
+        if(isAnswerLocked) return;
+        for(const btn of answerButtons){ if(hit(btn)){ checkAnswer(btn.correct); break; } }
+      }
+    });
 
-        function drawScreen(){
-            ctx.clearRect(0,0,canvas.width,canvas.height);
-            switch(currentPage){
-                case 'home': drawHomePage(); break;
-                case 'selection': drawSelectionPage(); break;
-                case 'practice': drawPracticePage(); break;
-                case 'gameOver': drawGameOverPage(); break;
-                case 'enterName': drawEnterNamePage(); break;
-                case 'leaderboard': drawLeaderboardPage(); break;
-            }
+    function clickConfirmName(){
+      if(!playerName || !playerName.trim()){
+        if(currentPage==='enterName'){ positionNameInput(); showNameInput(); }
+        return;
+      }
+      currentPage='leaderboard'; isLeaderboardLoading=true; hideNameInput();
+      const typeString=(questionRange==='混合')?'混合':String(questionRange);
+      (async()=>{
+        await saveScoreToLeaderboard(playerName.trim(), score, Math.floor(elapsedTime/1000), typeString);
+        await fetchLeaderboard();
+      })();
+    }
+
+    function drawScreen(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      switch(currentPage){
+        case 'home': drawHomePage(); break;
+        case 'selection': drawSelectionPage(); break;
+        case 'practice': drawPracticePage(); break;
+        case 'gameOver': drawGameOverPage(); break;
+        case 'enterName': drawEnterNamePage(); break;
+        case 'leaderboard': drawLeaderboardPage(); break;
+      }
+    }
+
+    function gameLoop(){
+      try{
+        const now = Date.now(); // ★ 關鍵修正
+        if(currentPage==='practice' && startTime>0) elapsedTime=now-startTime;
+
+        if(isCharacterJumping){
+          const ej=now-jumpStartTime;
+          if(ej<JUMP_DURATION){ const p=ej/JUMP_DURATION; characterYOffset=-Math.sin(p*Math.PI)*JUMP_HEIGHT; }
+          else { isCharacterJumping=false; characterYOffset=0; }
         }
-
-        function gameLoop(){
-            try{
-                const now = Date.now(); // ★★★ 關鍵修正：原本是 Date.sow()
-                if(currentPage==='practice' && startTime>0) elapsedTime=now-startTime;
-
-                if(isCharacterJumping){
-                    const ej=now-jumpStartTime;
-                    if(ej<JUMP_DURATION){ const p=ej/JUMP_DURATION; characterYOffset=-Math.sin(p*Math.PI)*JUMP_HEIGHT; }
-                    else { isCharacterJumping=false; characterYOffset=0; }
-                }
-                if(feedbackEndTime>0 && now>=feedbackEndTime){
-                    feedbackEndTime=0;
-                    if(lastAnswerWasCorrect){
-                        if(correctAnswersCount>=20) currentPage='gameOver';
-                        else { generateNewQuestion(); isAnswerLocked=false; }
-                    }else{ feedbackMessage=''; isAnswerLocked=false; }
-                }
-                drawScreen();
-            }catch{
-                // 若仍有例外，至少畫出一個提示畫面
-                drawSystemText('發生例外，但我還在運作中…');
-            }
-            requestAnimationFrame(gameLoop);
+        if(feedbackEndTime>0 && now>=feedbackEndTime){
+          feedbackEndTime=0;
+          if(lastAnswerWasCorrect){
+            if(correctAnswersCount>=20) currentPage='gameOver';
+            else { generateNewQuestion(); isAnswerLocked=false; }
+          }else{ feedbackMessage=''; isAnswerLocked=false; }
         }
+        drawScreen();
+      }catch(e){
+        console.error('[gameLoop] error:', e);
+        drawSystemText('發生例外，但我還在運作中…');
+      }
+      requestAnimationFrame(gameLoop);
+    }
 
-        /* ====== 先把字型載好，再開跑 ====== */
-        async function loadFonts() {
-            try {
-                const sample = '開始冒險等你來挑戰混合乘法排行榜時間分數';
-                await document.fonts.load('700 48px "Noto Sans TC"', sample);
-                await document.fonts.ready;
-            } catch (e) {
-                // 就算失敗也別擋流程，瀏覽器仍會有系統字體
-            }
-        }
+    /* ====== 字型載入：最長等 1.5s；之後無論如何都啟動 ====== */
+    async function loadFontsWithTimeout(timeoutMs = 1500) {
+      const start = performance.now();
+      try {
+        const sample = '開始冒險等你來挑戰混合乘法排行榜時間分數';
+        const p1 = (document.fonts && document.fonts.load)
+          ? document.fonts.load('700 48px "Noto Sans TC"', sample)
+          : Promise.resolve();
+        const p2 = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+        await Promise.race([
+          Promise.all([p1, p2]),
+          new Promise((res) => setTimeout(res, timeoutMs))
+        ]);
+      } catch (e) {
+        /* 字型失敗不阻擋啟動 */
+      } finally {
+        const spent = Math.round(performance.now() - start);
+        console.debug('[Fonts] waited ~', spent, 'ms');
+      }
+    }
 
-        window.onload = async function(){
-            resizeCanvas();
-            drawSystemText('載入字型中…');
-            await loadFonts();
-            drawSystemText('載入中…');
-            initFirebase();
-            initImages();
-            window.addEventListener('resize', resizeCanvas, false);
-            window.addEventListener('keydown', handleKeyPress);
-            requestAnimationFrame(gameLoop);
-        };
-    </script>
+    function startGame() {
+      try {
+        resizeCanvas();
+        drawSystemText('載入中…');
+        initFirebase();
+        initImages();
+        window.addEventListener('resize', resizeCanvas, false);
+        window.addEventListener('keydown', handleKeyPress);
+
+        // 看門狗：2 秒後仍停在載入畫面，輸出提示到 Console
+        setTimeout(() => {
+          console.debug('[Watchdog] 如果仍停在載入畫面，請檢查 Console 是否有報錯。');
+        }, 2000);
+
+        requestAnimationFrame(gameLoop);
+      } catch (e) {
+        console.error('[Boot] startGame error:', e);
+        drawSystemText('啟動時發生錯誤，請按 F12 查看 Console。');
+      }
+    }
+
+    // 用 DOMContentLoaded，比 onload 更早、也不被圖片或第三方腳本拖延
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        resizeCanvas();
+        drawSystemText('載入字型中…');
+        await loadFontsWithTimeout(1500);
+      } finally {
+        startGame(); // 無論字型是否載好，都會進入遊戲
+      }
+    });
+  </script>
 </body>
 </html>
