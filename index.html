@@ -12,7 +12,7 @@
     body { margin:0; overflow:hidden; background:#87ceeb; font-family:'M PLUS Rounded 1c', sans-serif; }
     canvas { display:block; }
 
-    /* 覆蓋在 Canvas 上方的實體輸入框（enterName 顯示） */
+   
     #nameInput {
       position: fixed;
       display: none;
@@ -53,7 +53,7 @@
     const ctx = canvas.getContext('2d');
     const nameInputEl = document.getElementById('nameInput');
 
-    /* ========== helpers ========== */
+    
     function rr(ctx, x, y, w, h, r = 0) {
       const radii = typeof r === 'number' ? {tl:r, tr:r, br:r, bl:r} : (r || {tl:0,tr:0,br:0,bl:0});
       ctx.beginPath();
@@ -74,7 +74,7 @@
       return isNaN(n) ? 0 : n;
     }
 
-    /* ========== Firebase（Compat） ========== */
+    
     let db = null, auth = null;
     async function initializeFirebase() {
       try {
@@ -93,7 +93,7 @@
       } catch(e) { db = null; }
     }
 
-    /* ========== 狀態 ========== */
+  
     let currentPage = 'home';
     let currentQuestion = {};
     let feedbackMessage = '';
@@ -108,7 +108,7 @@
     let isLeaderboardLoading = false;
     let isAnswerLocked = false;
 
-    // 動畫/計時
+    
     let characterYOffset = 0;
     let isCharacterJumping = false;
     let jumpStartTime = 0;
@@ -116,11 +116,11 @@
     let feedbackEndTime = 0, lastAnswerWasCorrect = false;
     let startTime = 0, elapsedTime = 0;
 
-    // 音效
+    
     let correctSynth, wrongSynth, clickSynth;
     let audioInitialized = false;
 
-    // 圖片
+    
     let akitaImage, characterImage;
 
     function loadAssets() {
@@ -162,7 +162,7 @@
       ctx.fillText(text, canvas.width/2, canvas.height/2);
     }
 
-    /* ========== 畫面 ========== */
+    
     function drawHomePage() {
       const g=ctx.createLinearGradient(0,0,0,canvas.height);
       g.addColorStop(0,'#87CEEB'); g.addColorStop(1,'#66CDAA');
@@ -237,7 +237,7 @@
       drawAnswerButtons();
       drawProgressBar();
 
-      /* ✅ 關鍵修正：只有在不處於輸入名字頁時才隱藏 input */
+      
       if (currentPage !== 'enterName') hideNameInput();
     }
 
@@ -254,7 +254,7 @@
       }
     }
 
-    /* 答案按鈕：避開底部安全區 + 自動縮放 */
+    
     function drawAnswerButtons() {
       const cols = canvas.width > 700 ? 3 : 2;
       const baseW = 120, baseH = 60, baseGap = 20;
@@ -318,7 +318,7 @@
     }
 
     function drawGameOverPage() {
-      // ⚠️ 不要在這裡 hideNameInput()，因為 enterName 會先畫到這頁再畫輸入層
+      
       drawPracticePage();
       ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,canvas.width,canvas.height);
       const mw=canvas.width*0.7, mh=canvas.height*0.6;
@@ -335,7 +335,7 @@
     }
 
     function drawEnterNamePage() {
-      // 只負責畫面；input 的顯示/focus 在切頁時處理
+      
       drawGameOverPage();
       ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(0,0,canvas.width,canvas.height);
       const mw=canvas.width*0.7, mh=canvas.height*0.5;
@@ -390,7 +390,7 @@
       drawText(text, x,y,Math.max(18, Math.min(22, w/6)), textColor);
     }
 
-    /* ========== 覆蓋輸入框控制（支援中文輸入） ========== */
+    
     function computeEnterNameGeom() {
       const mw=canvas.width*0.7, mh=canvas.height*0.5;
       const mx=(canvas.width-mw)/2, my=(canvas.height-mh)/2;
@@ -420,7 +420,7 @@
       if (document.activeElement === nameInputEl) nameInputEl.blur();
     }
 
-    // 中文輸入法 composition 支援
+   
     let isComposing = false;
     nameInputEl.addEventListener('compositionstart', () => { isComposing = true; });
     nameInputEl.addEventListener('compositionend', () => {
@@ -437,10 +437,10 @@
         clickConfirmName();
       }
     });
-    // 避免點輸入框時點到 Canvas（保險）
+   
     nameInputEl.addEventListener('click', (e)=>e.stopPropagation());
 
-    /* ========== 遊戲邏輯 ========== */
+   
     function startCharacterAnimation(){
       if (isCharacterJumping) return;
       isCharacterJumping = true; jumpStartTime = Date.now();
@@ -541,7 +541,7 @@
       }).catch(()=>{});
     }
 
-    /* 只處理 Enter（避免干擾中文輸入法） */
+  
     function handleKeyPress(e){
       if (currentPage !== 'enterName') return;
       if (document.activeElement === nameInputEl) {
@@ -551,7 +551,7 @@
       if (e.key === 'Enter') clickConfirmName();
     }
 
-    /* ========== 點擊 ========== */
+   
     canvas.addEventListener('click', (event)=>{
       initializeAudio();
       const rect = canvas.getBoundingClientRect();
@@ -616,7 +616,7 @@
       });
     }
 
-    /* ========== 主迴圈 ========== */
+   
     function drawScreen(){
       ctx.clearRect(0,0,canvas.width,canvas.height);
       switch(currentPage){
@@ -672,3 +672,4 @@
   </script>
 </body>
 </html>
+
