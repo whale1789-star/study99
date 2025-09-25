@@ -352,7 +352,7 @@
             uiButtons=[{id:'back_home', x:bx, y:by, width:bw, height:bh}];
             hideNameInput();
         }
-        
+
         // 修正後的 drawButton 函式
         function drawButton(text,x,y,w,h,color,textColor){
             ctx.save();
@@ -540,9 +540,10 @@
                 case 'leaderboard': drawLeaderboardPage(); break;
             }
         }
+
         function gameLoop(){
             try{
-                const now=Date.sow();
+                const now = Date.now(); // ★★★ 關鍵修正：原本是 Date.sow()
                 if(currentPage==='practice' && startTime>0) elapsedTime=now-startTime;
 
                 if(isCharacterJumping){
@@ -558,7 +559,10 @@
                     }else{ feedbackMessage=''; isAnswerLocked=false; }
                 }
                 drawScreen();
-            }catch{}
+            }catch{
+                // 若仍有例外，至少畫出一個提示畫面
+                drawSystemText('發生例外，但我還在運作中…');
+            }
             requestAnimationFrame(gameLoop);
         }
 
