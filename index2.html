@@ -10,12 +10,14 @@
   <style>
     :root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
     html,body { height:100%; }
-    body {
+    body{
       margin:0; overflow:hidden; background:#87ceeb;
-      font-family:'Noto Sans TC','Microsoft JhengHei','PingFang TC',sans-serif;
+      font-family:
+        "Noto Sans TC","Noto Sans CJK TC","Microsoft JhengHei","PingFang TC",
+        "Heiti TC","PMingLiU","Arial Unicode MS",sans-serif;
       -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
     }
-    canvas { display:block; }
+    canvas{ display:block; }
     #nameInput{
       position:fixed; display:none; z-index:9999; pointer-events:auto;
       border:2px solid #CCC; border-radius:10px; background:#FFF; color:#000;
@@ -31,28 +33,25 @@
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
-  <input
-    id="nameInput" type="text" lang="zh-Hant" inputmode="text"
-    autocomplete="off" autocapitalize="none" autocorrect="off"
-    maxlength="10" placeholder="請在此輸入名字"
-  />
+  <input id="nameInput" type="text" lang="zh-Hant" inputmode="text"
+         autocomplete="off" autocapitalize="none" autocorrect="off"
+         maxlength="10" placeholder="請在此輸入名字"/>
 
   <script>
-    /* —— 忽略特定瀏覽器擴充所致的未捕捉 Promise 錯誤 —— */
-    window.addEventListener('unhandledrejection', (e) => {
-      const r = e.reason;
-      const msg = (r && (r.message || r.toString())) || '';
-      if (msg.includes('Extension context invalidated')) e.preventDefault();
+    /* —— 忽略某些擴充造成的未捕捉 Promise 錯誤 —— */
+    window.addEventListener('unhandledrejection',(e)=>{
+      const r=e.reason; const msg=(r && (r.message||r.toString()))||'';
+      if(msg.includes('Extension context invalidated')) e.preventDefault();
     });
 
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const nameInputEl = document.getElementById('nameInput');
+    const canvas=document.getElementById('gameCanvas');
+    const ctx=canvas.getContext('2d');
+    const nameInputEl=document.getElementById('nameInput');
 
     /* ========== Helpers ========== */
-    if (!CanvasRenderingContext2D.prototype.roundRect) {
-      CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r=0){
-        const k = typeof r === 'number' ? {tl:r,tr:r,br:r,bl:r} : (r||{tl:0,tr:0,br:0,bl:0});
+    if(!CanvasRenderingContext2D.prototype.roundRect){
+      CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r=0){
+        const k=typeof r==='number'?{tl:r,tr:r,br:r,bl:r}:(r||{tl:0,tr:0,br:0,bl:0});
         this.beginPath();
         this.moveTo(x+k.tl,y);
         this.lineTo(x+w-k.tr,y);
@@ -67,10 +66,10 @@
         return this;
       };
     }
-    function rr(c,x,y,w,h,r=0){ c.roundRect ? c.roundRect(x,y,w,h,r) : (c.beginPath(), c.rect(x,y,w,h)); }
+    function rr(c,x,y,w,h,r=0){ c.roundRect?c.roundRect(x,y,w,h,r):(c.beginPath(),c.rect(x,y,w,h)); }
     function getSafeBottom(){
-      const v = getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom') || '0px';
-      const n = parseFloat(v); return isNaN(n)?0:n;
+      const v=getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom')||'0px';
+      const n=parseFloat(v); return isNaN(n)?0:n;
     }
 
     /* ========== Firebase (compat) ========== */
@@ -81,7 +80,7 @@
           authDomain:"ieka99.firebaseapp.com", projectId:"ieka99",
           storageBucket:"ieka99.appspot.com", messagingSenderId:"893665009867",
           appId:"1:893665009867:web:d732e15cf792890c8a7b4e" };
-        if (window.firebase?.apps?.length) return;
+        if(window.firebase?.apps?.length) return;
         firebase.initializeApp(cfg);
         auth=firebase.auth(); db=firebase.firestore();
         auth.signInAnonymously().catch(()=>{ db=null; });
@@ -116,43 +115,63 @@
     // images（非阻塞載入 + 檔名 fallback）
     let akitaImage=null, characterImage=null;
     function initImages(){
-      akitaImage = new Image();
-      characterImage = new Image();
-      const akitaCandidates = ['可愛秋田.png'];
-      const charCandidates  = ['S876553.png', 'S__876553.png'];
-      function tryLoad(img, list){
-        let i=0;
-        const loadNext=()=>{ if(i>=list.length) return; img.src=list[i++]; img.onerror=loadNext; };
+      akitaImage=new Image();
+      characterImage=new Image();
+      const akitaCandidates=['可愛秋田.png'];
+      const charCandidates=['S876553.png','S__876553.png'];
+      function tryLoad(img,list){
+        let i=0; const loadNext=()=>{ if(i>=list.length) return; img.src=list[i++]; img.onerror=loadNext; };
         loadNext();
       }
       tryLoad(akitaImage, akitaCandidates);
       tryLoad(characterImage, charCandidates);
     }
 
+    /* ===== DPI / 字清晰關鍵：依 devicePixelRatio 設定畫布 ===== */
     function resizeCanvas(){
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      const dpr=Math.max(1, window.devicePixelRatio||1);
+      const cssW=window.innerWidth, cssH=window.innerHeight;
+      canvas.width = Math.round(cssW * dpr);
+      canvas.height= Math.round(cssH * dpr);
+      canvas.style.width = cssW + 'px';
+      canvas.style.height= cssH + 'px';
+      // 讓座標系仍以 CSS 像素為單位，但用高解析度繪製
+      ctx.setTransform(dpr,0,0,dpr,0,0);
       if(currentPage==='enterName') positionNameInput();
     }
 
-    function drawText(text, x, y, fontSize, color, align='center', baseline='middle') {
+    /* ===== 量測字寬，讓字剛好塞進按鈕 ===== */
+    function fitTextSize(text, maxWidth, maxSize=28, minSize=14){
+      let size=maxSize;
+      while(size>minSize){
+        ctx.font = `700 ${size}px "Noto Sans TC","Noto Sans CJK TC","Microsoft JhengHei","PingFang TC","Heiti TC","PMingLiU",sans-serif`;
+        const w=ctx.measureText(String(text)).width;
+        if(w<=maxWidth) break;
+        size-=1;
+      }
+      return size;
+    }
+
+    function drawText(text,x,y,fontSize,color,align='center',baseline='middle'){
       ctx.save();
-      ctx.font = `bold ${fontSize}px "Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif`;
-      ctx.fillStyle = color;
-      ctx.textAlign = align;
-      ctx.textBaseline = baseline;
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-      ctx.shadowBlur = Math.max(1, Math.round(fontSize / 10));
-      ctx.shadowOffsetX = 2;
-      ctx.shadowOffsetY = 2;
-      ctx.fillText(text, x, y);
+      ctx.font = `700 ${fontSize}px "Noto Sans TC","Noto Sans CJK TC","Microsoft JhengHei","PingFang TC","Heiti TC","PMingLiU",sans-serif`;
+      ctx.textAlign=align; ctx.textBaseline=baseline;
+      // 先描邊再填色，確保對比清楚
+      ctx.lineWidth = Math.max(1, Math.round(fontSize/12));
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+      ctx.strokeText(String(text), x, y);
+      ctx.fillStyle=color;
+      ctx.shadowColor='rgba(0,0,0,0.18)';
+      ctx.shadowBlur=Math.max(1, Math.round(fontSize/10));
+      ctx.shadowOffsetX=1; ctx.shadowOffsetY=1;
+      ctx.fillText(String(text), x, y);
       ctx.restore();
     }
 
     function drawSystemText(t,color='#333'){
       ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
       ctx.save();
-      ctx.font='bold 30px "Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif';
+      ctx.font='700 30px "Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif';
       ctx.fillStyle=color; ctx.textAlign='center'; ctx.textBaseline='middle';
       ctx.fillText(t, canvas.width/2, canvas.height/2);
       ctx.restore();
@@ -165,17 +184,17 @@
       ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
       drawCloud(150,100,1); drawCloud(canvas.width-200,150,0.8);
       drawText('王公九九乘法冒險島', canvas.width/2, canvas.height*0.25, canvas.width>600?50:36, '#000080');
-      drawText('等你來挑戰！', canvas.width/2, canvas.height*0.35, canvas.width>600?24:18, '#000080');
+      drawText('等你來挑戰！@@@', canvas.width/2, canvas.height*0.35, canvas.width>600?24:18, '#000080');
 
-      if (characterImage && characterImage.complete && characterImage.naturalWidth>0) {
-        const w = canvas.width*0.15, h = (characterImage.naturalHeight/characterImage.naturalWidth)*w;
+      if(characterImage && characterImage.complete && characterImage.naturalWidth>0){
+        const w=canvas.width*0.15, h=(characterImage.naturalHeight/characterImage.naturalWidth)*w;
         ctx.drawImage(characterImage, canvas.width/2-w/2, canvas.height/2-h/2, w, h);
       }
 
       const bw=220,bh=70, y1=canvas.height*0.7, y2=y1+bh+20;
       drawButton('開始冒險！', canvas.width/2, y1, bw, bh, '#FF69B4', '#FFFFFF');
-      drawButton('排行榜', canvas.width/2, y2, bw, bh, '#17a2b8', '#FFFFFF');
-      uiButtons = [
+      drawButton('排行榜',   canvas.width/2, y2, bw, bh, '#17a2b8', '#FFFFFF');
+      uiButtons=[
         {id:'start', x:canvas.width/2, y:y1, width:bw, height:bh},
         {id:'show_leaderboard', x:canvas.width/2, y:y2, width:bw, height:bh}
       ];
@@ -313,9 +332,7 @@
       drawText('請輸入你的名字', canvas.width/2, my+mh*0.2, 32, '#333');
 
       const iw=mw*0.8, ih=60, ix=(canvas.width-iw)/2, iy=my+mh*0.4;
-      ctx.save();
-      ctx.strokeStyle='#CCC'; ctx.lineWidth=2; rr(ctx,ix,iy,iw,ih,10); ctx.stroke();
-      ctx.restore();
+      ctx.save(); ctx.strokeStyle='#CCC'; ctx.lineWidth=2; rr(ctx,ix,iy,iw,ih,10); ctx.stroke(); ctx.restore();
 
       const bw=200,bh=60,bx=canvas.width/2,by=my+mh*0.8;
       drawButton('確認', bx,by,bw,bh,'#007bff','#FFFFFF');
@@ -343,8 +360,7 @@
 
         leaderboardData.slice(0,10).forEach((e,i)=>{
           const y=startY+(i+1)*lh;
-          const typeLabel = (e.type==='混合') ? '混合'
-                          : (e.type ? `${String(e.type)}的乘法` : '未標註');
+          const typeLabel=(e.type==='混合')?'混合':(e.type?`${String(e.type)}的乘法`:'未標註');
           drawText(i+1,      canvas.width*0.15, y, 18, '#fff');
           drawText(e.name,   canvas.width*0.35, y, 18, '#fff');
           drawText(typeLabel,canvas.width*0.55, y, 18, '#fff');
@@ -359,12 +375,15 @@
       hideNameInput();
     }
 
+    /* ===== 按鈕（自動量測字寬） ===== */
     function drawButton(text,x,y,w,h,color,textColor){
       ctx.save();
-      ctx.shadowColor='rgba(0,0,0,0.3)'; ctx.shadowBlur=10; ctx.shadowOffsetX=4; ctx.shadowOffsetY=4;
+      ctx.shadowColor='rgba(0,0,0,0.28)'; ctx.shadowBlur=10; ctx.shadowOffsetX=4; ctx.shadowOffsetY=4;
       ctx.fillStyle=color; rr(ctx, x-w/2, y-h/2, w, h, 15); ctx.fill();
       ctx.restore();
-      drawText(text, x,y, Math.max(18, Math.min(22, w/6)), textColor);
+      const padding = 18;
+      const fontSize = fitTextSize(String(text), w - padding*2, 28, 14);
+      drawText(text, x, y, fontSize, textColor);
     }
 
     /* ========== Name Input Overlay ========== */
@@ -376,12 +395,12 @@
     }
     function positionNameInput(g){
       const {ix,iy,iw,ih}=g||computeEnterNameGeom();
-      nameInputEl.style.left = `${Math.round(ix)}px`;
-      nameInputEl.style.top  = `${Math.round(iy)}px`;
-      nameInputEl.style.width  = `${Math.round(iw)}px`;
-      nameInputEl.style.height = `${Math.round(ih)}px`;
-      nameInputEl.style.fontSize = `${Math.max(22, Math.min(28, Math.round(ih*0.5)))}px`;
-      nameInputEl.style.lineHeight = `${Math.round(ih)}px`;
+      nameInputEl.style.left=`${Math.round(ix)}px`;
+      nameInputEl.style.top =`${Math.round(iy)}px`;
+      nameInputEl.style.width =`${Math.round(iw)}px`;
+      nameInputEl.style.height=`${Math.round(ih)}px`;
+      nameInputEl.style.fontSize =`${Math.max(22, Math.min(28, Math.round(ih*0.5)))}px`;
+      nameInputEl.style.lineHeight =`${Math.round(ih)}px`;
     }
     function showNameInput(){
       nameInputEl.style.display='block';
@@ -463,8 +482,7 @@
         q=q.orderBy('score','desc').orderBy('time','asc').limit(50);
         const snap=await q.get();
         leaderboardData=snap.docs.map(d=>{
-          const x=d.data();
-          const t=x.type;
+          const x=d.data(); const t=x.type;
           const norm=(t===undefined||t===null||t==='') ? '未標註' : (t==='混合'?'混合':String(t));
           return {...x, type:norm};
         });
@@ -537,30 +555,31 @@
     function drawScreen(){
       ctx.clearRect(0,0,canvas.width,canvas.height);
       switch(currentPage){
-        case 'home': drawHomePage(); break;
-        case 'selection': drawSelectionPage(); break;
-        case 'practice': drawPracticePage(); break;
-        case 'gameOver': drawGameOverPage(); break;
-        case 'enterName': drawEnterNamePage(); break;
-        case 'leaderboard': drawLeaderboardPage(); break;
+        case 'home':       drawHomePage(); break;
+        case 'selection':  drawSelectionPage(); break;
+        case 'practice':   drawPracticePage(); break;
+        case 'gameOver':   drawGameOverPage(); break;
+        case 'enterName':  drawEnterNamePage(); break;
+        case 'leaderboard':drawLeaderboardPage(); break;
       }
     }
 
     function gameLoop(){
       try{
-        const now = Date.now(); // ★ 關鍵修正
+        const now=Date.now(); // ★ 關鍵修正
         if(currentPage==='practice' && startTime>0) elapsedTime=now-startTime;
 
         if(isCharacterJumping){
           const ej=now-jumpStartTime;
-          if(ej<JUMP_DURATION){ const p=ej/JUMP_DURATION; characterYOffset=-Math.sin(p*Math.PI)*JUMP_HEIGHT; }
-          else { isCharacterJumping=false; characterYOffset=0; }
+          if(ej<JUMP_DURATION){
+            const p=ej/JUMP_DURATION; characterYOffset=-Math.sin(p*Math.PI)*JUMP_HEIGHT;
+          }else{ isCharacterJumping=false; characterYOffset=0; }
         }
         if(feedbackEndTime>0 && now>=feedbackEndTime){
           feedbackEndTime=0;
           if(lastAnswerWasCorrect){
             if(correctAnswersCount>=20) currentPage='gameOver';
-            else { generateNewQuestion(); isAnswerLocked=false; }
+            else{ generateNewQuestion(); isAnswerLocked=false; }
           }else{ feedbackMessage=''; isAnswerLocked=false; }
         }
         drawScreen();
@@ -571,55 +590,41 @@
       requestAnimationFrame(gameLoop);
     }
 
-    /* ====== 字型載入：最長等 1.5s；之後無論如何都啟動 ====== */
-    async function loadFontsWithTimeout(timeoutMs = 1500) {
-      const start = performance.now();
-      try {
-        const sample = '開始冒險等你來挑戰混合乘法排行榜時間分數';
-        const p1 = (document.fonts && document.fonts.load)
+    /* ===== 字型載入：最長等 1.5s；之後無論如何都啟動 ===== */
+    async function loadFontsWithTimeout(timeoutMs=1500){
+      const start=performance.now();
+      try{
+        const sample='開始冒險等你來挑戰混合乘法排行榜時間分數';
+        const p1=(document.fonts && document.fonts.load)
           ? document.fonts.load('700 48px "Noto Sans TC"', sample)
           : Promise.resolve();
-        const p2 = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
-        await Promise.race([
-          Promise.all([p1, p2]),
-          new Promise((res) => setTimeout(res, timeoutMs))
-        ]);
-      } catch (e) {
-        /* 字型失敗不阻擋啟動 */
-      } finally {
-        const spent = Math.round(performance.now() - start);
-        console.debug('[Fonts] waited ~', spent, 'ms');
-      }
+        const p2=(document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+        await Promise.race([ Promise.all([p1,p2]), new Promise(res=>setTimeout(res,timeoutMs)) ]);
+      }catch(e){ /* 忽略 */ }
+      finally{ console.debug('[Fonts] waited ~', Math.round(performance.now()-start), 'ms'); }
     }
 
-    function startGame() {
-      try {
+    function startGame(){
+      try{
         resizeCanvas();
         drawSystemText('載入中…');
         initFirebase();
         initImages();
         window.addEventListener('resize', resizeCanvas, false);
         window.addEventListener('keydown', handleKeyPress);
-
-        // 看門狗：2 秒後仍停在載入畫面，輸出提示到 Console
-        setTimeout(() => {
-          console.debug('[Watchdog] 如果仍停在載入畫面，請檢查 Console 是否有報錯。');
-        }, 2000);
-
         requestAnimationFrame(gameLoop);
-      } catch (e) {
+      }catch(e){
         console.error('[Boot] startGame error:', e);
         drawSystemText('啟動時發生錯誤，請按 F12 查看 Console。');
       }
     }
 
-    // 用 DOMContentLoaded，比 onload 更早、也不被圖片或第三方腳本拖延
-    document.addEventListener('DOMContentLoaded', async () => {
-      try {
+    document.addEventListener('DOMContentLoaded', async ()=>{
+      try{
         resizeCanvas();
         drawSystemText('載入字型中…');
         await loadFontsWithTimeout(1500);
-      } finally {
+      }finally{
         startGame(); // 無論字型是否載好，都會進入遊戲
       }
     });
