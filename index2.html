@@ -29,9 +29,7 @@
     }
     .tl-text{
       position:absolute; white-space:nowrap; transform:translate(-50%,-50%);
-      text-shadow:
-        0 0 1px rgba(0,0,0,.35),
-        0 1px 0 rgba(0,0,0,.35);
+      text-shadow: 0 0 1px rgba(0,0,0,.35), 0 1px 0 rgba(0,0,0,.35);
     }
 
     /* 名字輸入框 */
@@ -245,7 +243,7 @@
     let uiButtons=[];
     let questionRange=0; // 1..10 或 '混合'
     let lastQuestion={};
-    let playerName='';          // ★ 只在此宣告一次
+    let playerName='';          // 只在此宣告一次
     let leaderboardData=[];
     let isLeaderboardLoading=false;
     let isAnswerLocked=false;
@@ -310,11 +308,13 @@
       ctx.closePath(); ctx.fill();
       ctx.restore();
     }
+
     function drawHomePage(){
       const g=ctx.createLinearGradient(0,0,0,H);
       g.addColorStop(0,'#87CEEB'); g.addColorStop(1,'#66CDAA');
       ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
       drawCloud(150,100,1); drawCloud(W-200,150,0.8);
+
       drawText('王公九九乘法冒險島', W/2, H*0.25, W>600?50:36, '#000080');
       drawText('等你來挑戰！',        W/2, H*0.35, W>600?24:18, '#000080');
 
@@ -324,14 +324,15 @@
       }
 
       const bw=220,bh=70, y1=H*0.7, y2=y1+bh+20;
-      drawButton('開始冒險！', W/2, y1, bw, bh, '#FF69B4', '#FFFFFF');
-      drawButton('排行榜',     W/2, y2, bw, bh, '#17a2b8', '#FFFFFF');
+      drawButton('開始挑戰',  W/2, y1, bw, bh, '#FF69B4', '#FFFFFF');  // ★ 改成開始挑戰
+      drawButton('排行榜',    W/2, y2, bw, bh, '#17a2b8', '#FFFFFF');
       uiButtons=[
         {id:'start', x:W/2, y:y1, width:bw, height:bh},
         {id:'show_leaderboard', x:W/2, y:y2, width:bw, height:bh}
       ];
       hideNameInput();
     }
+
     function drawSelectionPage(){
       const g=ctx.createLinearGradient(0,0,0,H);
       g.addColorStop(0,'#9ACD32'); g.addColorStop(1,'#FFD700');
@@ -355,6 +356,7 @@
       });
       hideNameInput();
     }
+
     function drawPracticePage(){
       const g=ctx.createLinearGradient(0,0,0,H);
       g.addColorStop(0,'#1E90FF'); g.addColorStop(1,'#87CEFA');
@@ -372,8 +374,10 @@
       drawAnswerButtons(); drawProgressBar();
       if(currentPage!=='enterName') hideNameInput();
     }
+
     function drawScore(){ drawText(`分數：${score}`, 30, 60, W>600?24:18, '#FFFFFF','left'); }
     function drawTime(){ const s=Math.floor(elapsedTime/1000); drawText(`時間：${s} 秒`, W-30, 60, W>600?24:18, '#FFFFFF','right'); }
+
     function drawCharacter(){
       const w=W>600?150:100;
       if(akitaImage && akitaImage.complete && akitaImage.naturalWidth>0){
@@ -381,6 +385,7 @@
         ctx.drawImage(akitaImage, W/2-w/2, H*0.45+characterYOffset-h/2, w, h);
       }
     }
+
     function drawAnswerButtons(){
       const cols=W>700?3:2;
       const baseW=120, baseH=60, baseGap=20;
@@ -411,6 +416,7 @@
         btn.x=x; btn.y=y; btn.width=bw; btn.height=bh;
       });
     }
+
     function drawProgressBar(){
       const barWidth=W*0.6, barHeight=25, safeBottom=getSafeBottom(), margin=10;
       const barX=(W-barWidth)/2, barY=H-safeBottom-margin-barHeight;
@@ -423,6 +429,7 @@
       ctx.restore();
       drawText(`${correctAnswersCount} / ${maxQuestions}`, W/2, barY+barHeight/2, 16, '#A52A2A');
     }
+
     function drawGameOverPage(){
       drawPracticePage();
       ctx.save();
@@ -442,6 +449,7 @@
       drawButton('儲存紀錄', bx,by,bw,bh,'#28a745','#FFFFFF');
       uiButtons=[{id:'save_score', x:bx, y:by, width:bw, height:bh}];
     }
+
     function drawEnterNamePage(){
       drawGameOverPage();
       ctx.save();
@@ -462,6 +470,7 @@
 
       showNameInput(); positionNameInput();
     }
+
     function drawLeaderboardPage(){
       const g=ctx.createLinearGradient(0,0,0,H);
       g.addColorStop(0,'#4e54c8'); g.addColorStop(1,'#8f94fb');
@@ -497,14 +506,25 @@
       hideNameInput();
     }
 
+    /* ★★★ 這裡是按鈕「雙保險」關鍵：無論如何都會顯示文字 ★★★ */
     function drawButton(text,x,y,w,h,color,textColor){
+      // 按鈕底
       ctx.save();
       ctx.shadowColor='rgba(0,0,0,0.28)'; ctx.shadowBlur=10; ctx.shadowOffsetX=4; ctx.shadowOffsetY=4;
       ctx.fillStyle=color; rr(ctx, x-w/2, y-h/2, w, h, 15); ctx.fill();
       ctx.restore();
+
+      // 文案尺寸
       const padding = 18;
       const fontSize = fitTextSize(String(text), w - padding*2, 28, 14);
+
+      // 先用目前模式畫一次
       drawText(text, x, y, fontSize, textColor);
+
+      // 若目前在 Canvas 模式，**再疊一層 DOM 文字**確保可見
+      if (!FORCE_DOM && CANVAS_TEXT_OK) {
+        domDrawText(text, x, y, fontSize, textColor);
+      }
     }
 
     /* ========== 名字輸入層 ========== */
@@ -536,7 +556,7 @@
       nameInputEl.style.display='none';
       if(document.activeElement===nameInputEl) nameInputEl.blur();
     }
-    let isComposing=false;      // ★ 只在此宣告一次
+    let isComposing=false;      // 單一宣告
     nameInputEl.addEventListener('compositionstart',()=>{isComposing=true;});
     nameInputEl.addEventListener('compositionend',()=>{isComposing=false; playerName=(nameInputEl.value||'').slice(0,10);});
     nameInputEl.addEventListener('input',()=>{ if(!isComposing) playerName=(nameInputEl.value||'').slice(0,10); });
