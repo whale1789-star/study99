@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <title>九九乘法冒險島（穩定版・排行榜防呆）</title>
+  <title>九九乘法冒險島（穩定版・輸入框與殘影修正）</title>
 
-  <!-- 字型可用就載，不可用退回系統字體 -->
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700&display=swap" rel="stylesheet"/>
@@ -32,9 +31,9 @@
       text-shadow: 0 0 1px rgba(0,0,0,.35), 0 1px 0 rgba(0,0,0,.35);
     }
 
-    /* 名字輸入框 */
+    /* 名字輸入框（提高層級避免被擋） */
     #nameInput{
-      position:fixed; display:none; z-index:9; pointer-events:auto;
+      position:fixed; display:none; z-index:1000; pointer-events:auto;
       border:2px solid #CCC; border-radius:10px; background:#FFF; color:#000;
       font-weight:700; text-align:center; outline:none; box-shadow:0 2px 6px rgba(0,0,0,.15);
     }
@@ -56,9 +55,8 @@
     #errPanel pre{ white-space:pre-wrap; margin:0; }
   </style>
 
-  <!-- 需要音效再保留；若離線可先註解 -->
+  <!-- 可離線先註解音效/雲端 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.min.js"></script>
-  <!-- Firebase 可用就用，不可用不影響遊戲主流程 -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
@@ -211,11 +209,10 @@
       ctx.fillText(String(text), x, y);
       ctx.restore();
     }
-
-    /* ★ 雙保險文字（Canvas + DOM 疊加） ★ */
+    /* 雙保險文字（Canvas + DOM 疊加） */
     function drawTextDual(text, x, y, fontSize, color, align='center', baseline='middle'){
-      drawText(text, x, y, fontSize, color, align, baseline);     // 依模式畫一次
-      domDrawText(text, x, y, fontSize, color, align, baseline);  // 再疊 DOM，保證可見
+      drawText(text, x, y, fontSize, color, align, baseline);
+      domDrawText(text, x, y, fontSize, color, align, baseline);
     }
 
     function drawSystemText(t,color='#333'){
@@ -239,7 +236,7 @@
       }catch(e){ db=null; console.error('[Firebase]', e); }
     }
 
-    /* ========== 遊戲狀態與素材 ========== */
+    /* ========== 狀態 ========== */
     let currentPage='home';
     let currentQuestion={};
     let feedbackMessage='';
@@ -249,11 +246,12 @@
     let uiButtons=[];
     let questionRange=0; // 1..10 或 '混合'
     let lastQuestion={};
-    let playerName='';          // 單一宣告
+    let playerName='';
     let leaderboardData=[];
     let isLeaderboardLoading=false;
     let isAnswerLocked=false;
-    let leaderboardNote='';     // 用於顯示「使用備用排序」等提示
+    let leaderboardNote='';
+    let hasShownNameInput=false;  // ★ 只在 enterName 頁面顯示/聚焦一次
 
     // animation/time
     let characterYOffset=0, isCharacterJumping=false, jumpStartTime=0;
@@ -265,7 +263,7 @@
     let correctSynth, wrongSynth, clickSynth;
     let audioInitialized=false;
 
-    // images（非阻塞載入 + 檔名 fallback）
+    // images
     let akitaImage=null, characterImage=null;
     function initImages(){
       akitaImage=new Image();
@@ -304,6 +302,20 @@
       const n=parseFloat(v); return isNaN(n)?0:n;
     }
 
+    /* ========== ★ 統一切頁中樞：避免殘影與舊按鈕 ★ ========== */
+    function setPage(p){
+      currentPage = p;
+      uiButtons = [];                 // 清空舊頁面的 UI hit 區
+      clearTextLayer();               // 清掉 DOM 文字疊層（避免「殘留兩顆按鈕」）
+      if (p !== 'enterName') {        // 非輸入名字頁 → 關閉輸入框
+        hideNameInput();
+        hasShownNameInput = false;
+      } else {
+        // 進入輸入名字頁，等 drawEnterNamePage 時再顯示一次
+        hasShownNameInput = false;
+      }
+    }
+
     /* ========== 畫面 ========== */
     function drawCloud(x,y,s){
       ctx.save();
@@ -331,13 +343,12 @@
       }
 
       const bw=220,bh=70, y1=H*0.7, y2=y1+bh+20;
-      drawButton('開始挑戰',  W/2, y1, bw, bh, '#FF69B4', '#FFFFFF');  // 按鈕雙保險已內建
+      drawButton('開始挑戰',  W/2, y1, bw, bh, '#FF69B4', '#FFFFFF');
       drawButton('排行榜',    W/2, y2, bw, bh, '#17a2b8', '#FFFFFF');
       uiButtons=[
         {id:'start', x:W/2, y:y1, width:bw, height:bh},
         {id:'show_leaderboard', x:W/2, y:y2, width:bw, height:bh}
       ];
-      hideNameInput();
     }
 
     function drawSelectionPage(){
@@ -361,7 +372,6 @@
         drawButton(label,x,y,bw,bh,'#4CAF50','#FFFFFF');
         uiButtons.push({id:'select', value:num, x, y, width:bw, height:bh});
       });
-      hideNameInput();
     }
 
     function drawPracticePage(){
@@ -374,23 +384,20 @@
       ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.arc(bx,by,br,0,Math.PI*2); ctx.fill();
       ctx.restore();
 
-      /* 題目與回饋訊息：雙保險 */
       drawTextDual(`${currentQuestion.num1} x ${currentQuestion.num2} = ?`, bx,by, W>600?48:36, '#000080');
       if(feedbackMessage) drawTextDual(feedbackMessage, W/2, H*0.35, W>600?36:24, '#FF4500');
 
       drawScore(); drawTime(); drawCharacter();
       drawAnswerButtons(); drawProgressBar();
-      if(currentPage!=='enterName') hideNameInput();
     }
 
-    /* 分數、時間：雙保險 */
     function drawScore(){ drawTextDual(`分數：${score}`, 30, 60, W>600?24:18, '#FFFFFF','left'); }
     function drawTime(){ const s=Math.floor(elapsedTime/1000); drawTextDual(`時間：${s} 秒`, W-30, 60, W>600?24:18, '#FFFFFF','right'); }
 
     function drawCharacter(){
       const w=W>600?150:100;
       if(akitaImage && akitaImage.complete && akitaImage.naturalWidth>0){
-        const h=(akitaImage.naturalHeight/akitaImage.naturalWidth)*w; // 比例使用 akitaImage 自身，避免 NaN
+        const h=(akitaImage.naturalHeight/akitaImage.naturalWidth)*w;
         ctx.drawImage(akitaImage, W/2-w/2, H*0.45+characterYOffset-h/2, w, h);
       }
     }
@@ -436,7 +443,6 @@
       if(progress>0){ ctx.fillStyle='#FFC107'; rr(ctx,barX,barY,progress,barHeight,12); ctx.fill(); }
       ctx.strokeStyle='#daa520'; ctx.lineWidth=3; rr(ctx,barX,barY,barWidth,barHeight,12); ctx.stroke();
       ctx.restore();
-      /* 進度數字：雙保險 */
       drawTextDual(`${correctAnswersCount} / ${maxQuestions}`, W/2, barY+barHeight/2, 16, '#A52A2A');
     }
 
@@ -461,7 +467,9 @@
     }
 
     function drawEnterNamePage(){
+      // 底層沿用結算畫面，另加對話框
       drawGameOverPage();
+
       ctx.save();
       ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(0,0,W,H);
       const mw=W*0.7, mh=H*0.5;
@@ -478,7 +486,15 @@
       drawButton('確認', bx,by,bw,bh,'#007bff','#FFFFFF');
       uiButtons=[{id:'confirm_name', x:bx, y:by, width:bw, height:bh}];
 
-      showNameInput(); positionNameInput();
+      // ★ 只在第一次進入該頁顯示/聚焦一次，不每幀重複
+      if (!hasShownNameInput){
+        nameInputEl.value = playerName;
+        showNameInput();
+        positionNameInput({ix,iy,iw,ih});
+        hasShownNameInput = true;
+      }else{
+        positionNameInput({ix,iy,iw,ih});
+      }
     }
 
     function drawLeaderboardPage(){
@@ -509,30 +525,23 @@
           drawText(e.time,   W*0.9,  y, 18, '#fff');
         });
 
-        if (leaderboardNote) {
-          drawTextDual(leaderboardNote, W/2, H-120, 16, '#FFE082');
-        }
+        if (leaderboardNote) drawTextDual(leaderboardNote, W/2, H-120, 16, '#FFE082');
       }
 
       const bw=200,bh=60,bx=W/2,by=H-80;
       drawButton('返回首頁', bx,by,bw,bh,'#6c757d','#fff');
       uiButtons=[{id:'back_home', x:bx, y:by, width:bw, height:bh}];
-      hideNameInput();
     }
 
-    /* ★★★ 按鈕「雙保險」：無論如何都會顯示文字 ★★★ */
+    /* 按鈕（含 DOM 疊字） */
     function drawButton(text,x,y,w,h,color,textColor){
-      // 按鈕底
       ctx.save();
       ctx.shadowColor='rgba(0,0,0,0.28)'; ctx.shadowBlur=10; ctx.shadowOffsetX=4; ctx.shadowOffsetY=4;
       ctx.fillStyle=color; rr(ctx, x-w/2, y-h/2, w, h, 15); ctx.fill();
       ctx.restore();
 
-      // 文案尺寸
       const padding = 18;
       const fontSize = fitTextSize(String(text), w - padding*2, 28, 14);
-
-      // 先用目前模式畫一次，再疊 DOM，確保可見
       drawText(text, x, y, fontSize, textColor);
       domDrawText(text, x, y, fontSize, textColor);
     }
@@ -555,7 +564,6 @@
     }
     function showNameInput(){
       nameInputEl.style.display='block';
-      nameInputEl.value=playerName;
       requestAnimationFrame(()=>{
         nameInputEl.focus({preventScroll:true});
         const len=nameInputEl.value.length;
@@ -566,7 +574,7 @@
       nameInputEl.style.display='none';
       if(document.activeElement===nameInputEl) nameInputEl.blur();
     }
-    let isComposing=false;      // 單一宣告
+    let isComposing=false;
     nameInputEl.addEventListener('compositionstart',()=>{isComposing=true;});
     nameInputEl.addEventListener('compositionend',()=>{isComposing=false; playerName=(nameInputEl.value||'').slice(0,10);});
     nameInputEl.addEventListener('input',()=>{ if(!isComposing) playerName=(nameInputEl.value||'').slice(0,10); });
@@ -616,56 +624,49 @@
       feedbackEndTime=Date.now()+1500;
     }
     function resetGame(){
-      currentPage='home'; correctAnswersCount=0; score=0;
+      setPage('home');
+      correctAnswersCount=0; score=0;
       startTime=0; elapsedTime=0; feedbackMessage=''; lastQuestion={};
-      playerName=''; isAnswerLocked=false; hideNameInput();
+      playerName=''; isAnswerLocked=false;
     }
 
-    /* ========== 排行榜：存 rank、查詢防呆（索引缺失自動降級） ========== */
+    /* 排行榜（含 rank 與降級） */
     async function saveScoreToLeaderboard(name, score, time, type){
       if(!db) return;
       try{
-        const rank = score * 1000000 - time; // 分數高 & 時間短 → rank 大
+        const rank = score * 1000000 - time;
         await db.collection('leaderboard').add({
           name, score, time, type, rank,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
       }catch(e){ console.error('[SaveScore]', e); }
     }
-
     async function fetchLeaderboard(){
       isLeaderboardLoading = true; leaderboardData = []; leaderboardNote = '';
       if(!db){ isLeaderboardLoading = false; return; }
-
       const toRows = (snap) => snap.docs.map(d => {
         const x = d.data();
         const t = x.type;
         const norm = (t===undefined||t===null||t==='') ? '未標註' : (t==='混合'?'混合':String(t));
         return {...x, type: norm};
       });
-
       try {
-        // 1) 正式排序（需要複合索引）
         const q = db.collection('leaderboard')
           .orderBy('score','desc')
           .orderBy('time','asc')
           .limit(50);
         const snap = await q.get();
         leaderboardData = toRows(snap);
-
       } catch(e) {
         console.error('[FetchLB]', e);
-
-        // 2) 若缺索引 → 試 rank（不需索引）
         try{
           const snapRank = await db.collection('leaderboard')
             .orderBy('rank','desc')
             .limit(50).get();
           if (!snapRank.empty) {
             leaderboardData = toRows(snapRank);
-            leaderboardNote = '提示：使用 rank 排序（免索引）。如需以「分數降序、時間升序」精準排序，請在 Firestore 建立複合索引。';
+            leaderboardNote = '提示：使用 rank 排序（免索引）。如需分數降序+時間升序，請在 Firestore 建立複合索引。';
           } else {
-            // 3) 再退單欄分數
             const snapScore = await db.collection('leaderboard')
               .orderBy('score','desc')
               .limit(50).get();
@@ -678,7 +679,6 @@
           leaderboardNote = '排行榜讀取失敗（請檢查網路或 Firestore 權限/索引）。';
         }
       }
-
       isLeaderboardLoading = false;
     }
 
@@ -714,13 +714,13 @@
           if(hit(btn)){
             if(clickSynth) try{ clickSynth.triggerAttackRelease('C5','16n'); }catch{}
             switch(btn.id){
-              case 'start': currentPage='selection'; break;
+              case 'start': setPage('selection'); break;
               case 'select':
-                isAnswerLocked=false; questionRange=btn.value; currentPage='practice';
+                isAnswerLocked=false; questionRange=btn.value; setPage('practice');
                 correctAnswersCount=0; score=0; lastQuestion={}; generateNewQuestion(); startTime=Date.now(); break;
-              case 'save_score': currentPage='enterName'; positionNameInput(); showNameInput(); break;
+              case 'save_score': setPage('enterName'); break;
               case 'confirm_name': clickConfirmName(); break;
-              case 'show_leaderboard': currentPage='leaderboard'; isLeaderboardLoading=true; fetchLeaderboard(); break;
+              case 'show_leaderboard': setPage('leaderboard'); isLeaderboardLoading=true; fetchLeaderboard(); break;
               case 'back_home': resetGame(); break;
             }
             break;
@@ -734,10 +734,10 @@
 
     function clickConfirmName(){
       if(!playerName || !playerName.trim()){
-        if(currentPage==='enterName'){ positionNameInput(); showNameInput(); }
+        // 留在頁面、維持輸入框顯示
         return;
       }
-      currentPage='leaderboard'; isLeaderboardLoading=true; hideNameInput();
+      setPage('leaderboard'); isLeaderboardLoading=true;
       const typeString=(questionRange==='混合')?'混合':String(questionRange);
       (async()=>{
         await saveScoreToLeaderboard(playerName.trim(), score, Math.floor(elapsedTime/1000), typeString);
@@ -748,7 +748,7 @@
     function drawScreen(){
       resetCtx();
       ctx.clearRect(0,0,W,H);
-      clearTextLayer(); // DOM 文字每幀重建，避免殘留
+      clearTextLayer(); // DOM 文字每幀重建
 
       switch(currentPage){
         case 'home':       drawHomePage(); break;
@@ -775,7 +775,7 @@
         if(feedbackEndTime>0 && now>=feedbackEndTime){
           feedbackEndTime=0;
           if(lastAnswerWasCorrect){
-            if(correctAnswersCount>=20) currentPage='gameOver';
+            if(correctAnswersCount>=20) setPage('gameOver');
             else{ generateNewQuestion(); isAnswerLocked=false; }
           }else{ feedbackMessage=''; isAnswerLocked=false; }
         }
