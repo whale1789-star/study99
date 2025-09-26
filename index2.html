@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <title>九九乘法冒險島（含文字後備與診斷）</title>
+  <title>九九乘法冒險島（穩定版）</title>
 
-  <!-- 可用就載，不可用則退回系統字體 -->
+  <!-- 字型可用就載，不可用退回系統字體 -->
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700&display=swap" rel="stylesheet"/>
@@ -41,7 +41,7 @@
       font-weight:700; text-align:center; outline:none; box-shadow:0 2px 6px rgba(0,0,0,.15);
     }
 
-    /* 診斷徽章與錯誤面板 */
+    /* 診斷徽章與錯誤面板（方便無 Console 的環境） */
     #badge{
       position:fixed; top:10px; right:10px; z-index:10;
       font:12px/1.2 system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
@@ -76,16 +76,15 @@
          maxlength="10" placeholder="請在此輸入名字"/>
 
   <script>
-    /* ========== 全域元素與防呆 ========== */
+    /* ========== 全域元素與錯誤面板 ========== */
     const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d') || canvas.getContext('2d'); // 盡量相容
+    const ctx = canvas.getContext('2d', { alpha:false, colorSpace:'srgb' }) || canvas.getContext('2d');
     const textLayer = document.getElementById('textLayer');
     const badge = document.getElementById('badge');
     const errPanel = document.getElementById('errPanel');
     const errLog = document.getElementById('errLog');
     const nameInputEl = document.getElementById('nameInput');
 
-    // 把錯誤帶到畫面上（避免無法開 Console）
     function logLine(msg){
       errPanel.style.display='block';
       errLog.textContent += msg + '\n';
@@ -93,15 +92,13 @@
     (function hookErrors(){
       const rawError = console.error;
       console.error = function(...args){ rawError.apply(console, args); logLine('[console.error] ' + args.map(x=>String(x)).join(' ')); };
-      window.onerror = function(msg, src, line, col, err){ logLine(`[onerror] ${msg} @ ${src}:${line}:${col}`); };
+      window.onerror = function(msg, src, line, col){ logLine(`[onerror] ${msg} @ ${src}:${line}:${col}`); };
       window.addEventListener('unhandledrejection', (e)=>{
         const r = e.reason;
         const msg = (r && (r.stack || r.message || r.toString())) || e.toString();
         logLine('[unhandledrejection] ' + msg);
       });
     })();
-
-    // 有些擴充會丟 extension invalidated
     window.addEventListener('unhandledrejection', (e) => {
       const r = e.reason; const msg = (r && (r.message || r.toString())) || '';
       if (msg.includes('Extension context invalidated')) e.preventDefault();
@@ -113,12 +110,9 @@
       ctx.setTransform(1,0,0,1,0,0);
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
-      // 不使用 ctx.filter，避免舊環境相容問題
       ctx.shadowColor = 'rgba(0,0,0,0)';
       ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = '#000';
-      ctx.fillStyle = '#000';
+      ctx.lineWidth = 1; ctx.strokeStyle = '#000'; ctx.fillStyle = '#000';
       ctx.font = 'bold 16px sans-serif';
       ctx.scale(DPR, DPR); // 之後座標用 CSS 單位
     }
@@ -134,8 +128,8 @@
       if (currentPage === 'enterName') positionNameInput();
     }
 
-    /* ========== 後備：DOM 文字 or Canvas 文字 ========== */
-    let FORCE_DOM = location.hash.includes('domtext'); // 可用 #domtext 強制 DOM 文字
+    /* ========== 文字模式：Canvas / DOM 後備 ========== */
+    const FORCE_DOM = location.hash.includes('domtext'); // #domtext 可強制 DOM 後備
     let CANVAS_TEXT_OK = false;
 
     function testCanvasText(){
@@ -145,39 +139,34 @@
         const c = t.getContext('2d');
         c.fillStyle = '#fff'; c.fillRect(0,0,t.width,t.height);
         c.fillStyle = '#000';
-        c.font = 'bold 40px "Noto Sans TC", "Microsoft JhengHei", sans-serif';
+        c.font = 'bold 40px "Noto Sans TC","Microsoft JhengHei",sans-serif';
         c.textBaseline = 'middle'; c.textAlign = 'center';
         c.fillText('測試ABC123', t.width/2, t.height/2);
         const img = c.getImageData(0,0,t.width,t.height).data;
-        // 統計非白像素
         let nonWhite = 0;
         for(let i=0;i<img.length;i+=4){
           if(!(img[i]===255 && img[i+1]===255 && img[i+2]===255)) nonWhite++;
           if(nonWhite>500) break;
         }
-        return nonWhite>500; // 有足夠墨點，視為成功
+        return nonWhite>500;
       }catch(e){
         console.error('[CanvasTextTest]', e);
         return false;
       }
     }
-
     function setBadge(){
-      badge.textContent = FORCE_DOM || !CANVAS_TEXT_OK ? 'DOM 文字後備模式' : 'Canvas 文字模式';
-      badge.style.background = FORCE_DOM || !CANVAS_TEXT_OK ? '#b23a48' : '#116466';
+      badge.textContent = (FORCE_DOM || !CANVAS_TEXT_OK) ? 'DOM 文字後備模式' : 'Canvas 文字模式';
+      badge.style.background = (FORCE_DOM || !CANVAS_TEXT_OK) ? '#b23a48' : '#116466';
     }
 
-    // DOM 文字層
+    function clearTextLayer(){ textLayer.innerHTML=''; }
     function domDrawText(text,x,y,fontSize,color,align='center',baseline='middle'){
       const el = document.createElement('div');
-      el.className='tl-text';
-      el.textContent = String(text);
-      el.style.left = x + 'px';
-      el.style.top  = y + 'px';
+      el.className='tl-text'; el.textContent = String(text);
+      el.style.left = x + 'px'; el.style.top = y + 'px';
       el.style.fontSize = Math.max(8, fontSize|0) + 'px';
       el.style.color = color;
-      // 對齊
-      let tx = '-50%', ty = '-50%';
+      let tx='-50%', ty='-50%';
       if (align==='left')  tx='0%';
       if (align==='right') tx='-100%';
       if (baseline==='top')    ty='0%';
@@ -196,16 +185,25 @@
       }
       return size;
     }
-
-    function drawText(text,x,y,fontSize,color,align='center',baseline='middle'){
+    function fitTextSize(text, maxWidth, maxSize=28, minSize=14){
       if (FORCE_DOM || !CANVAS_TEXT_OK) {
-        domDrawText(text,x,y,fontSize,color,align,baseline);
-        return;
+        const avg = 0.9; // DOM 粗估
+        let size=maxSize;
+        while(size>minSize){
+          const w = (String(text).length * size * avg);
+          if (w <= maxWidth) break;
+          size--;
+        }
+        return size;
+      } else {
+        return fitTextSizeCanvas(text, maxWidth, maxSize, minSize);
       }
+    }
+    function drawText(text,x,y,fontSize,color,align='center',baseline='middle'){
+      if (FORCE_DOM || !CANVAS_TEXT_OK) { domDrawText(text,x,y,fontSize,color,align,baseline); return; }
       ctx.save();
       ctx.font = `bold ${Math.max(8, fontSize|0)}px "Noto Sans TC","Microsoft JhengHei",sans-serif`;
       ctx.textAlign=align; ctx.textBaseline=baseline;
-      // 描邊 + 填色（保守陰影）
       const lw = Math.max(1, Math.round(fontSize/12));
       ctx.lineWidth = lw; ctx.strokeStyle = 'rgba(0,0,0,0.45)';
       ctx.strokeText(String(text), x, y);
@@ -216,8 +214,10 @@
       ctx.restore();
     }
 
-    function clearTextLayer(){
-      textLayer.innerHTML='';
+    function drawSystemText(t,color='#333'){
+      resetCtx();
+      ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+      drawText(t, W/2, H/2, 30, color);
     }
 
     /* ========== Firebase（可用就用，不可用不擋流程） ========== */
@@ -245,7 +245,7 @@
     let uiButtons=[];
     let questionRange=0; // 1..10 或 '混合'
     let lastQuestion={};
-    let playerName='';
+    let playerName='';          // ★ 只在此宣告一次
     let leaderboardData=[];
     let isLeaderboardLoading=false;
     let isAnswerLocked=false;
@@ -310,7 +310,6 @@
       ctx.closePath(); ctx.fill();
       ctx.restore();
     }
-
     function drawHomePage(){
       const g=ctx.createLinearGradient(0,0,0,H);
       g.addColorStop(0,'#87CEEB'); g.addColorStop(1,'#66CDAA');
@@ -333,7 +332,6 @@
       ];
       hideNameInput();
     }
-
     function drawSelectionPage(){
       const g=ctx.createLinearGradient(0,0,0,H);
       g.addColorStop(0,'#9ACD32'); g.addColorStop(1,'#FFD700');
@@ -357,7 +355,6 @@
       });
       hideNameInput();
     }
-
     function drawPracticePage(){
       const g=ctx.createLinearGradient(0,0,0,H);
       g.addColorStop(0,'#1E90FF'); g.addColorStop(1,'#87CEFA');
@@ -375,10 +372,8 @@
       drawAnswerButtons(); drawProgressBar();
       if(currentPage!=='enterName') hideNameInput();
     }
-
     function drawScore(){ drawText(`分數：${score}`, 30, 60, W>600?24:18, '#FFFFFF','left'); }
     function drawTime(){ const s=Math.floor(elapsedTime/1000); drawText(`時間：${s} 秒`, W-30, 60, W>600?24:18, '#FFFFFF','right'); }
-
     function drawCharacter(){
       const w=W>600?150:100;
       if(akitaImage && akitaImage.complete && akitaImage.naturalWidth>0){
@@ -386,7 +381,6 @@
         ctx.drawImage(akitaImage, W/2-w/2, H*0.45+characterYOffset-h/2, w, h);
       }
     }
-
     function drawAnswerButtons(){
       const cols=W>700?3:2;
       const baseW=120, baseH=60, baseGap=20;
@@ -417,7 +411,6 @@
         btn.x=x; btn.y=y; btn.width=bw; btn.height=bh;
       });
     }
-
     function drawProgressBar(){
       const barWidth=W*0.6, barHeight=25, safeBottom=getSafeBottom(), margin=10;
       const barX=(W-barWidth)/2, barY=H-safeBottom-margin-barHeight;
@@ -430,7 +423,6 @@
       ctx.restore();
       drawText(`${correctAnswersCount} / ${maxQuestions}`, W/2, barY+barHeight/2, 16, '#A52A2A');
     }
-
     function drawGameOverPage(){
       drawPracticePage();
       ctx.save();
@@ -450,7 +442,6 @@
       drawButton('儲存紀錄', bx,by,bw,bh,'#28a745','#FFFFFF');
       uiButtons=[{id:'save_score', x:bx, y:by, width:bw, height:bh}];
     }
-
     function drawEnterNamePage(){
       drawGameOverPage();
       ctx.save();
@@ -471,7 +462,6 @@
 
       showNameInput(); positionNameInput();
     }
-
     function drawLeaderboardPage(){
       const g=ctx.createLinearGradient(0,0,0,H);
       g.addColorStop(0,'#4e54c8'); g.addColorStop(1,'#8f94fb');
@@ -505,23 +495,6 @@
       drawButton('返回首頁', bx,by,bw,bh,'#6c757d','#fff');
       uiButtons=[{id:'back_home', x:bx, y:by, width:bw, height:bh}];
       hideNameInput();
-    }
-
-    function fitTextSize(text, maxWidth, maxSize=28, minSize=14){
-      // 若是 DOM 模式就粗估；Canvas 模式用 measureText
-      if (FORCE_DOM || !CANVAS_TEXT_OK) {
-        // DOM 估計：每個中文字約 0.9 個字寬
-        const avg = 0.9; // 粗估
-        let size=maxSize;
-        while(size>minSize){
-          const w = (String(text).length * size * avg);
-          if (w <= maxWidth) break;
-          size--;
-        }
-        return size;
-      } else {
-        return fitTextSizeCanvas(text, maxWidth, maxSize, minSize);
-      }
     }
 
     function drawButton(text,x,y,w,h,color,textColor){
@@ -563,7 +536,7 @@
       nameInputEl.style.display='none';
       if(document.activeElement===nameInputEl) nameInputEl.blur();
     }
-    let isComposing=false;
+    let isComposing=false;      // ★ 只在此宣告一次
     nameInputEl.addEventListener('compositionstart',()=>{isComposing=true;});
     nameInputEl.addEventListener('compositionend',()=>{isComposing=false; playerName=(nameInputEl.value||'').slice(0,10);});
     nameInputEl.addEventListener('input',()=>{ if(!isComposing) playerName=(nameInputEl.value||'').slice(0,10); });
@@ -604,11 +577,11 @@
       if(isAnswerLocked) return; isAnswerLocked=true; lastAnswerWasCorrect=isCorrect;
       if(isCorrect){
         feedbackMessage='太棒了！答對囉！'; correctAnswersCount++; score+=5;
-        if(correctSynth) correctSynth.triggerAttackRelease(['C4','E4','G4'],'8n');
+        if(correctSynth) try{ correctSynth.triggerAttackRelease(['C4','E4','G4'],'8n'); }catch{}
         startCharacterAnimation();
       }else{
         feedbackMessage='再想想看喔！'; score=Math.max(0,score-2);
-        if(wrongSynth) wrongSynth.triggerAttackRelease('C3','4n');
+        if(wrongSynth) try{ wrongSynth.triggerAttackRelease('C3','4n'); }catch{}
       }
       feedbackEndTime=Date.now()+1500;
     }
@@ -738,7 +711,6 @@
         drawScreen();
       }catch(e){
         console.error('[gameLoop] error:', e);
-        // 即使出錯也維持畫面
       }
       requestAnimationFrame(gameLoop);
     }
@@ -759,8 +731,6 @@
         resizeCanvas();
         initFirebase();
         initImages();
-
-        // 檢測 Canvas 文字可用性
         CANVAS_TEXT_OK = testCanvasText();
         setBadge();
 
@@ -772,37 +742,14 @@
       }
     }
 
-    // 名字輸入綁定
-    let isComposing=false;
-    let playerName='';
-    document.addEventListener('keydown', (e)=>{
-      if(currentPage!=='enterName') return;
-      if(document.activeElement===nameInputEl){
-        if(e.key==='Enter'){ e.preventDefault(); clickConfirmName(); }
-      }
-    });
-    nameInputEl.addEventListener('compositionstart',()=>{isComposing=true;});
-    nameInputEl.addEventListener('compositionend',()=>{isComposing=false; playerName=(nameInputEl.value||'').slice(0,10);});
-    nameInputEl.addEventListener('input',()=>{ if(!isComposing) playerName=(nameInputEl.value||'').slice(0,10); });
-
-    // 入口
     document.addEventListener('DOMContentLoaded', async ()=>{
       try{
         resizeCanvas();
-        // 字型能載就載，載不到也無所謂
         await loadFontsWithTimeout(1200);
       }finally{
         startGame();
       }
     });
-
-    /* ========== 頁面邏輯（按鈕與題目） ========== */
-    function generateNewGame(){
-      correctAnswersCount=0; score=0; lastQuestion={}; generateNewQuestion(); startTime=Date.now();
-    }
-    function showNameInput(){ nameInputEl.style.display='block'; nameInputEl.value=playerName; requestAnimationFrame(()=>nameInputEl.focus({preventScroll:true})); }
-    function hideNameInput(){ nameInputEl.style.display='none'; if(document.activeElement===nameInputEl) nameInputEl.blur(); }
-
   </script>
 </body>
 </html>
