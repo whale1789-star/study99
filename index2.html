@@ -212,6 +212,12 @@
       ctx.restore();
     }
 
+    /* ★ 新增：雙保險文字（Canvas + DOM 疊加） ★ */
+    function drawTextDual(text, x, y, fontSize, color, align='center', baseline='middle'){
+      drawText(text, x, y, fontSize, color, align, baseline);     // 依模式畫一次
+      domDrawText(text, x, y, fontSize, color, align, baseline);  // 再疊 DOM，保證可見
+    }
+
     function drawSystemText(t,color='#333'){
       resetCtx();
       ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
@@ -243,7 +249,7 @@
     let uiButtons=[];
     let questionRange=0; // 1..10 或 '混合'
     let lastQuestion={};
-    let playerName='';          // 只在此宣告一次
+    let playerName='';          // 單一宣告
     let leaderboardData=[];
     let isLeaderboardLoading=false;
     let isAnswerLocked=false;
@@ -324,7 +330,7 @@
       }
 
       const bw=220,bh=70, y1=H*0.7, y2=y1+bh+20;
-      drawButton('開始挑戰',  W/2, y1, bw, bh, '#FF69B4', '#FFFFFF');  // ★ 改成開始挑戰
+      drawButton('開始挑戰',  W/2, y1, bw, bh, '#FF69B4', '#FFFFFF');  // 按鈕雙保險已內建
       drawButton('排行榜',    W/2, y2, bw, bh, '#17a2b8', '#FFFFFF');
       uiButtons=[
         {id:'start', x:W/2, y:y1, width:bw, height:bh},
@@ -367,21 +373,23 @@
       ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.arc(bx,by,br,0,Math.PI*2); ctx.fill();
       ctx.restore();
 
-      drawText(`${currentQuestion.num1} x ${currentQuestion.num2} = ?`, bx,by, W>600?48:36, '#000080');
-      if(feedbackMessage) drawText(feedbackMessage, W/2, H*0.35, W>600?36:24, '#FF4500');
+      /* 題目與回饋訊息：雙保險 */
+      drawTextDual(`${currentQuestion.num1} x ${currentQuestion.num2} = ?`, bx,by, W>600?48:36, '#000080');
+      if(feedbackMessage) drawTextDual(feedbackMessage, W/2, H*0.35, W>600?36:24, '#FF4500');
 
       drawScore(); drawTime(); drawCharacter();
       drawAnswerButtons(); drawProgressBar();
       if(currentPage!=='enterName') hideNameInput();
     }
 
-    function drawScore(){ drawText(`分數：${score}`, 30, 60, W>600?24:18, '#FFFFFF','left'); }
-    function drawTime(){ const s=Math.floor(elapsedTime/1000); drawText(`時間：${s} 秒`, W-30, 60, W>600?24:18, '#FFFFFF','right'); }
+    /* 分數、時間：雙保險 */
+    function drawScore(){ drawTextDual(`分數：${score}`, 30, 60, W>600?24:18, '#FFFFFF','left'); }
+    function drawTime(){ const s=Math.floor(elapsedTime/1000); drawTextDual(`時間：${s} 秒`, W-30, 60, W>600?24:18, '#FFFFFF','right'); }
 
     function drawCharacter(){
       const w=W>600?150:100;
       if(akitaImage && akitaImage.complete && akitaImage.naturalWidth>0){
-        const h=(akitaImage.naturalHeight/akitaImage.naturalWidth)*w;
+        const h=(akitaImage.naturalHeight/characterImage.naturalWidth)*w;
         ctx.drawImage(akitaImage, W/2-w/2, H*0.45+characterYOffset-h/2, w, h);
       }
     }
@@ -427,7 +435,8 @@
       if(progress>0){ ctx.fillStyle='#FFC107'; rr(ctx,barX,barY,progress,barHeight,12); ctx.fill(); }
       ctx.strokeStyle='#daa520'; ctx.lineWidth=3; rr(ctx,barX,barY,barWidth,barHeight,12); ctx.stroke();
       ctx.restore();
-      drawText(`${correctAnswersCount} / ${maxQuestions}`, W/2, barY+barHeight/2, 16, '#A52A2A');
+      /* 進度數字：雙保險 */
+      drawTextDual(`${correctAnswersCount} / ${maxQuestions}`, W/2, barY+barHeight/2, 16, '#A52A2A');
     }
 
     function drawGameOverPage(){
@@ -506,7 +515,7 @@
       hideNameInput();
     }
 
-    /* ★★★ 這裡是按鈕「雙保險」關鍵：無論如何都會顯示文字 ★★★ */
+    /* ★★★ 按鈕「雙保險」：無論如何都會顯示文字 ★★★ */
     function drawButton(text,x,y,w,h,color,textColor){
       // 按鈕底
       ctx.save();
@@ -518,13 +527,9 @@
       const padding = 18;
       const fontSize = fitTextSize(String(text), w - padding*2, 28, 14);
 
-      // 先用目前模式畫一次
+      // 先用目前模式畫一次，再疊 DOM，確保可見
       drawText(text, x, y, fontSize, textColor);
-
-      // 若目前在 Canvas 模式，**再疊一層 DOM 文字**確保可見
-      if (!FORCE_DOM && CANVAS_TEXT_OK) {
-        domDrawText(text, x, y, fontSize, textColor);
-      }
+      domDrawText(text, x, y, fontSize, textColor);
     }
 
     /* ========== 名字輸入層 ========== */
