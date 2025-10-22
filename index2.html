@@ -12,6 +12,7 @@
     body { margin:0; overflow:hidden; background:#87ceeb; font-family:'M PLUS Rounded 1c', sans-serif; }
     canvas { display:block; }
 
+    /* 名字輸入框 */
     #nameInput {
       position: fixed;
       display: none;
@@ -26,6 +27,27 @@
       z-index: 9999;
       pointer-events: auto;
     }
+
+    /* 類型下拉選單 */
+    #typeSelect {
+      position: fixed;
+      display: none;
+      border: 2px solid #CCC;
+      border-radius: 10px;
+      background: #FFF;
+      color: #333;
+      outline: none;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      z-index: 9999;
+      pointer-events: auto;
+      font-weight: 700;
+      text-align: left;
+      padding: 6px 10px;
+    }
+    #typeSelect:focus {
+      border-color: #6c9cff;
+      box-shadow: 0 0 0 3px rgba(108,156,255,0.2);
+    }
   </style>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.min.js"></script>
@@ -35,6 +57,8 @@
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
+
+  <!-- 覆蓋式輸入與選單 -->
   <input
     id="nameInput"
     type="text"
@@ -46,11 +70,13 @@
     maxlength="10"
     placeholder="請在此輸入名字"
   />
+  <select id="typeSelect"></select>
 
   <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const nameInputEl = document.getElementById('nameInput');
+    const typeSelectEl = document.getElementById('typeSelect');
 
     function rr(ctx, x, y, w, h, r = 0) {
       const radii = typeof r === 'number' ? {tl:r, tr:r, br:r, bl:r} : (r || {tl:0,tr:0,br:0,bl:0});
@@ -106,7 +132,7 @@
     let isLeaderboardLoading = false;
     let isAnswerLocked = false;
 
-    // 篩選狀態（排行榜）
+    // 排行榜篩選狀態
     const TYPE_ALL = '全部';
     const TYPE_UNTAGGED = '未標記';
     let leaderboardType = TYPE_ALL;
@@ -144,6 +170,7 @@
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       if (currentPage === 'enterName') positionNameInput();
+      if (currentPage === 'leaderboard') positionTypeSelect();
     }
 
     function drawText(text, x, y, fontSize, color, align='center', baseline='middle') {
@@ -169,7 +196,7 @@
       g.addColorStop(0,'#87CEEB'); g.addColorStop(1,'#66CDAA');
       ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
       drawCloud(150,100,1); drawCloud(canvas.width-200,150,0.8);
-      drawText('王公九九乘法冒險島vv', canvas.width/2, canvas.height*0.25, canvas.width>600?50:36, '#000080');
+      drawText('王公九九乘法冒險島', canvas.width/2, canvas.height*0.25, canvas.width>600?50:36, '#000080');
       drawText('等你來挑戰', canvas.width/2, canvas.height*0.35, canvas.width>600?24:18, '#000080');
 
       if (characterImage && characterImage.complete && characterImage.naturalWidth>0) {
@@ -185,6 +212,7 @@
         {id:'show_leaderboard', x:canvas.width/2, y:y2, width:bw, height:bh}
       ];
       hideNameInput();
+      hideTypeSelect();
     }
 
     function drawCloud(x,y,s) {
@@ -220,6 +248,7 @@
         uiButtons.push({ id:'select', value:num, x, y, width:bw, height:bh });
       });
       hideNameInput();
+      hideTypeSelect();
     }
 
     function drawPracticePage() {
@@ -239,6 +268,7 @@
       drawProgressBar();
 
       if (currentPage !== 'enterName') hideNameInput();
+      hideTypeSelect();
     }
 
     function drawScore(){ drawText(`分數：${score}`, 30, 60, canvas.width>600?24:18, '#FFFFFF','left'); }
@@ -330,64 +360,19 @@
       const bw=200,bh=60,bx=canvas.width/2,by=my+mh*0.8;
       drawButton('儲存紀錄', bx,by,bw,bh,'#28a745','#FFFFFF');
       uiButtons=[{id:'save_score', x:bx, y:by, width:bw, height:bh}];
+      hideTypeSelect();
     }
 
-    function drawEnterNamePage() {
-      drawGameOverPage();
-      ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(0,0,canvas.width,canvas.height);
-      const mw=canvas.width*0.7, mh=canvas.height*0.5;
-      const mx=(canvas.width-mw)/2, my=(canvas.height-mh)/2;
-      ctx.fillStyle='#fff'; rr(ctx,mx,my,mw,mh,20); ctx.fill();
-      drawText('請輸入你的名字', canvas.width/2, my+mh*0.2, 32, '#333');
-
-      const iw=mw*0.8, ih=60, ix=(canvas.width-iw)/2, iy=my+mh*0.4;
-      ctx.strokeStyle='#CCC'; ctx.lineWidth=2; rr(ctx,ix,iy,iw,ih,10); ctx.stroke();
-
-      const bw=200,bh=60,bx=canvas.width/2,by=my+mh*0.8;
-      drawButton('確認', bx,by,bw,bh,'#007bff','#FFFFFF');
-      uiButtons=[{id:'confirm_name', x:bx, y:by, width:bw, height:bh}];
-    }
-
-    // === 排行榜（含篩選） ===
+    // === 排行榜（下拉篩選） ===
     function drawLeaderboardPage() {
       const g=ctx.createLinearGradient(0,0,0,canvas.height);
       g.addColorStop(0,'#4e54c8'); g.addColorStop(1,'#8f94fb');
       ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
       drawText('速度挑戰排行榜', canvas.width/2, canvas.height*0.08, 40, '#fff');
 
-      // 篩選籤（chips）
-      const chips = [TYPE_ALL, ...Array.from({length:10}, (_,i)=>`${i+1} 的乘法`), '混合', TYPE_UNTAGGED];
-      const chipY = canvas.height*0.16;
-      const chipH = 36;
-      let x = canvas.width*0.06;
-      uiButtons = []; // 先清空，重新放入 chip 與底部按鈕
-
-      chips.forEach((label)=>{
-        const paddingX = 16;
-        ctx.font = `bold 18px 'M PLUS Rounded 1c', sans-serif`;
-        const textW = ctx.measureText(label).width;
-        const w = Math.min(Math.max(textW + paddingX*2, 90), Math.min(canvas.width*0.4, 240));
-        const h = chipH;
-        const y = chipY;
-        const isActive = (leaderboardType === label);
-
-        // 背景
-        ctx.save();
-        ctx.shadowColor='rgba(0,0,0,0.2)'; ctx.shadowBlur=6; ctx.shadowOffsetX=2; ctx.shadowOffsetY=2;
-        ctx.fillStyle = isActive ? '#FFD54F' : 'rgba(255,255,255,0.8)';
-        rr(ctx, x, y - h/2, w, h, 18); ctx.fill();
-        ctx.restore();
-
-        // 文字
-        ctx.fillStyle = isActive ? '#6A4A00' : '#333';
-        ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText(label, x + w/2, y);
-
-        // 點擊區（用中心座標）
-        uiButtons.push({ id:'filter_type', value:label, x: x + w/2, y: y, width: w, height: h });
-
-        x += w + 12; // 下一個 chip 的起點
-      });
+      // 顯示與定位下拉選單
+      showTypeSelect();
+      positionTypeSelect();
 
       // 表頭
       const startY=canvas.height*0.25, lh=40;
@@ -395,8 +380,9 @@
       drawText('名字', canvas.width*0.35, startY, 20, '#FFD700');
       drawText('分數', canvas.width*0.55, startY, 20, '#FFD700');
       drawText('時間(秒)', canvas.width*0.75, startY, 20, '#FFD700');
-      // 顯示類型
       drawText('類型', canvas.width*0.9, startY, 20, '#FFD700');
+
+      uiButtons = []; // 僅保留底部返回鍵
 
       // 內容
       if (isLeaderboardLoading) {
@@ -404,7 +390,6 @@
       } else if (!db) {
         drawText('排行榜功能暫時無法使用', canvas.width/2, canvas.height/2, 24, '#FFD700');
       } else {
-        // 依目前篩選做 client-side 過濾（避免 Firestore 查「未標記」的限制）
         const filtered = leaderboardData.filter(e=>{
           const t = e.type; // 可能為 undefined
           if (leaderboardType === TYPE_ALL) return true;
@@ -430,8 +415,6 @@
       const bw=200,bh=60,bx=canvas.width/2,by=canvas.height-80;
       drawButton('返回首頁', bx,by,bw,bh,'#6c757d','#fff');
       uiButtons.push({id:'back_home', x:bx, y:by, width:bw, height:bh});
-
-      hideNameInput();
     }
 
     function drawButton(text, x,y,w,h, color, textColor) {
@@ -470,6 +453,28 @@
     function hideNameInput() {
       nameInputEl.style.display = 'none';
       if (document.activeElement === nameInputEl) nameInputEl.blur();
+    }
+
+    // --- 類型下拉選單定位/控制 ---
+    function positionTypeSelect() {
+      const selW = Math.min(320, Math.max(220, Math.floor(canvas.width * 0.4)));
+      const selH = 42;
+      const x = (canvas.width - selW) / 2;
+      const y = Math.max(10, Math.floor(canvas.height * 0.14)); // 標題下方
+      typeSelectEl.style.left = `${Math.round(x)}px`;
+      typeSelectEl.style.top  = `${Math.round(y)}px`;
+      typeSelectEl.style.width  = `${Math.round(selW)}px`;
+      typeSelectEl.style.height = `${Math.round(selH)}px`;
+      typeSelectEl.style.fontSize = `${Math.max(16, Math.min(20, Math.round(selH*0.5)))}px`;
+      typeSelectEl.value = leaderboardType;
+    }
+    function showTypeSelect() {
+      if (typeSelectEl.style.display !== 'block') typeSelectEl.style.display = 'block';
+      // 同步選項值
+      typeSelectEl.value = leaderboardType;
+    }
+    function hideTypeSelect() {
+      typeSelectEl.style.display = 'none';
     }
 
     // --- 中文輸入組字處理 ---
@@ -563,6 +568,7 @@
       feedbackMessage=''; lastQuestion={};
       playerName=''; isAnswerLocked=false;
       hideNameInput();
+      hideTypeSelect();
     }
 
     // --- 儲存成績：含 type 欄位 ---
@@ -578,7 +584,7 @@
           name,
           score,
           time,
-          type,              // ← 新增：記錄是哪一個測驗
+          type,              // ← 記錄是哪一個測驗
           createdAt: new Date()
         });
       } catch (e) {
@@ -586,14 +592,13 @@
       }
     }
 
-    // --- 讀取排行榜（一次抓全量，前端做篩選，避免「未標記」無法直接查詢的限制） ---
+    // --- 讀取排行榜（前端篩選，以支援「未標記」） ---
     async function fetchLeaderboard(){
       isLeaderboardLoading = true;
       if (!db) { leaderboardData=[]; isLeaderboardLoading=false; return; }
       try{
         const snap = await db.collection('leaderboard').get();
         const scores = snap.docs.map(d=>d.data());
-        // 排序：分數高在前、時間短在前、若都有再按建立時間新在前（若有）
         scores.sort((a,b)=> (b.score - a.score) || (a.time - b.time) || ((b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0)));
         leaderboardData = scores;
       } catch { leaderboardData=[]; }
@@ -649,18 +654,14 @@
               case 'save_score':
                 currentPage='enterName';
                 positionNameInput();   // 切換頁面時定位一次
-                showNameInput();       // 切換頁面時顯示+focus 一次
+                showNameInput();       // 顯示+focus 一次
                 break;
               case 'confirm_name':
                 clickConfirmName(); break;
               case 'show_leaderboard':
                 currentPage='leaderboard';
-                leaderboardType = TYPE_ALL;          // 每次進排行榜，預設顯示全部
+                leaderboardType = TYPE_ALL;          // 進排行榜預設顯示全部
                 isLeaderboardLoading=true; fetchLeaderboard();
-                break;
-              case 'filter_type':
-                // 切換篩選類型
-                leaderboardType = btn.value;
                 break;
               case 'back_home':
                 resetGame(); break;
@@ -732,10 +733,30 @@
       requestAnimationFrame(gameLoop);
     }
 
+    // --- 初始化下拉選單選項 ---
+    function initTypeSelectOptions() {
+      const opts = [TYPE_ALL, ...Array.from({length:10},(_,i)=>`${i+1} 的乘法`), '混合', TYPE_UNTAGGED];
+      typeSelectEl.innerHTML = '';
+      opts.forEach(label=>{
+        const opt = document.createElement('option');
+        opt.value = label;
+        opt.textContent = label;
+        typeSelectEl.appendChild(opt);
+      });
+      typeSelectEl.value = leaderboardType;
+    }
+
+    // 下拉選單事件
+    typeSelectEl.addEventListener('change', ()=>{
+      leaderboardType = typeSelectEl.value;
+    });
+    typeSelectEl.addEventListener('click', e=>e.stopPropagation());
+
     window.onload = async function() {
       resizeCanvas();
       drawSystemText('載入中...');
       initializeFirebase();
+      initTypeSelectOptions();
       try{
         await loadAssets();
         window.addEventListener('resize', resizeCanvas, false);
