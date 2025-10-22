@@ -106,6 +106,11 @@
     let isLeaderboardLoading = false;
     let isAnswerLocked = false;
 
+    // 篩選狀態（排行榜）
+    const TYPE_ALL = '全部';
+    const TYPE_UNTAGGED = '未標記';
+    let leaderboardType = TYPE_ALL;
+
     // --- 動畫/音效/時間 ---
     let characterYOffset = 0;
     let isCharacterJumping = false;
@@ -343,34 +348,89 @@
       uiButtons=[{id:'confirm_name', x:bx, y:by, width:bw, height:bh}];
     }
 
+    // === 排行榜（含篩選） ===
     function drawLeaderboardPage() {
       const g=ctx.createLinearGradient(0,0,0,canvas.height);
       g.addColorStop(0,'#4e54c8'); g.addColorStop(1,'#8f94fb');
       ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
-      drawText('速度挑戰排行榜', canvas.width/2, canvas.height*0.1, 40, '#fff');
+      drawText('速度挑戰排行榜', canvas.width/2, canvas.height*0.08, 40, '#fff');
 
+      // 篩選籤（chips）
+      const chips = [TYPE_ALL, ...Array.from({length:10}, (_,i)=>`${i+1} 的乘法`), '混合', TYPE_UNTAGGED];
+      const chipY = canvas.height*0.16;
+      const chipH = 36;
+      let x = canvas.width*0.06;
+      uiButtons = []; // 先清空，重新放入 chip 與底部按鈕
+
+      chips.forEach((label)=>{
+        const paddingX = 16;
+        ctx.font = `bold 18px 'M PLUS Rounded 1c', sans-serif`;
+        const textW = ctx.measureText(label).width;
+        const w = Math.min(Math.max(textW + paddingX*2, 90), Math.min(canvas.width*0.4, 240));
+        const h = chipH;
+        const y = chipY;
+        const isActive = (leaderboardType === label);
+
+        // 背景
+        ctx.save();
+        ctx.shadowColor='rgba(0,0,0,0.2)'; ctx.shadowBlur=6; ctx.shadowOffsetX=2; ctx.shadowOffsetY=2;
+        ctx.fillStyle = isActive ? '#FFD54F' : 'rgba(255,255,255,0.8)';
+        rr(ctx, x, y - h/2, w, h, 18); ctx.fill();
+        ctx.restore();
+
+        // 文字
+        ctx.fillStyle = isActive ? '#6A4A00' : '#333';
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(label, x + w/2, y);
+
+        // 點擊區（用中心座標）
+        uiButtons.push({ id:'filter_type', value:label, x: x + w/2, y: y, width: w, height: h });
+
+        x += w + 12; // 下一個 chip 的起點
+      });
+
+      // 表頭
+      const startY=canvas.height*0.25, lh=40;
+      drawText('排名', canvas.width*0.15, startY, 20, '#FFD700');
+      drawText('名字', canvas.width*0.35, startY, 20, '#FFD700');
+      drawText('分數', canvas.width*0.55, startY, 20, '#FFD700');
+      drawText('時間(秒)', canvas.width*0.75, startY, 20, '#FFD700');
+      // 顯示類型
+      drawText('類型', canvas.width*0.9, startY, 20, '#FFD700');
+
+      // 內容
       if (isLeaderboardLoading) {
         drawText('讀取中...', canvas.width/2, canvas.height/2, 30, '#fff');
       } else if (!db) {
         drawText('排行榜功能暫時無法使用', canvas.width/2, canvas.height/2, 24, '#FFD700');
       } else {
-        const startY=canvas.height*0.2, lh=40;
-        drawText('排名', canvas.width*0.2, startY, 20, '#FFD700');
-        drawText('名字', canvas.width*0.4, startY, 20, '#FFD700');
-        drawText('分數', canvas.width*0.6, startY, 20, '#FFD700');
-        drawText('時間(秒)', canvas.width*0.8, startY, 20, '#FFD700');
-        leaderboardData.slice(0,10).forEach((e,i)=>{
-          const y = startY + (i+1)*lh;
-          drawText(i+1, canvas.width*0.2, y, 18, '#fff');
-          drawText(e.name ?? '-', canvas.width*0.4, y, 18, '#fff');
-          drawText(e.score ?? '-', canvas.width*0.6, y, 18, '#fff');
-          drawText(e.time ?? '-', canvas.width*0.8, y, 18, '#fff');
+        // 依目前篩選做 client-side 過濾（避免 Firestore 查「未標記」的限制）
+        const filtered = leaderboardData.filter(e=>{
+          const t = e.type; // 可能為 undefined
+          if (leaderboardType === TYPE_ALL) return true;
+          if (leaderboardType === TYPE_UNTAGGED) return (typeof t === 'undefined');
+          return t === leaderboardType;
         });
+
+        filtered.slice(0,10).forEach((e,i)=>{
+          const y = startY + (i+1)*lh;
+          drawText(i+1, canvas.width*0.15, y, 18, '#fff');
+          drawText(e.name ?? '-', canvas.width*0.35, y, 18, '#fff');
+          drawText(e.score ?? '-', canvas.width*0.55, y, 18, '#fff');
+          drawText(e.time ?? '-', canvas.width*0.75, y, 18, '#fff');
+          drawText(e.type ?? '未標記', canvas.width*0.9, y, 18, '#fff');
+        });
+
+        if (filtered.length === 0 && !isLeaderboardLoading) {
+          drawText('（此類型目前沒有資料）', canvas.width/2, startY + lh*2, 18, '#fff');
+        }
       }
 
+      // 底部返回鍵
       const bw=200,bh=60,bx=canvas.width/2,by=canvas.height-80;
       drawButton('返回首頁', bx,by,bw,bh,'#6c757d','#fff');
-      uiButtons=[{id:'back_home', x:bx, y:by, width:bw, height:bh}];
+      uiButtons.push({id:'back_home', x:bx, y:by, width:bw, height:bh});
+
       hideNameInput();
     }
 
@@ -505,11 +565,10 @@
       hideNameInput();
     }
 
-    // --- 儲存成績：已加入 type 欄位 ---
+    // --- 儲存成績：含 type 欄位 ---
     async function saveScoreToLeaderboard(name, score, time) {
       if (!db) return;
       try {
-        // 根據目前題型組出可讀的 type 標籤
         const type =
           (questionRange === '混合')
             ? '混合'
@@ -527,13 +586,15 @@
       }
     }
 
+    // --- 讀取排行榜（一次抓全量，前端做篩選，避免「未標記」無法直接查詢的限制） ---
     async function fetchLeaderboard(){
       isLeaderboardLoading = true;
       if (!db) { leaderboardData=[]; isLeaderboardLoading=false; return; }
       try{
         const snap = await db.collection('leaderboard').get();
         const scores = snap.docs.map(d=>d.data());
-        scores.sort((a,b)=> b.score - a.score || a.time - b.time);
+        // 排序：分數高在前、時間短在前、若都有再按建立時間新在前（若有）
+        scores.sort((a,b)=> (b.score - a.score) || (a.time - b.time) || ((b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0)));
         leaderboardData = scores;
       } catch { leaderboardData=[]; }
       isLeaderboardLoading = false;
@@ -593,7 +654,13 @@
               case 'confirm_name':
                 clickConfirmName(); break;
               case 'show_leaderboard':
-                currentPage='leaderboard'; isLeaderboardLoading=true; fetchLeaderboard();
+                currentPage='leaderboard';
+                leaderboardType = TYPE_ALL;          // 每次進排行榜，預設顯示全部
+                isLeaderboardLoading=true; fetchLeaderboard();
+                break;
+              case 'filter_type':
+                // 切換篩選類型
+                leaderboardType = btn.value;
                 break;
               case 'back_home':
                 resetGame(); break;
