@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>³Ğ·N¬õÀtã_ DIY</title>
+    <title>å‰µæ„ç´…é¾œç²¿ DIY</title>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; text-align: center; background-color: #fdf5e6; color: #5d4037; }
         #game-container { position: relative; width: 400px; margin: 20px auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
@@ -17,33 +17,33 @@
 </head>
 <body>
 
-    <h1>?? ¶Ç²Î¬õÀtã_¤u§{ ??</h1>
-    <p>¨BÆJ¡G¿ï¥Ö ¡÷ ¿ïÀ` ¡÷ ÂIÀ»µe¥¬¶i¦æÀ£¼Ò¡I</p>
+    <h1>?? å‚³çµ±ç´…é¾œç²¿å·¥åŠ ??</h1>
+    <p>æ­¥é©Ÿï¼šé¸çš® â†’ é¸é¤¡ â†’ é»æ“Šç•«å¸ƒé€²è¡Œå£“æ¨¡ï¼</p>
 
     <div id="game-container">
-        <div id="status-text">·Ç³Æ¶}©l»s§@...</div>
+        <div id="status-text">æº–å‚™é–‹å§‹è£½ä½œ...</div>
         <canvas id="gameCanvas" width="300" height="300"></canvas>
 
         <div class="controls">
             <div>
-                <p>1. ¿ï¾Ü»æ¥ÖÃC¦â</p>
+                <p>1. é¸æ“‡é¤…çš®é¡è‰²</p>
                 <div class="btn-group">
-                    <button onclick="setColor('#ff5252', this)" class="active">¸g¨å¬õ</button>
-                    <button onclick="setColor('#8bc34a', this)">¦ã¯óºñ</button>
-                    <button onclick="setColor('#ffca28', this)">¦a¥Ê¶À</button>
+                    <button onclick="setColor('#ff5252', this)" class="active">ç¶“å…¸ç´…</button>
+                    <button onclick="setColor('#8bc34a', this)">è‰¾è‰ç¶ </button>
+                    <button onclick="setColor('#ffca28', this)">åœ°ç“œé»ƒ</button>
                 </div>
             </div>
 
             <div>
-                <p>2. ¿ï¾Ü¤ºÀ`</p>
+                <p>2. é¸æ“‡å…§é¤¡</p>
                 <div class="btn-group">
-                    <button onclick="setFilling('¬õ¨§', this)">¬õ¨§</button>
-                    <button onclick="setFilling('ªá¥Í', this)">ªá¥Í</button>
-                    <button onclick="setFilling('ªÛ³Â', this)">ªÛ³Â</button>
+                    <button onclick="setFilling('ç´…è±†', this)">ç´…è±†</button>
+                    <button onclick="setFilling('èŠ±ç”Ÿ', this)">èŠ±ç”Ÿ</button>
+                    <button onclick="setFilling('èŠéº»', this)">èŠéº»</button>
                 </div>
             </div>
             
-            <button onclick="resetGame()" style="margin-top:10px; background:#6d4c41; color:white;">­«°µ¤@­Ó</button>
+            <button onclick="resetGame()" style="margin-top:10px; background:#6d4c41; color:white;">é‡åšä¸€å€‹</button>
         </div>
     </div>
 
@@ -66,7 +66,7 @@
             currentFilling = filling;
             updateButtons(btn);
             gameState = 'FILLED';
-            status.innerText = `¤w¥]¤J ${filling} À`¡A§ÖÂIÀ»À£¼Ò¡I`;
+            status.innerText = `å·²åŒ…å…¥ ${filling} é¤¡ï¼Œå¿«é»æ“Šå£“æ¨¡ï¼`;
             drawDough();
         }
 
@@ -79,22 +79,22 @@
         function drawDough() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Ã¸»s¤ë®ç¸­
+            // ç¹ªè£½æœˆæ¡ƒè‘‰
             ctx.fillStyle = '#4a7c44';
             ctx.beginPath();
             ctx.ellipse(150, 180, 80, 110, Math.PI / 2, 0, Math.PI * 2);
             ctx.fill();
 
-            // Ã¸»sÄÑÄ{
+            // ç¹ªè£½éºµç³°
             ctx.fillStyle = currentColor;
             ctx.beginPath();
             if (gameState === 'MOLDED') {
-                // À£¼Ò«áªº§Îª¬¡]¾ò¶ê±a¯¾¸ô¡^
+                // å£“æ¨¡å¾Œçš„å½¢ç‹€ï¼ˆæ©¢åœ“å¸¶ç´‹è·¯ï¼‰
                 ctx.ellipse(150, 150, 70, 90, Math.PI / 2, 0, Math.PI * 2);
                 ctx.fill();
                 drawPattern();
             } else {
-                // ¶ê§ÎÄÑÄ{
+                // åœ“å½¢éºµç³°
                 ctx.arc(150, 150, 60, 0, Math.PI * 2);
                 ctx.fill();
             }
@@ -103,21 +103,21 @@
         function drawPattern() {
             ctx.strokeStyle = 'rgba(255,255,255,0.5)';
             ctx.lineWidth = 3;
-            // Â²³æªºÀt´ß¯¾¸ô
+            // ç°¡å–®çš„é¾œæ®¼ç´‹è·¯
             ctx.beginPath();
             ctx.moveTo(110, 150); ctx.lineTo(190, 150);
             ctx.moveTo(150, 110); ctx.lineTo(150, 190);
             ctx.stroke();
-            // ¥~°é¸Ë¹¢
+            // å¤–åœˆè£é£¾
             ctx.strokeRect(120, 120, 60, 60);
         }
 
         canvas.addEventListener('mousedown', () => {
             if (gameState === 'FILLED') {
                 gameState = 'MOLDED';
-                status.innerText = `? ¬ü¬üªº ${currentFilling} ¬õÀtã_§¹¦¨¤F¡I`;
+                status.innerText = `? ç¾ç¾çš„ ${currentFilling} ç´…é¾œç²¿å®Œæˆäº†ï¼`;
                 drawDough();
-                // ¼ÒÀÀÀ£¦L¾_°Ê·P
+                // æ¨¡æ“¬å£“å°éœ‡å‹•æ„Ÿ
                 canvas.style.transform = 'scale(0.95)';
                 setTimeout(() => canvas.style.transform = 'scale(1)', 100);
             }
@@ -126,11 +126,11 @@
         function resetGame() {
             gameState = 'START';
             currentFilling = '';
-            status.innerText = '­«·s¶}©l»s§@...';
+            status.innerText = 'é‡æ–°é–‹å§‹è£½ä½œ...';
             drawDough();
         }
 
-        // ªì©l¤Æ
+        // åˆå§‹åŒ–
         drawDough();
     </script>
 </body>
