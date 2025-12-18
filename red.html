@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>創意紅龜粿 DIY</title>
+    <style>
+        body { font-family: "Microsoft JhengHei", sans-serif; text-align: center; background-color: #fdf5e6; color: #5d4037; }
+        #game-container { position: relative; width: 400px; margin: 20px auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        canvas { border: 2px dashed #ccc; border-radius: 10px; cursor: pointer; background-color: #fff; }
+        .controls { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
+        .btn-group { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        button { padding: 8px 15px; border: none; border-radius: 20px; cursor: pointer; transition: 0.3s; background: #eee; }
+        button:hover { background: #d7ccc8; }
+        .active { background: #e91e63 !important; color: white; }
+        #status-text { font-weight: bold; color: #d32f2f; height: 24px; }
+    </style>
+</head>
+<body>
+
+    <h1>?? 傳統紅龜粿工坊 ??</h1>
+    <p>步驟：選皮 → 選餡 → 點擊畫布進行壓模！</p>
+
+    <div id="game-container">
+        <div id="status-text">準備開始製作...</div>
+        <canvas id="gameCanvas" width="300" height="300"></canvas>
+
+        <div class="controls">
+            <div>
+                <p>1. 選擇餅皮顏色</p>
+                <div class="btn-group">
+                    <button onclick="setColor('#ff5252', this)" class="active">經典紅</button>
+                    <button onclick="setColor('#8bc34a', this)">艾草綠</button>
+                    <button onclick="setColor('#ffca28', this)">地瓜黃</button>
+                </div>
+            </div>
+
+            <div>
+                <p>2. 選擇內餡</p>
+                <div class="btn-group">
+                    <button onclick="setFilling('紅豆', this)">紅豆</button>
+                    <button onclick="setFilling('花生', this)">花生</button>
+                    <button onclick="setFilling('芝麻', this)">芝麻</button>
+                </div>
+            </div>
+            
+            <button onclick="resetGame()" style="margin-top:10px; background:#6d4c41; color:white;">重做一個</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const status = document.getElementById('status-text');
+
+        let gameState = 'START'; // START, FILLED, MOLDED
+        let currentColor = '#ff5252';
+        let currentFilling = '';
+
+        function setColor(color, btn) {
+            currentColor = color;
+            updateButtons(btn);
+            drawDough();
+        }
+
+        function setFilling(filling, btn) {
+            currentFilling = filling;
+            updateButtons(btn);
+            gameState = 'FILLED';
+            status.innerText = `已包入 ${filling} 餡，快點擊壓模！`;
+            drawDough();
+        }
+
+        function updateButtons(clickedBtn) {
+            const buttons = clickedBtn.parentElement.querySelectorAll('button');
+            buttons.forEach(b => b.classList.remove('active'));
+            clickedBtn.classList.add('active');
+        }
+
+        function drawDough() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 繪製月桃葉
+            ctx.fillStyle = '#4a7c44';
+            ctx.beginPath();
+            ctx.ellipse(150, 180, 80, 110, Math.PI / 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 繪製麵糰
+            ctx.fillStyle = currentColor;
+            ctx.beginPath();
+            if (gameState === 'MOLDED') {
+                // 壓模後的形狀（橢圓帶紋路）
+                ctx.ellipse(150, 150, 70, 90, Math.PI / 2, 0, Math.PI * 2);
+                ctx.fill();
+                drawPattern();
+            } else {
+                // 圓形麵糰
+                ctx.arc(150, 150, 60, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function drawPattern() {
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+            ctx.lineWidth = 3;
+            // 簡單的龜殼紋路
+            ctx.beginPath();
+            ctx.moveTo(110, 150); ctx.lineTo(190, 150);
+            ctx.moveTo(150, 110); ctx.lineTo(150, 190);
+            ctx.stroke();
+            // 外圈裝飾
+            ctx.strokeRect(120, 120, 60, 60);
+        }
+
+        canvas.addEventListener('mousedown', () => {
+            if (gameState === 'FILLED') {
+                gameState = 'MOLDED';
+                status.innerText = `? 美美的 ${currentFilling} 紅龜粿完成了！`;
+                drawDough();
+                // 模擬壓印震動感
+                canvas.style.transform = 'scale(0.95)';
+                setTimeout(() => canvas.style.transform = 'scale(1)', 100);
+            }
+        });
+
+        function resetGame() {
+            gameState = 'START';
+            currentFilling = '';
+            status.innerText = '重新開始製作...';
+            drawDough();
+        }
+
+        // 初始化
+        drawDough();
+    </script>
+</body>
+</html>
