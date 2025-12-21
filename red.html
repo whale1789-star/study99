@@ -2,133 +2,326 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>傳統粿文化 - 職人工作坊</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>傳統粿類職人 - 點心工作坊</title>
     <style>
-        :root { --main-red: #d32f2f; --main-green: #2e7d32; --bg: #fdf5e6; }
-        body { font-family: sans-serif; background: var(--bg); display: flex; flex-direction: column; align-items: center; }
-        
-        /* 食材區 2x2 排列 */
-        .ingredient-grid { 
-            display: grid; grid-template-columns: 100px 100px; gap: 10px; 
-            background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        :root {
+            --wood-dark: #5d4037;
+            --wood-light: #8d6e63;
+            --paper-bg: #fdf5e6;
+            --red-kue: #d32f2f;
+            --green-kue: #388e3c;
+            --gold: #ffb300;
         }
-        .filling-area { margin-top: 10px; display: flex; gap: 10px; }
-        .item { 
-            border: 2px solid #ccc; padding: 10px; text-align: center; cursor: pointer;
-            border-radius: 8px; transition: transform 0.1s; background: white;
+
+        body {
+            font-family: "Microsoft JhengHei", sans-serif;
+            background-color: var(--paper-bg);
+            background-image: radial-gradient(#e0d6c3 1px, transparent 1px);
+            background-size: 20px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
         }
-        .item:active { transform: scale(0.95); background: #eee; }
+
+        .game-container {
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 { color: var(--wood-dark); margin-bottom: 10px; }
+        .subtitle { color: #888; margin-bottom: 20px; font-size: 0.9rem; }
+
+        /* 食材區 */
+        .section-title { font-weight: bold; color: var(--wood-dark); margin-bottom: 10px; text-align: left; }
+        .ingredient-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .ingredient-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .item {
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #eee;
+            background: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .item:hover { border-color: var(--wood-light); transform: translateY(-2px); }
+        .item:active { transform: scale(0.95); background: #f9f9f9; }
+
+        .filling-area {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .filling-area .item { flex: 1; }
 
         /* 蒸籠區 */
-        .steamer-area { 
-            margin-top: 50px; position: relative; width: 250px; height: 150px;
-            background: #8d6e63; border-radius: 50% / 20%; border: 4px solid #5d4037;
-            display: flex; justify-content: center; align-items: center;
+        .steamer-wrap {
+            position: relative;
+            height: 180px;
+            margin: 40px 0;
         }
-        
+
+        .steamer-body {
+            width: 200px;
+            height: 100px;
+            background: #b68d68;
+            border: 5px solid #5d4037;
+            border-radius: 50% / 30%;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 10px 0 #8d6e63;
+        }
+
+        /* 蒸氣動畫 */
+        .steam {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 40px;
+            background: rgba(255,255,255,0.6);
+            filter: blur(10px);
+            border-radius: 50%;
+            opacity: 0;
+        }
+        .steaming .steam { animation: steamRise 1.5s infinite; }
+
+        @keyframes steamRise {
+            0% { transform: translate(-50%, 0) scale(1); opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { transform: translate(-50%, -60px) scale(1.8); opacity: 0; }
+        }
+
+        /* 粿的圖示浮現 */
+        #kue-output {
+            position: absolute;
+            top: -40px;
+            font-size: 50px;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 0;
+            z-index: 3;
+        }
+        .show-kue #kue-output { opacity: 1; transform: translateY(-20px); }
+
+        .controls { display: flex; flex-direction: column; gap: 10px; }
+        .btn-cook {
+            background: var(--wood-dark);
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 1.2rem;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #3e2723;
+        }
+        .btn-cook:active { transform: translateY(2px); box-shadow: 0 2px 0 #3e2723; }
+        .btn-reset { background: none; border: none; color: #888; text-decoration: underline; cursor: pointer; }
+
         /* 彈窗樣式 */
-        .modal { 
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: white; padding: 30px; border-radius: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.3);
-            text-align: center; display: none; z-index: 100; min-width: 250px;
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); display: none; z-index: 10;
         }
-        .overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); display:none; }
+        .modal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: white; padding: 30px; border-radius: 20px; text-align: center;
+            width: 80%; max-width: 350px; display: none; z-index: 11;
+        }
+        .modal h2 { color: var(--red-kue); margin-top: 0; }
+        .modal-btn {
+            background: var(--wood-dark); color: white; border: none;
+            padding: 10px 30px; border-radius: 20px; margin-top: 20px; cursor: pointer;
+        }
+
+        /* 成就清單 */
+        .achievements {
+            margin-top: 40px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;
+        }
+        .badge {
+            width: 50px; height: 50px; background: #ddd; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; filter: grayscale(1); opacity: 0.5; transition: 0.5s;
+        }
+        .badge.unlocked { filter: grayscale(0); opacity: 1; background: var(--gold); transform: scale(1.1); }
     </style>
 </head>
 <body>
 
-    <h2>🥣 粿類製作工作坊</h2>
-    
-    <div class="ingredient-grid" id="main-ingredients">
-        <div class="item" onclick="add('紅米團')">🔴 紅米團</div>
-        <div class="item" onclick="add('白米團')">⚪ 白米團</div>
-        <div class="item" onclick="add('綠米團')">🟢 綠米團</div>
-        <div class="item" onclick="add('米漿')">🥛 米漿</div>
-    </div>
-    <div class="filling-area">
-        <div class="item" onclick="add('甜餡')">🍯 甜餡</div>
-        <div class="item" onclick="add('鹹餡')">🥩 鹹餡</div>
-    </div>
+<div class="game-container">
+    <h1>傳統粿職人</h1>
+    <p class="subtitle">點選食材放入蒸籠，探索美味秘方</p>
 
-    <div class="steamer-area" id="steamer">
-        <div id="status">點擊食材開始製作...</div>
-    </div>
-    <button onclick="checkRecipe()" style="margin-top:20px; padding:10px 30px;">蓋上蒸籠蓋</button>
-    <button onclick="reset()" style="margin-top:10px; font-size: 12px;">清空食材</button>
-
-    <div class="overlay" id="overlay"></div>
-    <div class="modal" id="modal">
-        <h3 id="modal-title"></h3>
-        <p id="modal-content"></p>
-        <button onclick="closeModal()">確認</button>
+    <div class="ingredient-card">
+        <div class="section-title">米團與米漿</div>
+        <div class="ingredient-grid">
+            <div class="item" onclick="add('紅米團')">🔴 紅米團</div>
+            <div class="item" onclick="add('白米團')">⚪ 白米團</div>
+            <div class="item" onclick="add('綠米團')">🟢 綠米團</div>
+            <div class="item" onclick="add('米漿')">🥛 米漿</div>
+        </div>
+        <div class="section-title" style="margin-top:20px;">餡料選擇</div>
+        <div class="filling-area">
+            <div class="item" onclick="add('甜餡')">🍯 甜餡</div>
+            <div class="item" onclick="add('鹹餡')">🥩 鹹餡</div>
+        </div>
     </div>
 
-    <script>
-        // 遊戲狀態
-        let currentMix = {};
-        let achievements = new Set();
-        
-        // 食譜定義 (範例組合)
-        const recipes = [
-            { name: "紅龜粿", ingredients: { "紅米團": 1, "甜餡": 1 }, hint: "紅米團 + 甜餡" },
-            { name: "菜頭粿", ingredients: { "米漿": 1, "鹹餡": 1 }, hint: "米漿 + 鹹餡" },
-            { name: "紅圓", ingredients: { "紅米團": 2 }, hint: "兩個紅米團" },
-            { name: "草仔粿", ingredients: { "綠米團": 1, "鹹餡": 1 }, hint: "綠米團 + 鹹餡" },
-            { name: "芋粿", ingredients: { "白米團": 1, "鹹餡": 1 }, hint: "白米團 + 鹹餡" },
-            // 湯圓兩種做法
-            { name: "湯圓", ingredients: { "紅米團": 1, "白米團": 1 }, isTangyuan: true, hint: "紅米團 + 白米團" },
-            { name: "湯圓", ingredients: { "白米團": 1, "甜餡": 1 }, isTangyuan: true, hint: "白米團 + 甜餡" }
-        ];
+    <div class="steamer-wrap" id="steamer-container">
+        <div class="steam"></div>
+        <div id="kue-output">❓</div>
+        <div class="steamer-body">
+            <div id="display-text" style="color:white; font-size: 14px;">空空如也</div>
+        </div>
+    </div>
 
-        function add(item) {
-            currentMix[item] = (currentMix[item] || 0) + 1;
-            document.getElementById('status').innerText = "已加入: " + Object.entries(currentMix).map(([k,v]) => `${k}x${v}`).join(', ');
-        }
+    <div class="controls">
+        <button class="btn-cook" onclick="cook()">蓋上蒸籠蓋</button>
+        <button class="btn-reset" onclick="reset()">重新配料</button>
+    </div>
 
-        function checkRecipe() {
-            // 比對食譜
-            const successRecipe = recipes.find(r => {
+    <div class="achievements" id="achievement-list">
+        <div class="badge" id="badge-紅龜粿" title="紅龜粿">🐢</div>
+        <div class="badge" id="badge-菜頭粿" title="菜頭粿">⬜</div>
+        <div class="badge" id="badge-紅圓" title="紅圓">🔴</div>
+        <div class="badge" id="badge-草仔粿" title="草仔粿">🍃</div>
+        <div class="badge" id="badge-芋粿" title="芋粿">🍠</div>
+        <div class="badge" id="badge-湯圓" title="湯圓">🍡</div>
+    </div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="modal" id="modal">
+    <h2 id="modal-title">獲得成就</h2>
+    <p id="modal-content"></p>
+    <button class="modal-btn" onclick="closeModal()">繼續製作</button>
+</div>
+
+
+
+<script>
+    let currentMix = {};
+    let unlockedCount = 0;
+    const totalGoals = 6;
+    const achievements = new Set();
+
+    const recipes = [
+        { name: "紅龜粿", emoji: "🐢", ingredients: { "紅米團": 1, "甜餡": 1 }, hint: "紅米團 + 甜餡" },
+        { name: "菜頭粿", emoji: "⬜", ingredients: { "米漿": 2, "鹹餡": 1 }, hint: "米漿 x2 + 鹹餡" },
+        { name: "紅圓", emoji: "🔴", ingredients: { "紅米團": 2 }, hint: "兩個紅米團" },
+        { name: "草仔粿", emoji: "🍃", ingredients: { "綠米團": 1, "鹹餡": 1 }, hint: "綠米團 + 鹹餡" },
+        { name: "芋粿", emoji: "🍠", ingredients: { "白米團": 1, "鹹餡": 1 }, hint: "白米團 + 鹹餡" },
+        // 湯圓雙重食譜
+        { name: "湯圓", emoji: "🍡", ingredients: { "紅米團": 1, "白米團": 1 }, hint: "紅米團 + 白米團" },
+        { name: "湯圓", emoji: "🍡", ingredients: { "白米團": 2, "甜餡": 1 }, hint: "白米團 x2 + 甜餡" }
+    ];
+
+    function add(item) {
+        currentMix[item] = (currentMix[item] || 0) + 1;
+        updateDisplay();
+    }
+
+    function updateDisplay() {
+        const items = Object.entries(currentMix).map(([name, count]) => `${name}x${count}`);
+        document.getElementById('display-text').innerText = items.length > 0 ? items.join('\n') : "空空如也";
+    }
+
+    function cook() {
+        if (Object.keys(currentMix).length === 0) return;
+
+        const container = document.getElementById('steamer-container');
+        container.classList.add('steaming');
+
+        setTimeout(() => {
+            const match = recipes.find(r => {
                 const rKeys = Object.keys(r.ingredients);
                 const mKeys = Object.keys(currentMix);
                 if (rKeys.length !== mKeys.length) return false;
                 return rKeys.every(k => r.ingredients[k] === currentMix[k]);
             });
 
-            if (successRecipe) {
-                showSuccess(successRecipe.name);
+            container.classList.remove('steaming');
+            if (match) {
+                handleSuccess(match);
             } else {
-                showFailure();
+                handleFailure();
             }
-            reset();
+        }, 1500);
+    }
+
+    function handleSuccess(kue) {
+        document.getElementById('kue-output').innerText = kue.emoji;
+        document.getElementById('steamer-container').classList.add('show-kue');
+        
+        if (!achievements.has(kue.name)) {
+            achievements.add(kue.name);
+            document.getElementById(`badge-${kue.name}`).classList.add('unlocked');
+            unlockedCount = achievements.size;
         }
 
-        function showSuccess(name) {
-            achievements.add(name);
-            const modal = document.getElementById('modal');
-            document.getElementById('modal-title').innerText = "✨ 獲得成就 ✨";
-            document.getElementById('modal-content').innerText = "你成功製作出了：" + name;
-            
-            if (achievements.size === 6) { // 全部解鎖 (紅龜, 菜頭, 紅圓, 草仔, 芋粿, 湯圓)
-                document.getElementById('modal-content').innerHTML += "<br><br>🎊 恭喜達成全成就！<br>獲得獎勵：LINE 貼圖下載連結";
-            }
-            
-            showModal();
+        showModal("獲得成就", `你成功製作出了：${kue.name} ${kue.emoji}`);
+        
+        if (unlockedCount === totalGoals) {
+            setTimeout(() => {
+                alert("🎊 太棒了！你已成為特級粿師！\n點擊確認領取 LINE 貼圖獎勵！");
+                window.location.href = "https://store.line.me/stickershop/home/zh-Hant"; // 此處可替換成實際貼圖網址
+            }, 1000);
         }
+    }
 
-        function showFailure() {
-            // 找出尚未解鎖的食譜作為提示
-            const lockedRecipes = recipes.filter(r => !achievements.has(r.name));
-            const randomHint = lockedRecipes[Math.floor(Math.random() * lockedRecipes.length)];
-            
-            document.getElementById('modal-title').innerText = "❌ 製作失敗";
-            document.getElementById('modal-content').innerText = randomHint ? 
-                `沒能做出好吃的粿... 提示：試試看「${randomHint.hint}」？` : "雖然失敗了，但你已經是粿類大師了！";
-            showModal();
-        }
+    function handleFailure() {
+        // 隨機提示尚未解鎖的
+        const locked = recipes.filter(r => !achievements.has(r.name));
+        const hintObj = locked[Math.floor(Math.random() * locked.length)];
+        
+        showModal("製作失敗", hintObj ? `似乎少了點什麼... 提示：試試看「${hintObj.hint}」？` : "差一點就成功了，再試試別的組合！");
+    }
 
-        function reset() { currentMix = {}; document.getElementById('status').innerText = "蒸籠已清空，請重新選擇食材"; }
-        function showModal() { document.getElementById('modal').style.display = 'block'; document.getElementById('overlay').style.display = 'block'; }
-        function closeModal() { document.getElementById('modal').style.display = 'none'; document.getElementById('overlay').style.display = 'none'; }
-    </script>
+    function showModal(title, content) {
+        document.getElementById('modal-title').innerText = title;
+        document.getElementById('modal-content').innerText = content;
+        document.getElementById('overlay').style.display = 'block';
+        document.getElementById('modal').style.display = 'block';
+    }
+
+    function closeModal() {
+        document.getElementById('overlay').style.display = 'none';
+        document.getElementById('modal').style.display = 'none';
+        reset();
+    }
+
+    function reset() {
+        currentMix = {};
+        updateDisplay();
+        document.getElementById('steamer-container').classList.remove('show-kue');
+    }
+</script>
+
 </body>
 </html>
