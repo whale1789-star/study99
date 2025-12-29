@@ -3,159 +3,176 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>古早味粿坊 - 製作小遊戲</title>
+    <title>古早味粿坊 - 職人製作小遊戲</title>
     <style>
-        :root { --main-bg: #fff9f0; --box-bg: #ffffff; --accent: #d32f2f; }
-        body { font-family: "Microsoft JhengHei", sans-serif; background-color: var(--main-bg); margin: 0; display: flex; flex-direction: column; align-items: center; }
+        :root { --main-bg: #fffcf5; --accent: #d32f2f; --panel-bg: #ffffff; }
+        body { font-family: "Microsoft JhengHei", sans-serif; background-color: var(--main-bg); margin: 0; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
         
-        /* 食材區 */
-        .header-ui { display: flex; gap: 20px; padding: 20px; background: var(--box-bg); border-radius: 0 0 20px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); width: 90%; max-width: 800px; }
-        .ingredient-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex: 1; }
-        .filling-area { display: flex; flex-direction: column; gap: 10px; width: 100px; }
-        
-        .item { border: 2px solid #eee; border-radius: 10px; padding: 5px; cursor: pointer; transition: 0.2s; position: relative; text-align: center; }
-        .item:hover { transform: scale(1.05); border-color: var(--accent); }
-        .item img { width: 60px; height: 60px; object-fit: contain; }
-        .badge { position: absolute; top: -5px; right: -5px; background: var(--accent); color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; display: none; }
+        /* 食材顯示區 - 兩列兩欄排列 */
+        .ui-header { display: flex; gap: 30px; padding: 25px; background: var(--panel-bg); width: 100%; max-width: 900px; justify-content: center; box-shadow: 0 5px 20px rgba(0,0,0,0.05); border-radius: 0 0 30px 30px; }
+        .ingredient-grid { display: grid; grid-template-columns: repeat(2, 120px); grid-template-rows: repeat(2, 120px); gap: 15px; }
+        .filling-column { display: flex; flex-direction: column; gap: 15px; }
 
-        /* 蒸籠區 */
-        .steamer-container { margin-top: 50px; position: relative; width: 300px; height: 300px; display: flex; justify-content: center; align-items: center; }
-        .steamer-img { width: 250px; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.1)); }
-        #result-display { position: absolute; top: 40px; width: 120px; z-index: 10; display: none; animation: popIn 0.5s cubic-bezier(0.17, 0.67, 0.83, 0.67); }
+        .item { background: #fdfdfd; border: 2px solid #eee; border-radius: 15px; position: relative; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 0.2s; }
+        .item:hover { border-color: var(--accent); transform: translateY(-3px); }
+        .item img { width: 75px; height: 75px; object-fit: contain; }
+        .item span { font-size: 14px; color: #666; font-weight: bold; margin-top: 5px; }
 
-        /* 按鈕區 */
-        .action-btns { margin-top: 30px; display: flex; gap: 15px; }
-        button { padding: 10px 25px; border-radius: 50px; border: none; cursor: pointer; font-size: 16px; font-weight: bold; }
-        .btn-make { background: var(--accent); color: white; }
-        .btn-reset { background: #795548; color: white; }
+        /* 計數氣泡 */
+        .count-badge { position: absolute; top: -8px; right: -8px; background: var(--accent); color: white; border-radius: 50%; width: 26px; height: 26px; font-size: 14px; display: flex; align-items: center; justify-content: center; border: 2px solid white; font-weight: bold; opacity: 0; transition: 0.3s; }
+        .count-badge.show { opacity: 1; }
 
-        /* 彈窗樣式 */
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 100; }
-        .modal { background: white; padding: 30px; border-radius: 20px; text-align: center; max-width: 400px; width: 80%; }
-        
-        @keyframes popIn { from { transform: scale(0) rotate(-20deg); opacity: 0; } to { transform: scale(1) rotate(0deg); opacity: 1; } }
+        /* 蒸籠展示區 */
+        .game-main { margin: 40px 0; position: relative; text-align: center; }
+        .steamer-base { width: 300px; height: auto; filter: drop-shadow(0 15px 15px rgba(0,0,0,0.1)); }
+        #final-product { position: absolute; top: 40px; left: 50%; transform: translateX(-50%) scale(0); width: 130px; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #final-product.show { transform: translateX(-50%) scale(1); }
+
+        /* 按鈕控制 */
+        .btn-group { display: flex; gap: 20px; }
+        button { padding: 12px 40px; border-radius: 50px; border: none; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-make { background: var(--accent); color: white; box-shadow: 0 4px 10px rgba(211,47,47,0.3); }
+        .btn-reset { background: #efebe9; color: #5d4037; }
+        button:active { transform: scale(0.95); }
+
+        /* 彈窗系統 */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal { background: white; padding: 40px; border-radius: 25px; text-align: center; max-width: 450px; width: 85%; position: relative; }
+        .modal h2 { color: var(--accent); margin-top: 0; font-size: 28px; }
+        .modal p { font-size: 18px; line-height: 1.6; color: #444; }
+        .modal .reward-link { display: none; color: #2e7d32; font-weight: bold; margin-top: 20px; text-decoration: underline; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div class="header-ui">
+    <div class="ui-header">
         <div class="ingredient-grid">
-            <div class="item" onclick="addIngredient('red')"><img src="紅米糰.png" alt="紅米糰"><div id="count-red" class="badge">0</div></div>
-            <div class="item" onclick="addIngredient('white')"><img src="白米糰.png" alt="白米糰"><div id="count-white" class="badge">0</div></div>
-            <div class="item" onclick="addIngredient('green')"><img src="綠米糰.png" alt="綠米糰"><div id="count-green" class="badge">0</div></div>
-            <div class="item" onclick="addIngredient('syrup')"><img src="米漿.png" alt="米漿"><div id="count-syrup" class="badge">0</div></div>
+            <div class="item" onclick="select('red')"><img src="紅米糰.png"><span>紅米糰</span><div id="cnt-red" class="count-badge">0</div></div>
+            <div class="item" onclick="select('white')"><img src="白米糰.png"><span>白米糰</span><div id="cnt-white" class="count-badge">0</div></div>
+            <div class="item" onclick="select('green')"><img src="綠米糰.png"><span>綠米糰</span><div id="cnt-green" class="count-badge">0</div></div>
+            <div class="item" onclick="select('syrup')"><img src="米漿.png"><span>米漿</span><div id="cnt-syrup" class="count-badge">0</div></div>
         </div>
-        <div class="filling-area">
-            <div class="item" onclick="addIngredient('sweet')"><img src="甜陷.png" alt="甜餡"><div id="count-sweet" class="badge">0</div></div>
-            <div class="item" onclick="addIngredient('salty')"><img src="鹹陷.png" alt="鹹餡"><div id="count-salty" class="badge">0</div></div>
+        <div class="filling-column">
+            <div class="item" onclick="select('sweet')"><img src="甜陷.png"><span>甜餡</span><div id="cnt-sweet" class="count-badge">0</div></div>
+            <div class="item" onclick="select('salty')"><img src="鹹陷.png"><span>鹹餡</span><div id="cnt-salty" class="count-badge">0</div></div>
         </div>
     </div>
 
-    <div class="steamer-container">
-        <img src="https://cdn-icons-png.flaticon.com/512/3227/3227094.png" class="steamer-img" alt="蒸籠">
-        <img id="result-display" src="" alt="成品">
+    <div class="game-main">
+        <img src="https://cdn-icons-png.flaticon.com/512/3227/3227094.png" class="steamer-base">
+        <img id="final-product" src="">
     </div>
 
-    <div class="action-btns">
-        <button class="btn-reset" onclick="resetSelection()">清除重選</button>
-        <button class="btn-make" onclick="checkRecipe()">開始製作</button>
+    <div class="btn-group">
+        <button class="btn-reset" onclick="reset()">重新配料</button>
+        <button class="btn-make" onclick="make()">開始製作</button>
     </div>
 
-    <div id="modal-overlay" class="overlay">
+    <div id="modal-overlay" class="modal-overlay">
         <div class="modal">
-            <h2 id="modal-title">獲得成就</h2>
-            <p id="modal-content"></p>
-            <button onclick="closeModal()">確定</button>
+            <h2 id="m-title">標題</h2>
+            <p id="m-desc">內容描述</p>
+            <div id="reward" class="reward-link" onclick="window.open('https://line.me/S/shop/sticker/xxx')">🎁 領取全成就獎勵貼圖！</div>
+            <button onclick="closeModal()" style="margin-top:20px; background:#444; color:white;">確定</button>
         </div>
     </div>
 
     <script>
-        // 遊戲狀態
-        let currentSelection = { red: 0, white: 0, green: 0, syrup: 0, sweet: 0, salty: 0 };
-        let unlockedAchievements = new Set();
+        // 食材與次數設定
+        let cart = { red: 0, white: 0, green: 0, syrup: 0, sweet: 0, salty: 0 };
+        let achievements = new Set();
 
-        // 譜方定義 (名稱: 組合條件)
-        const recipes = [
-            { name: "紅龜粿", ingredients: { red: 1, sweet: 1 }, img: "紅米糰.png" }, // 此處替換為對應粿類圖
-            { name: "菜頭粿", ingredients: { white: 1, salty: 1 }, img: "白米糰.png" },
-            { name: "紅圓", ingredients: { red: 1 }, img: "紅米糰.png" },
-            { name: "草仔粿", ingredients: { green: 1, salty: 1 }, img: "綠米糰.png" },
-            { name: "芋粿", ingredients: { white: 1, syrup: 1, salty: 1 }, img: "米漿.png" },
-            { name: "湯圓(甜)", ingredients: { white: 2, sweet: 1 }, isTangyuan: true },
-            { name: "湯圓(白)", ingredients: { white: 2 }, isTangyuan: true }
+        // 粿類配方表 (ingredients對應次數)
+        const recipeList = [
+            { id: '1', name: "紅龜粿", ingredients: { red: 1, sweet: 1 }, img: "紅米糰.png" },
+            { id: '2', name: "菜頭粿", ingredients: { white: 2, salty: 1 }, img: "白米糰.png" },
+            { id: '3', name: "紅圓", ingredients: { red: 1 }, img: "紅米糰.png" },
+            { id: '4', name: "草仔粿", ingredients: { green: 1, salty: 1 }, img: "綠米糰.png" },
+            { id: '5', name: "芋粿", ingredients: { white: 1, syrup: 1, salty: 1 }, img: "米漿.jpg" },
+            { id: '6', name: "湯圓", ingredients: { white: 1, red: 1 }, img: "白米糰.png" }, // 湯圓方式1
+            { id: '7', name: "湯圓", ingredients: { white: 2 }, img: "白米糰.png" }        // 湯圓方式2
         ];
 
-        function addIngredient(type) {
-            currentSelection[type]++;
-            const badge = document.getElementById(`count-${type}`);
-            badge.innerText = currentSelection[type];
-            badge.style.display = 'block';
+        function select(id) {
+            cart[id]++;
+            let badge = document.getElementById(`cnt-${id}`);
+            badge.innerText = cart[id];
+            badge.classList.add('show');
         }
 
-        function resetSelection() {
-            currentSelection = { red: 0, white: 0, green: 0, syrup: 0, sweet: 0, salty: 0 };
-            document.querySelectorAll('.badge').forEach(b => b.style.display = 'none');
-            document.getElementById('result-display').style.display = 'none';
+        function reset() {
+            cart = { red: 0, white: 0, green: 0, syrup: 0, sweet: 0, salty: 0 };
+            document.querySelectorAll('.count-badge').forEach(b => {
+                b.classList.remove('show');
+                b.innerText = "0";
+            });
+            document.getElementById('final-product').classList.remove('show');
         }
 
-        function checkRecipe() {
-            let found = null;
-            
-            // 判定邏輯
-            for (let recipe of recipes) {
+        function make() {
+            let successRecipe = null;
+
+            // 檢查是否有完全符合的配方
+            for (let recipe of recipeList) {
                 let match = true;
-                for (let key in currentSelection) {
-                    const required = recipe.ingredients[key] || 0;
-                    if (currentSelection[key] !== required) {
+                // 檢查該配方需要的所有食材次數
+                for (let key in cart) {
+                    let need = recipe.ingredients[key] || 0;
+                    if (cart[key] !== need) {
                         match = false;
                         break;
                     }
                 }
                 if (match) {
-                    found = recipe;
+                    successRecipe = recipe;
                     break;
                 }
             }
 
-            if (found) {
-                // 成功
-                const name = found.isTangyuan ? "湯圓" : found.name;
-                unlockedAchievements.add(name);
-                showModal("獲得成就", `成功製作：${name}`);
+            if (successRecipe) {
+                // 成功製作
+                achievements.add(successRecipe.name);
+                showResult(successRecipe);
+                openModal("獲得成就", `恭喜製作出【${successRecipe.name}】！`);
                 
-                // 顯示成品圖 (此處可替換成品圖路徑)
-                const display = document.getElementById('result-display');
-                display.src = found.img || "紅米糰.png"; 
-                display.style.display = 'block';
-
-                if (unlockedAchievements.size >= 6) { // 假設總共6種
-                    setTimeout(() => alert("恭喜完成全成就！領取 LINE 貼圖獎勵！"), 1000);
+                // 檢查是否完成全成就 (共6種：紅龜粿、菜頭粿、紅圓、草仔粿、芋粿、湯圓)
+                if (achievements.size >= 6) {
+                    document.getElementById('reward').style.display = 'block';
                 }
             } else {
-                // 失敗
-                showFailureHint();
+                // 失敗，給予隨機提示
+                giveHint();
             }
         }
 
-        function showFailureHint() {
-            const locked = recipes.filter(r => {
-                const name = r.isTangyuan ? "湯圓" : r.name;
-                return !unlockedAchievements.has(name);
-            });
-            
-            if (locked.length > 0) {
-                const hint = locked[Math.floor(Math.random() * locked.length)];
-                let hintText = "尚未達成成就。提示：試試看 ";
-                for(let key in hint.ingredients) {
-                    hintText += `${key} x${hint.ingredients[key]} `;
+        function showResult(recipe) {
+            let img = document.getElementById('final-product');
+            img.src = recipe.img; // 此處應為成品粿的圖片
+            img.classList.add('show');
+        }
+
+        function giveHint() {
+            // 找出還沒解鎖的粿名稱
+            const allNames = ["紅龜粿", "菜頭粿", "紅圓", "草仔粿", "芋粿", "湯圓"];
+            const lockedNames = allNames.filter(name => !achievements.has(name));
+
+            if (lockedNames.length > 0) {
+                const targetName = lockedNames[Math.floor(Math.random() * lockedNames.length)];
+                // 找到該名稱對應的其中一個配方
+                const hintRecipe = recipeList.find(r => r.name === targetName);
+                
+                let hintStr = "";
+                for(let key in hintRecipe.ingredients) {
+                    let cn = {red:'紅米糰', white:'白米糰', green:'綠米糰', syrup:'米漿', sweet:'甜餡', salty:'鹹餡'}[key];
+                    hintStr += `${cn} x${hintRecipe.ingredients[key]}、`;
                 }
-                showModal("製作失敗", hintText);
+                openModal("未達成成就", `提示：嘗試看看用 ${hintStr.slice(0, -1)} 製作別的粿類吧！`);
             }
         }
 
-        function showModal(title, content) {
-            document.getElementById('modal-title').innerText = title;
-            document.getElementById('modal-content').innerText = content;
+        function openModal(title, desc) {
+            document.getElementById('m-title').innerText = title;
+            document.getElementById('m-desc').innerText = desc;
             document.getElementById('modal-overlay').style.display = 'flex';
         }
 
@@ -165,4 +182,3 @@
     </script>
 </body>
 </html>
-
