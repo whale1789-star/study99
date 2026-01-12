@@ -3,100 +3,202 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>珈叡時鐘小達人測驗</title>
+    <title>快樂時鐘小學堂</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap');
+
         body {
-            font-family: '微軟正黑體', sans-serif;
-            background-color: #f0f8ff;
+            font-family: 'Fredoka', '微軟正黑體', sans-serif;
+            background-color: #E0F7FA;
+            background-image: radial-gradient(#B2EBF2 15%, transparent 16%), radial-gradient(#B2EBF2 15%, transparent 16%);
+            background-size: 60px 60px;
+            background-position: 0 0, 30px 30px;
             display: flex;
-            flex-direction: column;
+            justify-content: center;
             align-items: center;
+            min-height: 100vh;
+            margin: 0;
             padding: 20px;
         }
-        .quiz-container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            text-align: center;
-            max-width: 500px;
+
+        .game-wrapper {
+            position: relative;
+            max-width: 550px;
             width: 100%;
         }
-        h1 {
-            color: #2c3e50;
-            margin-bottom: 20px;
+
+        /* 吉祥物圖片設定 */
+        .mascot-img {
+            position: absolute;
+            top: -60px;
+            right: -30px;
+            width: 120px;
+            height: auto;
+            z-index: 10;
+            filter: drop-shadow(3px 3px 5px rgba(0,0,0,0.2));
+            animation: float 3s ease-in-out infinite;
         }
+
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(5deg); }
+            50% { transform: translateY(-15px) rotate(-5deg); }
+            100% { transform: translateY(0px) rotate(5deg); }
+        }
+
+        .quiz-container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 35px;
+            border: 8px solid #FFB74D;
+            box-shadow: 0 15px 0 #F57C00, 0 20px 20px rgba(0,0,0,0.15);
+            text-align: center;
+            position: relative;
+        }
+
+        h1 {
+            color: #EF6C00;
+            margin: 5px 0 20px 0;
+            font-size: 2em;
+            text-shadow: 2px 2px 0 #FFF3E0;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            background: #FFF3E0;
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #EF6C00;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            border: 2px dashed #FFB74D;
+        }
+
+        /* 時鐘外觀美化 */
         canvas {
-            border: 5px solid #333;
+            background-color: #fff;
             border-radius: 50%;
-            margin: 20px auto;
-            background-color: white;
+            border: 10px solid #4DD0E1;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.1), 0 5px 15px rgba(0,0,0,0.1);
+            margin: 0 auto;
             display: block;
         }
+
         .question-text {
-            font-size: 1.5em;
+            font-size: 1.6em;
+            color: #00838F;
             margin: 20px 0;
-            color: #333;
-            font-weight: bold;
+            font-weight: 600;
         }
+
         .options {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
-            margin-top: 20px;
         }
+
         button {
             padding: 15px;
-            font-size: 1.2em;
+            font-size: 1.3em;
             border: none;
-            border-radius: 10px;
+            border-radius: 20px;
             cursor: pointer;
-            background-color: #4CAF50;
-            color: white;
-            transition: transform 0.1s, background-color 0.2s;
-            font-family: '微軟正黑體', sans-serif;
+            background-color: #E1F5FE;
+            color: #0277BD;
+            font-family: inherit;
+            font-weight: bold;
+            box-shadow: 0 5px 0 #81D4FA;
+            transition: all 0.1s;
         }
-        button:hover {
-            background-color: #45a049;
-            transform: scale(1.05);
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            background-color: #B3E5FC;
         }
+
+        button:active:not(:disabled) {
+            transform: translateY(3px);
+            box-shadow: 0 0 0 #81D4FA;
+        }
+
         button:disabled {
-            background-color: #cccccc;
+            opacity: 0.6;
             cursor: not-allowed;
+            transform: translateY(3px);
+            box-shadow: none;
         }
+
         .feedback {
             margin-top: 20px;
-            font-size: 1.5em;
+            font-size: 1.4em;
             min-height: 1.5em;
+            font-weight: bold;
         }
-        .correct { color: #27ae60; }
-        .wrong { color: #c0392b; }
-        .score-board {
-            font-size: 1.2em;
-            margin-bottom: 10px;
-            color: #555;
-        }
+        
+        .correct { color: #43A047; text-shadow: 1px 1px 0 #C8E6C9; }
+        .wrong { color: #E53935; text-shadow: 1px 1px 0 #FFCDD2; }
+
         .next-btn {
             grid-column: span 2;
-            background-color: #3498db;
+            background-color: #FFCA28;
+            color: #5D4037;
+            box-shadow: 0 5px 0 #FF6F00;
+            margin-top: 10px;
+        }
+        .next-btn:hover:not(:disabled) {
+            background-color: #FFD54F;
+        }
+
+        /* 結算畫面 */
+        #result-screen {
             display: none;
+        }
+        .final-score {
+            font-size: 4em;
+            color: #FF5722;
+            margin: 10px 0;
+            font-weight: 800;
+            text-shadow: 3px 3px 0 #FFCCBC;
+        }
+        .restart-btn {
+            background-color: #66BB6A;
+            color: white;
+            box-shadow: 0 5px 0 #2E7D32;
+            padding: 15px 40px;
         }
     </style>
 </head>
 <body>
 
-<div class="quiz-container">
-    <h1>🕒 時鐘小達人</h1>
-    <div class="score-board">得分: <span id="score">0</span> / <span id="total">0</span></div>
-    
-    <canvas id="clockCanvas" width="300" height="300"></canvas>
-    
-    <div class="question-text">請問現在是幾點鐘？</div>
-    
-    <div class="options" id="options-container">
+<div class="game-wrapper">
+    <img src="S876553.png" alt="可愛小幫手" class="mascot-img" onerror="this.style.display='none'">
+
+    <div class="quiz-container" id="game-screen">
+        <h1>🕒 快樂時鐘小學堂</h1>
+        
+        <div class="status-bar">
+            <div>第 <span id="q-num">1</span>/10 題</div>
+            <div>得分：<span id="score">0</span></div>
         </div>
-    
-    <div class="feedback" id="feedback"></div>
+        
+        <canvas id="clockCanvas" width="280" height="280"></canvas>
+        
+        <div class="question-text">請問這是幾點幾分？</div>
+        
+        <div class="options" id="options-container"></div>
+        
+        <div class="feedback" id="feedback"></div>
+    </div>
+
+    <div class="quiz-container" id="result-screen">
+        <h1>🎉 測驗結束！</h1>
+        <p style="font-size: 1.5em; color: #555;">小朋友，你的成績是：</p>
+        <div class="final-score" id="final-score-display">0</div>
+        <p id="comment" style="font-size: 1.3em; color: #0277BD; font-weight: bold;">評語載入中...</p>
+        <br>
+        <button class="restart-btn" onclick="restartGame()">再玩一次 🚀</button>
+    </div>
 </div>
 
 <script>
@@ -104,72 +206,76 @@
     const ctx = canvas.getContext('2d');
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
-    const radius = canvas.width / 2 - 20; // 留邊距
+    const radius = canvas.width / 2 - 15;
 
-    let currentQuestionIndex = 0;
-    let score = 0;
-    let totalQuestions = 0;
+    let currentQuestionNum = 1;
+    const totalQuestions = 10;
+    let totalScore = 0;
+    
+    let currentQ = {}; 
+    let currentQuestionPoints = 10; 
+    let isQuestionActive = true; 
 
-    // 題庫產生器 (整點與半點)
-    function generateQuestion() {
-        const isHalf = Math.random() > 0.5; // 50%機率是半點
-        let hour = Math.floor(Math.random() * 12) + 1; // 1-12
-        let minute = isHalf ? 30 : 0;
-        
-        return { hour, minute };
-    }
-
-    let currentQ = {};
-
+    // 繪製時鐘
     function drawClock(hour, minute) {
-        // 清除畫布
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 畫鐘面圓框
+        // 鐘面背景
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-        ctx.fillStyle = 'white';
+        ctx.fillStyle = '#FAFAFA';
         ctx.fill();
-        ctx.lineWidth = 5;
-        ctx.strokeStyle = '#333';
-        ctx.stroke();
-
-        // 畫刻度與數字
-        ctx.font = 'bold 24px Arial';
+        
+        // 畫彩色刻度
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#333';
-
-        for (let num = 1; num <= 12; num++) {
-            let angle = (num * Math.PI) / 6;
-            let x = centerX + Math.cos(angle - Math.PI / 2) * (radius - 40);
-            let y = centerY + Math.sin(angle - Math.PI / 2) * (radius - 40);
-            ctx.fillText(num.toString(), x, y);
+        
+        for (let i = 0; i < 60; i++) {
+            let angle = (i * Math.PI / 30) - (Math.PI / 2);
+            let isMain = (i % 5 === 0);
+            let len = isMain ? 12 : 6;
             
-            // 小刻度
-            let x2 = centerX + Math.cos(angle - Math.PI / 2) * (radius - 10);
-            let y2 = centerY + Math.sin(angle - Math.PI / 2) * (radius - 10);
+            let x1 = centerX + Math.cos(angle) * (radius - len);
+            let y1 = centerY + Math.sin(angle) * (radius - len);
+            let x2 = centerX + Math.cos(angle) * radius;
+            let y2 = centerY + Math.sin(angle) * radius;
+            
             ctx.beginPath();
-            ctx.arc(x2, y2, 2, 0, 2 * Math.PI);
-            ctx.fill();
+            ctx.lineWidth = isMain ? 4 : 2;
+            ctx.strokeStyle = isMain ? '#FF7043' : '#BDBDBD'; // 橘色大刻度，灰色小刻度
+            ctx.lineCap = 'round';
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            
+            if (isMain) {
+                let num = i / 5; 
+                if (num === 0) num = 12;
+                let numX = centerX + Math.cos(angle) * (radius - 30);
+                let numY = centerY + Math.sin(angle) * (radius - 30);
+                
+                ctx.font = 'bold 24px "Fredoka", Arial';
+                ctx.fillStyle = '#5D4037';
+                ctx.fillText(num.toString(), numX, numY + 2); // 微調垂直位置
+            }
         }
 
-        // 計算角度
-        // 分針：每分鐘 6 度
         let minAngle = (minute * Math.PI / 30) - (Math.PI / 2);
-        // 時針：每小時 30 度，加上分鐘帶動的偏移量 (每分鐘 0.5 度)
-        let hourAngle = (hour * Math.PI / 6) + (minute * Math.PI / 360) - (Math.PI / 2);
+        let hourAngle = ((hour % 12) * Math.PI / 6) + (minute * Math.PI / 360) - (Math.PI / 2);
 
-        // 畫分針 (長針 - 藍色)
-        drawHand(ctx, minAngle, radius * 0.8, 6, '#2196F3');
-        // 畫時針 (短針 - 紅色)
-        drawHand(ctx, hourAngle, radius * 0.5, 10, '#f44336');
+        // 分針 (圓圓的藍色)
+        drawHand(ctx, minAngle, radius * 0.8, 6, '#29B6F6');
+        // 時針 (圓圓的粉紅色)
+        drawHand(ctx, hourAngle, radius * 0.5, 9, '#EC407A');
 
-        // 畫中心點
+        // 中心點
         ctx.beginPath();
         ctx.arc(centerX, centerY, 8, 0, 2 * Math.PI);
-        ctx.fillStyle = '#333';
+        ctx.fillStyle = '#FFCA28';
         ctx.fill();
+        ctx.strokeStyle = '#F57C00';
+        ctx.lineWidth = 2;
+        ctx.stroke();
     }
 
     function drawHand(ctx, pos, length, width, color) {
@@ -182,79 +288,145 @@
         ctx.stroke();
     }
 
-    function startGame() {
-        currentQ = generateQuestion();
-        drawClock(currentQ.hour, currentQ.minute);
-        generateOptions(currentQ.hour, currentQ.minute);
-        document.getElementById('feedback').innerText = "";
+    function generateQuestionData() {
+        // 隨機出題：每題都可能是任意分鐘，增加 0 分或 5 的倍數機率讓題目更有趣
+        let r = Math.random();
+        let minute;
+        
+        if (r < 0.2) minute = 0; // 20% 整點
+        else if (r < 0.5) minute = 30; // 30% 半點
+        else if (r < 0.8) minute = Math.floor(Math.random() * 12) * 5; // 30% 5的倍數
+        else minute = Math.floor(Math.random() * 60); // 20% 任意分鐘
+        
+        let hour = Math.floor(Math.random() * 12) + 1;
+        
+        return { hour, minute };
     }
 
-    function generateOptions(correctHour, correctMinute) {
+    function formatTime(h, m) {
+        let mStr = m.toString().padStart(2, '0');
+        return `${h}點 ${mStr}分`;
+    }
+
+    function initQuestion() {
+        currentQ = generateQuestionData();
+        currentQuestionPoints = 10;
+        isQuestionActive = true;
+        
+        document.getElementById('q-num').innerText = currentQuestionNum;
+        document.getElementById('feedback').innerText = "";
+        
+        drawClock(currentQ.hour, currentQ.minute);
+        generateOptions(currentQ.hour, currentQ.minute);
+    }
+
+    function generateOptions(h, m) {
         const container = document.getElementById('options-container');
         container.innerHTML = '';
-
-        // 產生正確答案文字
-        let correctText = `${correctHour} 點 ${correctMinute === 0 ? '整' : '半'}`;
-        if (correctMinute === 0) correctText = `${correctHour} 點鐘`; // 另一種說法
-        if (correctMinute === 30) correctText = `${correctHour} 點 30 分`;
-
-        // 產生錯誤選項
+        
+        let correctText = formatTime(h, m);
         let options = [correctText];
+        
         while (options.length < 4) {
-            let h = Math.floor(Math.random() * 12) + 1;
-            let m = Math.random() > 0.5 ? 0 : 30;
-            let text = `${h} 點 ${m === 0 ? '鐘' : '30 分'}`;
+            let fakeH = Math.floor(Math.random() * 12) + 1;
+            let fakeM = Math.floor(Math.random() * 60);
             
-            // 避免重複和正確答案一樣
-            if (!options.includes(text)) {
-                options.push(text);
-            }
+            // 智慧產生混淆選項
+            if (Math.random() < 0.3) { fakeH = (h === 12) ? 1 : h + 1; fakeM = m; } 
+            else if (Math.random() < 0.3) { fakeH = h; fakeM = (m + 5) % 60; }
+            
+            let fakeText = formatTime(fakeH, fakeM);
+            if (!options.includes(fakeText)) options.push(fakeText);
         }
 
-        // 洗牌選項
         options.sort(() => Math.random() - 0.5);
 
         options.forEach(opt => {
             let btn = document.createElement('button');
             btn.innerText = opt;
-            btn.onclick = () => checkAnswer(opt, correctText, btn);
+            btn.onclick = (e) => checkAnswer(opt, correctText, e.target);
             container.appendChild(btn);
         });
     }
 
-    function checkAnswer(selected, correct, btnElement) {
-        const buttons = document.querySelectorAll('.options button');
-        buttons.forEach(b => b.disabled = true); // 鎖定按鈕
+    function checkAnswer(selected, correct, btn) {
+        if (!isQuestionActive) return;
 
         if (selected === correct) {
-            btnElement.style.backgroundColor = '#27ae60';
-            document.getElementById('feedback').innerHTML = "<span class='correct'>答對了！好棒！🎉</span>";
-            score++;
+            isQuestionActive = false;
+            totalScore += currentQuestionPoints;
+            document.getElementById('score').innerText = totalScore;
+            
+            btn.style.backgroundColor = '#A5D6A7'; 
+            btn.style.color = '#1B5E20';
+            btn.style.boxShadow = 'none';
+            btn.style.transform = 'translateY(3px)';
+            
+            document.getElementById('feedback').innerHTML = 
+                `<span class='correct'>✨ 答對了！+${currentQuestionPoints} 分 ✨</span>`;
+            
+            showNextButton();
         } else {
-            btnElement.style.backgroundColor = '#e74c3c';
-            // 找出正確的按鈕標綠色
-            buttons.forEach(b => {
-                if (b.innerText === correct) b.style.backgroundColor = '#27ae60';
-            });
-            document.getElementById('feedback').innerHTML = `<span class='wrong'>哎呀，正確答案是 ${correct} 喔！</span>`;
+            btn.disabled = true;
+            btn.style.backgroundColor = '#EF9A9A';
+            btn.style.color = '#B71C1C';
+            btn.style.boxShadow = 'none';
+            btn.style.transform = 'translateY(3px)';
+            
+            if (currentQuestionPoints > 0) {
+                currentQuestionPoints -= 5;
+                if (currentQuestionPoints < 0) currentQuestionPoints = 0;
+                document.getElementById('feedback').innerHTML = 
+                    `<span class='wrong'>💥 哎呀！扣 5 分，再試試看！(本題剩 ${currentQuestionPoints} 分)</span>`;
+            } else {
+                document.getElementById('feedback').innerHTML = 
+                    `<span class='wrong'>這題沒分了，正確答案是 ${correct} 喔。</span>`;
+            }
         }
-
-        totalQuestions++;
-        document.getElementById('score').innerText = score;
-        document.getElementById('total').innerText = totalQuestions;
-
-        // 產生「下一題」按鈕
+    }
+    
+    function showNextButton() {
+        const container = document.getElementById('options-container');
         let nextBtn = document.createElement('button');
-        nextBtn.innerText = "下一題 ➡️";
         nextBtn.className = "next-btn";
-        nextBtn.style.display = "block";
-        nextBtn.onclick = startGame;
-        document.getElementById('options-container').appendChild(nextBtn);
+        
+        if (currentQuestionNum < totalQuestions) {
+            nextBtn.innerText = "下一題 ➡️";
+            nextBtn.onclick = () => {
+                currentQuestionNum++;
+                initQuestion();
+            };
+        } else {
+            nextBtn.innerText = "看成績單 🏆";
+            nextBtn.onclick = showResults;
+        }
+        container.appendChild(nextBtn);
+    }
+    
+    function showResults() {
+        document.getElementById('game-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+        document.getElementById('final-score-display').innerText = totalScore;
+        
+        let comment = "";
+        if (totalScore === 100) comment = "👑 太完美了！你是時間之神！";
+        else if (totalScore >= 80) comment = "🌟 好厲害！你是時間小達人！";
+        else if (totalScore >= 60) comment = "👍 不錯喔，再加油一點點！";
+        else comment = "🔥 沒關係，多練習幾次就會變強！";
+        
+        document.getElementById('comment').innerText = comment;
+    }
+    
+    function restartGame() {
+        currentQuestionNum = 1;
+        totalScore = 0;
+        document.getElementById('score').innerText = "0";
+        document.getElementById('result-screen').style.display = 'none';
+        document.getElementById('game-screen').style.display = 'block';
+        initQuestion();
     }
 
-    // 初始化遊戲
-    startGame();
-
+    initQuestion();
 </script>
 
 </body>
