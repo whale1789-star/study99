@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>快樂時鐘小學堂</title>
+    <title>珈叡快樂時鐘小學堂</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap');
 
@@ -175,7 +175,7 @@
     <img src="S876553.png" alt="可愛小幫手" class="mascot-img" onerror="this.style.display='none'">
 
     <div class="quiz-container" id="game-screen">
-        <h1>🕒 快樂時鐘小學堂</h1>
+        <h1>🕒 珈叡快樂時鐘小學堂</h1>
         
         <div class="status-bar">
             <div>第 <span id="q-num">1</span>/10 題</div>
@@ -293,9 +293,9 @@
         let r = Math.random();
         let minute;
         
-        if (r < 0.2) minute = 0; // 20% 整點
-        else if (r < 0.5) minute = 30; // 30% 半點
-        else if (r < 0.8) minute = Math.floor(Math.random() * 12) * 5; // 30% 5的倍數
+        if (r < 0.1) minute = 0; // 20% 整點
+        else if (r < 0.3) minute = 30; // 30% 半點
+        else if (r < 0.5) minute = Math.floor(Math.random() * 12) * 5; // 30% 5的倍數
         else minute = Math.floor(Math.random() * 60); // 20% 任意分鐘
         
         let hour = Math.floor(Math.random() * 12) + 1;
