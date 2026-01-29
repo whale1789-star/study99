@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>電腦組裝大師 - 圖解版</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --motherboard-color: #34495e;
+            --slot-color: #2c3e50;
+            --slot-hover: #4a69bd;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            user-select: none; /* 防止拖曳時選取到文字 */
+        }
+
+        h1 { margin-bottom: 5px; }
+        p.instruction { color: #666; margin-bottom: 25px; }
+
+        .game-container {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+            max-width: 1200px;
+        }
+
+        /* --- 左側零件區 --- */
+        .parts-inventory {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 260px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .part {
+            background: #fff;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            padding: 8px;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.2s;
+        }
+
+        .part:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.2);
+            border-color: #3498db;
+        }
+
+        /* SVG 圖片容器樣式 */
+        .icon-svg {
+            width: 60px;
+            height: 60px;
+            display: block;
+        }
+
+        /* --- 右側主機板 --- */
+        .motherboard-area {
+            background: var(--motherboard-color);
+            width: 500px;
+            height: 650px;
+            border-radius: 12px;
+            position: relative;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.2), 0 10px 30px rgba(0,0,0,0.3);
+            border: 4px solid #95a5a6;
+            /* 模擬電路板紋路背景 */
+            background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* 插槽通用樣式 */
+        .slot {
+            background-color: var(--slot-color);
+            border: 2px dashed #7f8c8d;
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #95a5a6;
+            font-weight: bold;
+            font-size: 0.9em;
+            transition: all 0.3s;
+            overflow: hidden; /* 確保放入的圖片不會溢出 */
+        }
+
+        .slot.drag-over {
+            background-color: var(--slot-hover);
+            border-color: #f1c40f;
+            box-shadow: 0 0 15px #f1c40f;
+        }
+
+        /* 成功放入後的樣式 */
+        .slot.correct {
+            border: 2px solid #2ecc71;
+            background-color: transparent; /* 變透明以顯示零件 */
+        }
+
+        /* 成功放入後，零件在插槽內的樣式調整 */
+        .slot.correct .part {
+            border: none;
+            background: transparent;
+            box-shadow: none;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            justify-content: center;
+        }
+        /* 隱藏文字，只顯示圖片 */
+        .slot.correct .part .part-text { display: none; }
+        /* 調整圖片大小以適應插槽 */
+        .slot.correct .part .icon-svg { width: 90%; height: 90%; }
+
+
+        /* --- 插槽位置定義 (模擬 ATX 主機板佈局) --- */
+        #slot-cpu {
+            width: 110px; height: 110px;
+            top: 120px; left: 220px;
+            border-radius: 8px;
+        }
+        #slot-ram {
+            width: 30px; height: 200px;
+            top: 80px; left: 360px;
+            /* 模擬兩條插槽 */
+            background-image: linear-gradient(to right, transparent 45%, #7f8c8d 45%, #7f8c8d 55%, transparent 55%);
+        }
+        #slot-gpu {
+            width: 350px; height: 45px;
+            top: 400px; left: 80px;
+            border-color: #e74c3c; /* PCIe 顏色區隔 */
+        }
+        #slot-psu {
+            width: 160px; height: 120px;
+            bottom: 30px; left: 30px;
+            border-style: dotted;
+        }
+        #slot-ssd {
+            width: 100px; height: 60px;
+            bottom: 180px; left: 380px;
+        }
+
+        /* 成功彈窗 */
+        .success-modal {
+            display: none;
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: white; padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            text-align: center; z-index: 999;
+        }
+        .success-modal h2 { color: #27ae60; margin-top: 0; }
+        .success-modal button {
+            background: #3498db; color: white; border: none;
+            padding: 12px 25px; border-radius: 8px;
+            font-size: 1.1em; cursor: pointer; margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🛠️ 電腦硬體組裝大師</h1>
+    <p class="instruction">請觀察左側的零件圖案，將它們拖放到主機板上正確對應的插槽中！</p>
+
+    <div class="game-container">
+        <div class="parts-inventory">
+            
+            <div class="part" draggable="true" id="cpu" data-type="cpu">
+                <svg class="icon-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="10" y="10" width="80" height="80" rx="5" fill="#bdc3c7" stroke="#7f8c8d" stroke-width="2"/>
+                    <rect x="25" y="25" width="50" height="50" fill="#95a5a6"/>
+                    <text x="50" y="55" font-size="14" text-anchor="middle" fill="#34495e" font-weight="bold">CPU</text>
+                    <circle cx="15" cy="15" r="2" fill="#f1c40f"/><circle cx="85" cy="15" r="2" fill="#f1c40f"/>
+                    <circle cx="15" cy="85" r="2" fill="#f1c40f"/><circle cx="85" cy="85" r="2" fill="#f1c40f"/>
+                </svg>
+                <div class="part-text">
+                    <strong>中央處理器 (CPU)</strong><br><small>電腦的大腦</small>
+                </div>
+            </div>
+
+            <div class="part" draggable="true" id="ram" data-type="ram">
+                <svg class="icon-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="20" y="5" width="60" height="90" rx="3" fill="#27ae60" stroke="#219a52" stroke-width="2"/>
+                    <rect x="30" y="15" width="15" height="20" fill="#2ecc71"/><rect x="55" y="15" width="15" height="20" fill="#2ecc71"/>
+                    <rect x="30" y="40" width="15" height="20" fill="#2ecc71"/><rect x="55" y="40" width="15" height="20" fill="#2ecc71"/>
+                    <rect x="25" y="90" width="50" height="5" fill="#f1c40f"/>
+                </svg>
+                <div class="part-text">
+                    <strong>記憶體 (RAM)</strong><br><small>暫存資料</small>
+                </div>
+            </div>
+
+            <div class="part" draggable="true" id="gpu" data-type="gpu">
+                <svg class="icon-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="5" y="25" width="90" height="50" rx="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                    <circle cx="50" cy="50" r="20" fill="#333" stroke="#555" stroke-width="2"/>
+                    <path d="M50 30 L50 70 M30 50 L70 50" stroke="#777" stroke-width="3"/>
+                    <text x="85" y="45" font-size="10" fill="white" font-weight="bold">GPU</text>
+                    <rect x="15" y="75" width="60" height="8" fill="#f1c40f"/>
+                </svg>
+                <div class="part-text">
+                    <strong>顯示卡 (GPU)</strong><br><small>處理畫面圖形</small>
+                </div>
+            </div>
+
+            <div class="part" draggable="true" id="psu" data-type="psu">
+                <svg class="icon-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="10" y="15" width="80" height="70" rx="5" fill="#34495e" stroke="#2c3e50" stroke-width="3"/>
+                    <circle cx="50" cy="50" r="25" fill="none" stroke="#7f8c8d" stroke-width="2" stroke-dasharray="4 2"/>
+                    <rect x="75" y="25" width="10" height="15" fill="#e74c3c"/>
+                    <rect x="73" y="55" width="14" height="20" fill="#000"/>
+                    <text x="20" y="35" font-size="12" fill="white">POWER</text>
+                </svg>
+                <div class="part-text">
+                    <strong>電源供應器 (PSU)</strong><br><small>提供所有電力</small>
+                </div>
+            </div>
+
+            <div class="part" draggable="true" id="ssd" data-type="ssd">
+                 <svg class="icon-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="10" y="25" width="80" height="50" rx="4" fill="#3498db" stroke="#2980b9" stroke-width="2"/>
+                    <text x="50" y="55" font-size="16" text-anchor="middle" fill="white" font-weight="bold">SSD</text>
+                    <rect x="85" y="35" width="5" height="15" fill="#000"/>
+                    <rect x="85" y="55" width="5" height="10" fill="#f1c40f"/>
+                </svg>
+                <div class="part-text">
+                    <strong>固態硬碟 (SSD)</strong><br><small>儲存系統與檔案</small>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="motherboard-area">
+            <div class="slot" id="slot-cpu" data-accept="cpu">CPU 插座區</div>
+            <div class="slot" id="slot-ram" data-accept="ram">記憶體插槽 (DIMM)</div>
+            <div class="slot" id="slot-gpu" data-accept="gpu">顯示卡插槽 (PCIe)</div>
+            <div class="slot" id="slot-psu" data-accept="psu">電源放置區</div>
+            <div class="slot" id="slot-ssd" data-accept="ssd">硬碟區 (SATA)</div>
+        </div>
+    </div>
+
+    <div class="success-modal" id="successModal">
+        <h2>🎉 恭喜！組裝完成！</h2>
+        <p>主機板上的關鍵零組件都已安裝到正確位置。</p>
+        <button onclick="window.location.reload()">再玩一次</button>
+    </div>
+
+    <script>
+        // --- 遊戲邏輯 ---
+        const parts = document.querySelectorAll('.part');
+        const slots = document.querySelectorAll('.slot');
+        let installedCount = 0;
+        const totalParts = parts.length;
+
+        // 1. 拖曳開始
+        parts.forEach(part => {
+            part.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', e.target.id);
+                // 延遲一下讓拖曳的「幽靈」影像產生後再變半透明
+                setTimeout(() => e.target.style.opacity = '0.4', 0);
+            });
+            // 拖曳結束 (無論成功失敗) 恢復透明度
+            part.addEventListener('dragend', (e) => {
+                 e.target.style.opacity = '1';
+            });
+        });
+
+        // 2. 拖曳經過插槽
+        slots.forEach(slot => {
+            slot.addEventListener('dragover', (e) => {
+                e.preventDefault(); // 允許放置
+                slot.classList.add('drag-over');
+            });
+
+            slot.addEventListener('dragleave', () => {
+                slot.classList.remove('drag-over');
+            });
+
+            // 3. 放置 (Drop)
+            slot.addEventListener('drop', (e) => {
+                e.preventDefault();
+                slot.classList.remove('drag-over');
+
+                const partId = e.dataTransfer.getData('text/plain');
+                const part = document.getElementById(partId);
+
+                // 驗證配對
+                if (slot.dataset.accept === part.dataset.type) {
+                    // 成功！
+                    slot.innerHTML = ''; // 清空插槽提示字
+                    slot.appendChild(part); // 將零件元素移動到插槽內
+                    
+                    // 設定完成後的樣式
+                    part.draggable = false;
+                    part.style.cursor = 'default';
+                    slot.classList.add('correct');
+                    
+                    installedCount++;
+                    checkWin();
+                }
+            });
+        });
+
+        function checkWin() {
+            if (installedCount === totalParts) {
+                 // 稍微延遲顯示成功視窗
+                setTimeout(() => {
+                    document.getElementById('successModal').style.display = 'block';
+                }, 300);
+            }
+        }
+    </script>
+</body>
+</html>
