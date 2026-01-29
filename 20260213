@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>技術入門：GitHub 與 Gemini 網頁設計</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            dark: '#0f172a',
+                            light: '#1e293b',
+                            accent: '#38bdf8',
+                            secondary: '#818cf8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-text {
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .step-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(56, 189, 248, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-200 font-sans antialiased selection:bg-brand-accent selection:text-white">
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 bg-slate-900/90 backdrop-blur-md border-b border-slate-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-code text-brand-accent text-xl"></i>
+                    <span class="font-bold text-xl tracking-wider text-white">Dev<span class="text-brand-accent">Start</span></span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-8">
+                        <a href="#github-section" class="hover:text-brand-accent px-3 py-2 rounded-md text-sm font-medium transition-colors">GitHub 教學</a>
+                        <a href="#gemini-section" class="hover:text-brand-accent px-3 py-2 rounded-md text-sm font-medium transition-colors">Gemini 網頁設計</a>
+                    </div>
+                </div>
+                <!-- Mobile menu button -->
+                <div class="md:hidden">
+                    <button onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="text-gray-300 hover:text-white p-2">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-slate-800 border-b border-slate-700">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#github-section" class="text-gray-300 hover:text-brand-accent block px-3 py-2 rounded-md text-base font-medium">GitHub 教學</a>
+                <a href="#gemini-section" class="text-gray-300 hover:text-brand-accent block px-3 py-2 rounded-md text-base font-medium">Gemini 網頁設計</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-32 pb-20 px-4 text-center bg-gradient-to-b from-slate-900 to-slate-800">
+        <div class="max-w-4xl mx-auto">
+            <div class="inline-block px-4 py-1.5 mb-6 rounded-full bg-slate-800 border border-slate-700 text-sm text-brand-accent font-medium">
+                現代開發者必備技能
+            </div>
+            <h1 class="text-4xl md:text-6xl font-bold mb-6 text-white leading-tight">
+                掌握 <span class="gradient-text">GitHub</span> 版本控制<br>
+                運用 <span class="gradient-text">Gemini</span> 加速開發
+            </h1>
+            <p class="text-lg text-slate-400 mb-10 max-w-2xl mx-auto">
+                從建立你的第一個程式碼儲存庫，到利用 AI 輔助生成高品質網頁代碼，這裡提供最完整的入門指南。
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <a href="#github-section" class="px-8 py-3 bg-brand-accent hover:bg-sky-400 text-slate-900 font-bold rounded-lg transition-all shadow-lg shadow-sky-500/20">
+                    <i class="fa-brands fa-github mr-2"></i> 開始 GitHub 之旅
+                </a>
+                <a href="#gemini-section" class="px-8 py-3 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-white font-bold rounded-lg transition-all">
+                    <i class="fa-solid fa-robot mr-2"></i> 學習 Gemini 開發
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- GitHub Section -->
+    <section id="github-section" class="py-20 bg-slate-900">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-white mb-4">GitHub 帳號申請與使用</h2>
+                <p class="text-slate-400">全球最大的程式碼託管平台，開發者的履歷與協作中心。</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-12 items-start">
+                <!-- Part 1: Registration -->
+                <div>
+                    <h3 class="text-xl font-bold text-brand-accent mb-6 flex items-center">
+                        <span class="w-8 h-8 rounded-full bg-brand-accent/10 flex items-center justify-center mr-3 text-sm">1</span>
+                        帳號註冊流程
+                    </h3>
+                    <div class="space-y-6">
+                        <div class="step-card bg-slate-800 p-6 rounded-xl border border-slate-700 transition-all">
+                            <div class="flex items-start gap-4">
+                                <div class="mt-1 text-sky-400"><i class="fa-solid fa-globe"></i></div>
+                                <div>
+                                    <h4 class="font-bold text-white mb-2">訪問官網</h4>
+                                    <p class="text-sm text-slate-400">前往 <a href="https://github.com" target="_blank" class="text-brand-accent hover:underline">github.com</a>，點擊右上角的 "Sign up" 按鈕。</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step-card bg-slate-800 p-6 rounded-xl border border-slate-700 transition-all">
+                            <div class="flex items-start gap-4">
+                                <div class="mt-1 text-sky-400"><i class="fa-solid fa-envelope"></i></div>
+                                <div>
+                                    <h4 class="font-bold text-white mb-2">選擇註冊方式</h4>
+                                    <p class="text-sm text-slate-400">
+                                        推薦點選 <span class="inline-block bg-white text-slate-800 text-xs font-bold px-1.5 py-0.5 rounded border border-gray-300 mx-1"><i class="fa-brands fa-google mr-1"></i>Google</span> 快速註冊。
+                                        <br><span class="block mt-1">或是手動輸入 Email、設定密碼並建立使用者名稱。</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step-card bg-slate-800 p-6 rounded-xl border border-slate-700 transition-all">
+                            <div class="flex items-start gap-4">
+                                <div class="mt-1 text-sky-400"><i class="fa-solid fa-shield-halved"></i></div>
+                                <div>
+                                    <h4 class="font-bold text-white mb-2">驗證與方案</h4>
+                                    <p class="text-sm text-slate-400">完成機器人驗證與 Email 驗證碼確認。選擇 "Free" (免費) 個人方案即可開始使用。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Part 2: Basic Usage -->
+                <div>
+                    <h3 class="text-xl font-bold text-brand-secondary mb-6 flex items-center">
+                        <span class="w-8 h-8 rounded-full bg-brand-secondary/10 flex items-center justify-center mr-3 text-sm">2</span>
+                        建立第一個 Repository
+                    </h3>
+                    <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+                        <div class="bg-slate-950 px-4 py-2 border-b border-slate-700 flex gap-2">
+                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        </div>
+                        <div class="p-6 space-y-8">
+                            <div>
+                                <h4 class="font-bold text-white mb-2"><i class="fa-solid fa-plus text-brand-secondary mr-2"></i>新增專案</h4>
+                                <p class="text-sm text-slate-400 mb-2">點擊右上角 "+" 號，選擇 <strong>New repository</strong>。</p>
+                            </div>
+                            
+                            <div>
+                                <h4 class="font-bold text-white mb-2"><i class="fa-solid fa-pen-to-square text-brand-secondary mr-2"></i>設定內容</h4>
+                                <ul class="text-sm text-slate-400 space-y-2 list-disc list-inside ml-2">
+                                    <li><strong>Repository name:</strong> 輸入專案名稱 (如: my-first-website)</li>
+                                    <li><strong>Public/Private:</strong> 選擇公開或私人</li>
+                                    <li>勾選 <strong>Add a README file</strong> (建議新手勾選)</li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h4 class="font-bold text-white mb-2"><i class="fa-solid fa-upload text-brand-secondary mr-2"></i>上傳檔案</h4>
+                                <p class="text-sm text-slate-400">建立後，點擊 <strong>Add file</strong> > <strong>Upload files</strong>，將你的網頁檔案拖曳上傳，並點擊 "Commit changes" 保存。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Gemini AI Section -->
+    <section id="gemini-section" class="py-20 bg-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <span class="text-brand-accent font-bold tracking-wider uppercase text-sm">AI 賦能開發</span>
+                <h2 class="text-3xl font-bold text-white mt-2 mb-4">利用 Gemini 設計教學網頁</h2>
+                <p class="text-slate-400">學會「提示工程 (Prompt Engineering)」，讓 AI 成為你的資深工程師。</p>
+            </div>
+
+            <!-- Workflow -->
+            <div class="grid md:grid-cols-3 gap-8 mb-16">
+                <div class="bg-slate-900/50 p-6 rounded-xl border border-slate-700 text-center">
+                    <div class="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-400 text-2xl">
+                        <i class="fa-solid fa-bullseye"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">1. 定義角色與目標</h3>
+                    <p class="text-sm text-slate-400">告訴 Gemini 它是誰 (如：前端專家)，以及你要做什麼 (如：響應式個人履歷)。</p>
+                </div>
+                <div class="bg-slate-900/50 p-6 rounded-xl border border-slate-700 text-center">
+                    <div class="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4 text-purple-400 text-2xl">
+                        <i class="fa-solid fa-list-check"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">2. 提供具體細節</h3>
+                    <p class="text-sm text-slate-400">包含技術棧 (HTML, Tailwind)、配色偏好、需要的區塊 (Hero, About, Contact)。</p>
+                </div>
+                <div class="bg-slate-900/50 p-6 rounded-xl border border-slate-700 text-center">
+                    <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 text-green-400 text-2xl">
+                        <i class="fa-solid fa-code"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">3. 迭代與修正</h3>
+                    <p class="text-sm text-slate-400">AI 第一次產出可能不完美。請具體指出問題 (如：字體太大、導覽列要固定) 讓它修改。</p>
+                </div>
+            </div>
+
+            <!-- Interactive Prompt Example -->
+            <div class="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl border border-slate-700 overflow-hidden shadow-2xl">
+                <div class="p-8 md:p-12 grid md:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <h3 class="text-2xl font-bold mb-4">實戰：萬用 Prompt 範本</h3>
+                        <p class="text-slate-400 mb-6">複製以下指令貼給 Gemini，立即獲得高品質網頁代碼。</p>
+                        
+                        <div class="relative group">
+                            <div class="absolute -inset-1 bg-gradient-to-r from-brand-accent to-purple-600 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                            <div class="relative bg-slate-950 p-4 rounded-lg border border-slate-700 font-mono text-sm text-gray-300 whitespace-pre-wrap">
+<span class="text-purple-400"># 角色</span>
+你是一位資深的網頁前端設計師。
+
+<span class="text-purple-400"># 任務</span>
+請幫我用 HTML5 與 Tailwind CSS (CDN版本) 製作一個單頁式網頁。
+
+<span class="text-purple-400"># 內容需求</span>
+1. 主題：[填入你的主題，例如：咖啡店介紹]
+2. 區塊：導覽列、Hero區塊(大圖與標題)、特色介紹(3欄式卡片)、頁尾。
+3. 風格：[填入風格，例如：極簡、溫暖色調]。
+
+<span class="text-purple-400"># 限制</span>
+所有 CSS 都要寫在 class 裡，確保 RWD 手機版也能正常顯示。</div>
+                        </div>
+                    </div>
+                    
+                    <div class="relative">
+                        <div class="absolute -top-10 -left-10 w-40 h-40 bg-brand-accent/20 rounded-full blur-3xl"></div>
+                        <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl"></div>
+                        <div class="relative bg-slate-800/80 backdrop-blur border border-slate-600 rounded-xl p-6">
+                            <h4 class="font-bold text-white mb-4 border-b border-slate-600 pb-2">Gemini 思考邏輯</h4>
+                            <ul class="space-y-4">
+                                <li class="flex items-center gap-3 text-sm text-slate-300">
+                                    <i class="fa-solid fa-check text-green-400"></i>
+                                    <span>分析用戶提供的結構需求</span>
+                                </li>
+                                <li class="flex items-center gap-3 text-sm text-slate-300">
+                                    <i class="fa-solid fa-check text-green-400"></i>
+                                    <span>選擇 Tailwind Utility Classes</span>
+                                </li>
+                                <li class="flex items-center gap-3 text-sm text-slate-300">
+                                    <i class="fa-solid fa-check text-green-400"></i>
+                                    <span>生成 HTML 結構</span>
+                                </li>
+                                <li class="flex items-center gap-3 text-sm text-slate-300">
+                                    <i class="fa-solid fa-check text-green-400"></i>
+                                    <span>優化手機版面配置 (Responsive)</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-slate-950 border-t border-slate-800 py-12">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <div class="flex items-center justify-center gap-2 mb-4">
+                <i class="fa-solid fa-code text-brand-accent"></i>
+                <span class="font-bold text-xl tracking-wider text-white">Dev<span class="text-brand-accent">Start</span></span>
+            </div>
+            <p class="text-slate-500 text-sm mb-6">Built with HTML5 & Tailwind CSS. Powered by AI knowledge.</p>
+            <p class="text-slate-600 text-xs">&copy; 2026 教學平台範例. All rights reserved.</p>
+        </div>
+    </footer>
+
+</body>
+</html>
