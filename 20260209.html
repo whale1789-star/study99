@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-    <title>Gemini x GitHub 可愛實戰教學</title>
+    <title>Gemini x GitHub 實戰教學</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet">
 
@@ -16,15 +16,19 @@
         /* 全局字體與背景設定 */
         body, .reveal {
             font-family: 'Nunito', sans-serif;
-            /* 溫暖的粉膚色背景 */
             background-color: #fff5e6; 
-            color: #5a4a42; /* 柔和的深褐色文字 */
+            color: #5a4a42;
         }
 
         /* 標題顏色 */
         .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
-            color: #e67e22; /* 溫暖的橘色標題 */
+            color: #e67e22;
             font-weight: 700;
+        }
+
+        /* 重點強調文字 */
+        strong {
+            color: #d35400;
         }
 
         /* 可愛的 Emoji 插圖樣式 */
@@ -32,7 +36,6 @@
             font-size: 3em;
             display: block;
             margin-bottom: 20px;
-            /* 輕微的浮動動畫 */
             animation: float 3s ease-in-out infinite;
         }
         @keyframes float {
@@ -72,15 +75,26 @@
             border: 2px solid #e6b89c;
         }
         
-        /* 強調重點的可愛樣式 */
+        /* 警告/強調區塊 */
         .highlight-box {
             background-color: #ffcccc;
-            color: #d63031;
+            color: #c0392b;
             border: 2px dashed #ff7675;
             padding: 15px;
             border-radius: 15px;
             display: inline-block;
         }
+        
+        /* 資安特別警告樣式 */
+        .security-alert {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 20px;
+            border: 4px solid #e74c3c;
+        }
+        .security-alert h3 { color: #f1c40f !important; }
+        .security-alert strong { color: #ff7675; }
     </style>
 </head>
 <body>
@@ -131,8 +145,6 @@
                 </section>
                 <section>
                     <h3>咒語黃金四寶石 💎</h3>
-                    <p style="font-size: 0.8em;">把這四個告訴它，它才不會猜錯意！</p>
-                    
                     <div class="prompt-card-container">
                         <div class="prompt-card card-role">
                             <div class="icon">🧙‍♂️</div>
@@ -180,7 +192,60 @@
 
             <section>
                 <section>
-                    <h2>3. 建立秘密基地 (GitHub)</h2>
+                    <span class="cute-icon">🛡️🔒🚫</span>
+                    <h2>3. 數位主權保衛戰</h2>
+                    <p>別到處展示你的隱私！</p>
+                    <small>你對 AI 說的話，30 天後可能變成別人的參考答案？</small>
+                </section>
+
+                <section>
+                    <h3>⚠️ 危險的誤解</h3>
+                    <div class="security-alert fragment">
+                        <h3>AI 不是保險箱，它是個大嘴巴 🦜</h3>
+                        <p>很多人以為「不賣資料」=「安全」？<br>錯！你的資料不是被「存起來」，而是被<strong>「吃進去」</strong>。</p>
+                        <p style="font-size: 0.7em; margin-top: 10px;">當你把公司合約、醫療隱私餵給 AI，就像跟一個過目不忘又愛說話的實習生講秘密。</p>
+                    </div>
+                </section>
+
+                <section>
+                    <h3>為什麼「不賣資料」沒意義？</h3>
+                    <ul>
+                        <li class="fragment">🍪 <strong>訓練即洩漏</strong>：你的獨家創意，會變成 AI 的養分，下次可能就變成別人的「靈感」。</li>
+                        <li class="fragment">📢 <strong>系統性烏龍</strong>：Google 曾發生分享連結外洩，一出事就是「數位裸奔」。</li>
+                        <li class="fragment">⚖️ <strong>法律灰色地帶</strong>：條款總有例外，那條界線誰也說不準。</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3>保命三招：貼身設定檢查 ⛑️</h3>
+                    <ol>
+                        <li class="fragment">
+                            <strong>🚫 關閉「餵食」開關</strong><br>
+                            <small>進入 Data Controls (資料管控) 關掉紀錄，別讓私生活變免費教材。</small>
+                        </li>
+                        <li class="fragment">
+                            <strong>🔗 別亂按「Share」</strong><br>
+                            <small>除非你想讓全世界搜尋到這段對話，否則那按鈕就是隱私地雷。</small>
+                        </li>
+                        <li class="fragment">
+                            <strong>🎭 使用「虛擬身分」</strong><br>
+                            <small>用「某 A」、「某地」代替真名與地址。這是最後防線！</small>
+                        </li>
+                    </ol>
+                </section>
+                
+                <section>
+                    <h3>核心邏輯 🧠</h3>
+                    <p class="highlight-box">
+                        把 AI 當成「超強但隨時會倒戈的顧問」。<br>
+                        利用它的腦袋，但<strong>絕對不能交出你的底牌</strong>！
+                    </p>
+                </section>
+            </section>
+
+            <section>
+                <section>
+                    <h2>4. 建立秘密基地 (GitHub)</h2>
                     <p>存放你作品的地方</p>
                     <span class="cute-icon" style="font-size: 2em;">🐙🏠</span>
                 </section>
@@ -198,7 +263,7 @@
 
             <section>
                 <section>
-                    <h2>4. 讓世界看到你！</h2>
+                    <h2>5. 讓世界看到你！</h2>
                     <p>把網頁發布到網路上</p>
                     <span class="cute-icon" style="font-size: 2em;">🌍🎉</span>
                 </section>
@@ -252,7 +317,6 @@
         // 初始化簡報
         Reveal.initialize({
             hash: true,
-            // 關閉簡報底部的進度條，讓畫面更乾淨可愛
             controls: true,
             progress: false,
             center: true,
