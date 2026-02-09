@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Gemini x GitHub 實戰教學</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/black.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/monokai.min.css">
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+            
+            <section>
+                <h1>Gemini x GitHub</h1>
+                <h3>AI 驅動與雲端發布實戰</h3>
+                <p>
+                    <small>從高效咒語到網頁部署的完整路徑</small>
+                </p>
+            </section>
+
+            <section>
+                <section>
+                    <h2>1. Gemini 環境導覽</h2>
+                    <p>Google 最強大的 AI 助手</p>
+                </section>
+                <section>
+                    <h3>為何選擇 Gemini？</h3>
+                    <ul>
+                        <li class="fragment">⚡ <strong>生態系整合</strong>：直連 Docs, Gmail, Drive</li>
+                        <li class="fragment">👀 <strong>多模態能力</strong>：看圖、讀 Code、聽聲音</li>
+                        <li class="fragment">🚀 <strong>速度優勢</strong>：長文本處理能力強</li>
+                    </ul>
+                </section>
+                <section>
+                    <h3>介面速覽</h3>
+                    <p style="font-size: 0.8em; color: #aaa;">(建議現場開啟 Gemini 網頁演示)</p>
+                    <ul>
+                        <li><strong>左側邊欄</strong>：歷史對話與設定</li>
+                        <li><strong>中央輸入區</strong>：文字、圖片上傳、麥克風</li>
+                        <li><strong>回答區</strong>：按讚/修改/匯出功能</li>
+                    </ul>
+                </section>
+            </section>
+
+            <section>
+                <section>
+                    <h2>2. 下咒語的藝術</h2>
+                    <p>拒絕無效溝通，掌握黃金四要素</p>
+                </section>
+                <section>
+                    <h3>高效提示詞結構</h3>
+                    <div style="display: flex; justify-content: space-around;">
+                        <div style="border: 1px solid #fff; padding: 20px; border-radius: 10px;">
+                            <h4>👤 角色</h4>
+                            <small>你是誰？</small>
+                        </div>
+                        <div style="border: 1px solid #fff; padding: 20px; border-radius: 10px;">
+                            <h4>🎯 任務</h4>
+                            <small>做什麼？</small>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-around; margin-top: 20px;">
+                        <div style="border: 1px solid #fff; padding: 20px; border-radius: 10px;">
+                            <h4>🌍 背景</h4>
+                            <small>情境/受眾</small>
+                        </div>
+                        <div style="border: 1px solid #fff; padding: 20px; border-radius: 10px;">
+                            <h4>📝 格式</h4>
+                            <small>表格/清單</small>
+                        </div>
+                    </div>
+                </section>
+                <section>
+                    <h3>實戰範例 (Bad vs Good)</h3>
+                    <pre><code data-trim data-noescape>
+❌ 壞指令：
+"幫我寫一個旅遊計畫。"
+                    </code></pre>
+                    <pre class="fragment"><code data-trim data-noescape>
+✅ 好指令 (21字原則優化)：
+"[角色]你是日本導遊，[背景]針對喜歡動漫的學生，
+[任務]規劃東京三天行程，[格式]請用表格呈現預算與路線。"
+                    </code></pre>
+                </section>
+            </section>
+
+            <section>
+                <section>
+                    <h2>3. GitHub 帳號註冊</h2>
+                    <p>工程師的社群，你的作品集基地</p>
+                </section>
+                <section>
+                    <h3>註冊流程 (Sign Up)</h3>
+                    <ol>
+                        <li>進入 <strong>github.com</strong></li>
+                        <li>輸入 Email (建議用常用信箱)</li>
+                        <li>設定密碼 (需符合強度)</li>
+                        <li><strong>關鍵：設定 Username</strong> <br><small style="color:yellow;">(這會變成你的網址 ID，勿亂碼)</small></li>
+                        <li>完成人機驗證 (Verify)</li>
+                    </ol>
+                </section>
+            </section>
+
+            <section>
+                <section>
+                    <h2>4. 分享你的網頁</h2>
+                    <p>GitHub Pages 部署實戰</p>
+                </section>
+                <section>
+                    <h3>Step 1: 建立倉庫 (Repository)</h3>
+                    <ul>
+                        <li>點擊右上角 "+" -> <strong>New repository</strong></li>
+                        <li>輸入專案名稱 (例: <code>my-first-ai-web</code>)</li>
+                        <li>務必選擇 <strong>Public (公開)</strong></li>
+                        <li>勾選 "Add a README file"</li>
+                    </ul>
+                </section>
+                <section>
+                    <h3>Step 2: 上傳檔案</h3>
+                    <ul>
+                        <li>點擊 "Add file" -> "Upload files"</li>
+                        <li>將 HTML 檔拖曳進去</li>
+                        <li class="fragment" style="color: #ff5e5e; border: 1px solid white; padding: 10px;">
+                            ⚠️ <strong>重要：主頁檔名必須是 index.html</strong>
+                        </li>
+                        <li>點擊 "Commit changes"</li>
+                    </ul>
+                </section>
+                <section>
+                    <h3>Step 3: 開啟 Pages 功能</h3>
+                    <ul>
+                        <li>進入 <strong>Settings</strong> -> 左側選 <strong>Pages</strong></li>
+                        <li>Branch 設為 <strong>main</strong> / Folder 設為 <strong>root</strong></li>
+                        <li>點擊 Save，等待約 1-2 分鐘</li>
+                        <li><strong>獲得網址！</strong> <br><code>username.github.io/project-name</code></li>
+                    </ul>
+                </section>
+            </section>
+
+            <section>
+                <h2>恭喜完成！</h2>
+                <p>現在，請將這份教學本身上傳到 GitHub 試試看吧！</p>
+                <small>Made with Reveal.js & Gemini</small>
+            </section>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/highlight.min.js"></script>
+    <script>
+        // 初始化簡報
+        Reveal.initialize({
+            hash: true,
+            plugins: [ RevealHighlight ]
+        });
+    </script>
+</body>
+</html>
