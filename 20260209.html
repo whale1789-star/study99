@@ -4,147 +4,244 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-    <title>Gemini x GitHub 實戰教學</title>
+    <title>Gemini x GitHub 可愛實戰教學</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/black.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/monokai.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/beige.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/zenburn.min.css">
+
+    <style>
+        /* 全局字體與背景設定 */
+        body, .reveal {
+            font-family: 'Nunito', sans-serif;
+            /* 溫暖的粉膚色背景 */
+            background-color: #fff5e6; 
+            color: #5a4a42; /* 柔和的深褐色文字 */
+        }
+
+        /* 標題顏色 */
+        .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+            color: #e67e22; /* 溫暖的橘色標題 */
+            font-weight: 700;
+        }
+
+        /* 可愛的 Emoji 插圖樣式 */
+        .cute-icon {
+            font-size: 3em;
+            display: block;
+            margin-bottom: 20px;
+            /* 輕微的浮動動畫 */
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+
+        /* 提示詞卡片樣式 */
+        .prompt-card-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+        .prompt-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 25px;
+            width: 200px;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            border: 3px solid #f0e0d6;
+        }
+        /* 卡片個別配色 */
+        .card-role { background-color: #e8f4fd; border-color: #b3daff; }
+        .card-task { background-color: #fef3c7; border-color: #fde68a; }
+        .card-context { background-color: #ecfdf5; border-color: #a7f3d0; }
+        .card-format { background-color: #fce7f3; border-color: #fbcfe8; }
+        .prompt-card h4 { color: #555; margin-bottom: 10px; }
+        .prompt-card .icon { font-size: 2.5em; }
+
+        /* 程式碼區塊圓角 */
+        .reveal pre code {
+            border-radius: 15px;
+            border: 2px solid #e6b89c;
+        }
+        
+        /* 強調重點的可愛樣式 */
+        .highlight-box {
+            background-color: #ffcccc;
+            color: #d63031;
+            border: 2px dashed #ff7675;
+            padding: 15px;
+            border-radius: 15px;
+            display: inline-block;
+        }
+    </style>
 </head>
 <body>
     <div class="reveal">
         <div class="slides">
             
             <section>
+                <span class="cute-icon">🤖✨☁️</span>
                 <h1>Gemini x GitHub</h1>
-                <h3>AI 驅動與雲端發布實戰</h3>
+                <h3>超簡單！AI 與雲端發布小教室</h3>
                 <p>
-                    <small>從高效咒語到網頁部署的完整路徑</small>
+                    <small>帶你用魔法咒語，蓋出自己的網站小屋</small>
                 </p>
             </section>
 
             <section>
                 <section>
-                    <h2>1. Gemini 環境導覽</h2>
-                    <p>Google 最強大的 AI 助手</p>
+                    <h2>1. 認識你的 AI 小幫手</h2>
+                    <p>Gemini 環境導覽</p>
+                    <span class="cute-icon" style="font-size: 2em;">👋</span>
                 </section>
                 <section>
-                    <h3>為何選擇 Gemini？</h3>
+                    <h3>為什麼要選 Gemini？</h3>
                     <ul>
-                        <li class="fragment">⚡ <strong>生態系整合</strong>：直連 Docs, Gmail, Drive</li>
-                        <li class="fragment">👀 <strong>多模態能力</strong>：看圖、讀 Code、聽聲音</li>
-                        <li class="fragment">🚀 <strong>速度優勢</strong>：長文本處理能力強</li>
+                        <li class="fragment" style="list-style-type: '⚡ ';"><strong>好朋友很多</strong>：直接連動 Google 文件、信箱</li>
+                        <li class="fragment" style="list-style-type: '👀 ';"><strong>看得懂圖片</strong>：不只會讀字，還會看圖說故事</li>
+                        <li class="fragment" style="list-style-type: '🚀 ';"><strong>反應超級快</strong>：處理長長的文章也不怕</li>
                     </ul>
                 </section>
                 <section>
-                    <h3>介面速覽</h3>
-                    <p style="font-size: 0.8em; color: #aaa;">(建議現場開啟 Gemini 網頁演示)</p>
-                    <ul>
-                        <li><strong>左側邊欄</strong>：歷史對話與設定</li>
-                        <li><strong>中央輸入區</strong>：文字、圖片上傳、麥克風</li>
-                        <li><strong>回答區</strong>：按讚/修改/匯出功能</li>
-                    </ul>
+                    <h3>介面看一看 🖥️</h3>
+                    <p style="font-size: 0.8em; color: #999;">(就像聊天室一樣簡單喔)</p>
+                    <div style="background: #fff9f0; padding: 20px; border-radius: 20px; border: 2px dashed #e6b89c;">
+                        <ul>
+                            <li>👈 <strong>左邊</strong>：以前聊過的天都被記在這裡</li>
+                            <li>👇 <strong>中間</strong>：打字、傳圖片給它的地方</li>
+                            <li>👉 <strong>回答區</strong>：喜歡它的回答就給個讚 👍</li>
+                        </ul>
+                    </div>
                 </section>
             </section>
 
             <section>
                 <section>
-                    <h2>2. 下咒語的藝術</h2>
-                    <p>拒絕無效溝通，掌握黃金四要素</p>
+                    <h2>2. 施展魔法咒語</h2>
+                    <p>怎麼跟 AI 說話最有效？</p>
+                    <span class="cute-icon" style="font-size: 2em;">🪄✨</span>
                 </section>
                 <section>
-                    <h3>高效提示詞結構</h3>
-                    <div style="display: flex; justify-content: space-around;">
-                        <div style="border: 1px solid #fff; padding: 20px; border-radius: 10px;">
-                            <h4>👤 角色</h4>
-                            <small>你是誰？</small>
+                    <h3>咒語黃金四寶石 💎</h3>
+                    <p style="font-size: 0.8em;">把這四個告訴它，它才不會猜錯意！</p>
+                    
+                    <div class="prompt-card-container">
+                        <div class="prompt-card card-role">
+                            <div class="icon">🧙‍♂️</div>
+                            <h4>角色 (Role)</h4>
+                            <small>你是誰？<br>(例: 資深導遊)</small>
                         </div>
-                        <div style="border: 1px solid #fff; padding: 20px; border-radius: 10px;">
-                            <h4>🎯 任務</h4>
-                            <small>做什麼？</small>
+                        <div class="prompt-card card-task">
+                            <div class="icon">🎯</div>
+                            <h4>任務 (Task)</h4>
+                            <small>做什麼？<br>(例: 規劃行程)</small>
                         </div>
-                    </div>
-                    <div style="display: flex; justify-content: space-around; margin-top: 20px;">
-                        <div style="border: 1px solid #fff; padding: 20px; border-radius: 10px;">
-                            <h4>🌍 背景</h4>
-                            <small>情境/受眾</small>
+                        <div class="prompt-card card-context">
+                            <div class="icon">🏖️</div>
+                            <h4>背景 (Context)</h4>
+                            <small>情境是？<br>(例: 親子旅遊)</small>
                         </div>
-                        <div style="border: 1px solid #fff; padding: 20px; border-radius: 10px;">
-                            <h4>📝 格式</h4>
-                            <small>表格/清單</small>
+                        <div class="prompt-card card-format">
+                            <div class="icon">🧾</div>
+                            <h4>格式 (Format)</h4>
+                            <small>長怎樣？<br>(例: 表格呈現)</small>
                         </div>
                     </div>
                 </section>
                 <section>
-                    <h3>實戰範例 (Bad vs Good)</h3>
-                    <pre><code data-trim data-noescape>
-❌ 壞指令：
+                    <h3>實戰演練 (NG vs OK)</h3>
+                    <div style="display: flex; gap: 20px; align-items: center;">
+                        <div style="flex:1;">
+                             <p>❌ 壞咒語 😿</p>
+                             <pre><code data-trim data-noescape>
 "幫我寫一個旅遊計畫。"
-                    </code></pre>
-                    <pre class="fragment"><code data-trim data-noescape>
-✅ 好指令 (21字原則優化)：
-"[角色]你是日本導遊，[背景]針對喜歡動漫的學生，
-[任務]規劃東京三天行程，[格式]請用表格呈現預算與路線。"
-                    </code></pre>
+(AI: 呃...去哪裡？跟誰？)
+                            </code></pre>
+                        </div>
+                        <div style="flex:1;" class="fragment">
+                            <p>✅ 好咒語 😽</p>
+                            <pre><code data-trim data-noescape style="background-color: #e8f4fd;">
+"[角色]你是日本導遊，[背景]帶喜歡動漫的學生，
+[任務]規劃東京三天行程，
+[格式]請用表格呈現預算與路線。"
+                            </code></pre>
+                        </div>
+                    </div>
                 </section>
             </section>
 
             <section>
                 <section>
-                    <h2>3. GitHub 帳號註冊</h2>
-                    <p>工程師的社群，你的作品集基地</p>
+                    <h2>3. 建立秘密基地 (GitHub)</h2>
+                    <p>存放你作品的地方</p>
+                    <span class="cute-icon" style="font-size: 2em;">🐙🏠</span>
                 </section>
                 <section>
-                    <h3>註冊流程 (Sign Up)</h3>
-                    <ol>
-                        <li>進入 <strong>github.com</strong></li>
-                        <li>輸入 Email (建議用常用信箱)</li>
-                        <li>設定密碼 (需符合強度)</li>
-                        <li><strong>關鍵：設定 Username</strong> <br><small style="color:yellow;">(這會變成你的網址 ID，勿亂碼)</small></li>
-                        <li>完成人機驗證 (Verify)</li>
+                    <h3>註冊好簡單 📝</h3>
+                    <ol style="background: #fff; padding: 30px; border-radius: 20px; display: inline-block; text-align: left;">
+                        <li>去 <strong>github.com</strong> 點註冊</li>
+                        <li>輸入 Email 📧</li>
+                        <li>設定密碼 🔑</li>
+                        <li><strong>取個好名字 (Username)</strong> <br><small style="color:#e67e22;">(這會變成你網址的一部分喔！)</small></li>
+                        <li>證明你不是機器人 🤖🚫</li>
                     </ol>
                 </section>
             </section>
 
             <section>
                 <section>
-                    <h2>4. 分享你的網頁</h2>
-                    <p>GitHub Pages 部署實戰</p>
+                    <h2>4. 讓世界看到你！</h2>
+                    <p>把網頁發布到網路上</p>
+                    <span class="cute-icon" style="font-size: 2em;">🌍🎉</span>
                 </section>
                 <section>
-                    <h3>Step 1: 建立倉庫 (Repository)</h3>
+                    <h3>Step 1: 開一個新倉庫 (📦)</h3>
                     <ul>
-                        <li>點擊右上角 "+" -> <strong>New repository</strong></li>
-                        <li>輸入專案名稱 (例: <code>my-first-ai-web</code>)</li>
-                        <li>務必選擇 <strong>Public (公開)</strong></li>
-                        <li>勾選 "Add a README file"</li>
+                        <li>點右上角的 "+" -> <strong>New repository</strong></li>
+                        <li>幫倉庫取名字 (例: <code>my-cute-web</code>)</li>
+                        <li>一定要選 <strong>Public (公開)</strong> 喔！</li>
+                        <li>打勾 "Add a README file"</li>
                     </ul>
                 </section>
                 <section>
-                    <h3>Step 2: 上傳檔案</h3>
+                    <h3>Step 2: 把檔案放進去 (📂)</h3>
                     <ul>
-                        <li>點擊 "Add file" -> "Upload files"</li>
-                        <li>將 HTML 檔拖曳進去</li>
-                        <li class="fragment" style="color: #ff5e5e; border: 1px solid white; padding: 10px;">
-                            ⚠️ <strong>重要：主頁檔名必須是 index.html</strong>
+                        <li>點 "Add file" -> "Upload files"</li>
+                        <li>把你的 HTML 檔案拖進去</li>
+                        <li class="fragment" style="margin-top: 20px;">
+                            <div class="highlight-box">
+                                ⚠️ <strong>超級重要小提醒</strong><br>
+                                主頁的檔名一定要是 <code>index.html</code> 喔！<br>
+                                (不可以是 home.html 或是 index.txt)
+                            </div>
                         </li>
-                        <li>點擊 "Commit changes"</li>
+                        <li>點綠色按鈕 "Commit changes"</li>
                     </ul>
                 </section>
                 <section>
-                    <h3>Step 3: 開啟 Pages 功能</h3>
+                    <h3>Step 3: 開啟魔法開關 (⚙️)</h3>
                     <ul>
-                        <li>進入 <strong>Settings</strong> -> 左側選 <strong>Pages</strong></li>
-                        <li>Branch 設為 <strong>main</strong> / Folder 設為 <strong>root</strong></li>
-                        <li>點擊 Save，等待約 1-2 分鐘</li>
-                        <li><strong>獲得網址！</strong> <br><code>username.github.io/project-name</code></li>
+                        <li>點上面的 <strong>Settings</strong> -> 左邊選 <strong>Pages</strong></li>
+                        <li>Branch 選 <strong>main</strong>，資料夾選 <strong>root</strong></li>
+                        <li>點 Save，耐心等 1-2 分鐘 ⏳</li>
+                        <li><strong>網址出現啦！</strong> <br><code style="color: #e67e22; background: #fff;">username.github.io/你的專案名</code></li>
                     </ul>
                 </section>
             </section>
 
             <section>
-                <h2>恭喜完成！</h2>
-                <p>現在，請將這份教學本身上傳到 GitHub 試試看吧！</p>
-                <small>Made with Reveal.js & Gemini</small>
+                <span class="cute-icon">🥳🙌🎊</span>
+                <h2>太棒了，任務完成！</h2>
+                <p>你現在已經學會整套流程囉。</p>
+                <p>趕快試著把這份可愛的簡報，也上傳到你的 GitHub 分享給朋友吧！</p>
             </section>
         </div>
     </div>
@@ -155,6 +252,10 @@
         // 初始化簡報
         Reveal.initialize({
             hash: true,
+            // 關閉簡報底部的進度條，讓畫面更乾淨可愛
+            controls: true,
+            progress: false,
+            center: true,
             plugins: [ RevealHighlight ]
         });
     </script>
