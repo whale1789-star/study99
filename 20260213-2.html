@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini AI 教育與招生加速器 | 教師專用指南</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <nav class="bg-white shadow-md fixed w-full z-10 top-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-2xl font-bold text-blue-800">Gemini <span class="text-blue-500">EduHub</span></span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="#teaching" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md font-medium">教學應用</a>
+                    <a href="#recruitment" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md font-medium">招生行銷</a>
+                    <a href="#tools" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md font-medium">實用工具</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <header class="gradient-bg text-white pt-32 pb-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 class="text-4xl md:text-5xl font-bold mb-6">讓 AI 成為您的教學與招生助手</h1>
+            <p class="text-xl md:text-2xl mb-8 opacity-90">專為教育工作者設計的 Gemini 實戰指南：從自動化出題到生成吸睛招生文案，只需幾秒鐘。</p>
+            <a href="#teaching" class="bg-white text-blue-700 font-bold py-3 px-8 rounded-full shadow-lg hover:bg-gray-100 transition duration-300">開始體驗</a>
+        </div>
+    </header>
+
+    <section id="teaching" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-12">📚 教學備課：省時高效</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div class="bg-gray-50 p-8 rounded-xl shadow-md border border-gray-100">
+                    <div class="text-4xl mb-4">📝</div>
+                    <h3 class="text-xl font-bold mb-4">自動生成試題與解析</h3>
+                    <p class="text-gray-600 mb-4">輸入教材內容或主題，讓 Gemini 自動生成選擇題、簡答題，甚至包含詳細解析。</p>
+                    <div class="bg-gray-800 text-green-400 p-4 rounded-lg text-sm font-mono mb-4 relative group">
+                        <p id="prompt1">請幫我根據「電子商務的發展趨勢」這個主題，設計 10 題單選題，針對高中職學生程度，並附上每一題的正確答案與詳細解析。</p>
+                        <button onclick="copyToClipboard('prompt1')" class="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition">複製</button>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 p-8 rounded-xl shadow-md border border-gray-100">
+                    <div class="text-4xl mb-4">💡</div>
+                    <h3 class="text-xl font-bold mb-4">複雜概念通俗化</h3>
+                    <p class="text-gray-600 mb-4">遇到難懂的專業術語？請 Gemini 用生動的比喻解釋，幫助學生理解。</p>
+                    <div class="bg-gray-800 text-green-400 p-4 rounded-lg text-sm font-mono mb-4 relative group">
+                        <p id="prompt2">請用「珍珠奶茶店的運作流程」來比喻電腦的 CPU、RAM 和硬碟之間的關係，讓完全不懂電腦的學生也能聽懂。</p>
+                        <button onclick="copyToClipboard('prompt2')" class="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition">複製</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="recruitment" class="py-20 bg-gray-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-12">🚀 招生行銷：吸睛社群文案</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
+                    <h3 class="text-lg font-bold text-blue-800 mb-2">社群貼文生成</h3>
+                    <p class="text-sm text-gray-500 mb-4">針對國中生家長或學生，撰寫冬令營或體驗課程的推廣文案。</p>
+                    <div class="bg-gray-100 p-3 rounded text-xs text-gray-700 font-mono relative group">
+                        <p id="prompt3">請幫我寫一篇 Instagram 貼文，宣傳資料處理科的「小小電競體驗營」。語氣要活潑、年輕，加入適當的 Emoji，強調「免費體驗」、「實際操作」和「認識新朋友」三個亮點。並加上 5 個熱門 Hashtag。</p>
+                        <button onclick="copyToClipboard('prompt3')" class="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition">複製</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
+                    <h3 class="text-lg font-bold text-blue-800 mb-2">多語系溝通 (僑生班適用)</h3>
+                    <p class="text-sm text-gray-500 mb-4">快速將學校通知單翻譯成越南語、印尼語，並潤飾語氣。</p>
+                    <div class="bg-gray-100 p-3 rounded text-xs text-gray-700 font-mono relative group">
+                        <p id="prompt4">請將這段「寒假返鄉安全注意事項」翻譯成越南語和印尼語。語氣要親切且正式，確保家長能清楚理解學校對學生的關心。</p>
+                        <button onclick="copyToClipboard('prompt4')" class="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition">複製</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
+                    <h3 class="text-lg font-bold text-blue-800 mb-2">招生海報素材生成</h3>
+                    <p class="text-sm text-gray-500 mb-4">描述您想要的畫面，讓 Gemini 生成高品質圖片素材。</p>
+                    <div class="bg-gray-100 p-3 rounded text-xs text-gray-700 font-mono relative group">
+                        <p id="prompt5">生成一張充滿未來科技感的圖片，畫面中有一群高中生正在專注操作透明觸控螢幕，背景是數據流動的線條。風格為 3D 渲染，色彩明亮，象徵「資料處理」與「未來職涯」。</p>
+                        <button onclick="copyToClipboard('prompt5')" class="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition">複製</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p>&copy; 2026 資訊科技教學資源中心 | Designed by Teacher Hsieh</p>
+            <p class="text-gray-400 text-sm mt-2">Powered by Google Gemini 3</p>
+        </div>
+    </footer>
+
+    <script>
+        function copyToClipboard(elementId) {
+            const text = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('提示詞已複製！請貼上至 Gemini 對話框。');
+            }).catch(err => {
+                console.error('複製失敗: ', err);
+            });
+        }
+    </script>
+</body>
+</html>
