@@ -1,358 +1,377 @@
-<!DOCTYPE html>
-<html lang="zh-Hant-TW">
+<!doctype html>
+<html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google AI 魔法森林 | 資訊科技教學</title>
-    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Gemini x GitHub 吉卜力風 (大字版)</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/beige.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/gruvbox-light.min.css">
 
     <style>
-        /* --- 吉卜力風格 CSS 設定區域 --- */
-
-        /* [教學重點] 定義吉卜力色盤 (Ghibli Color Palette) */
-        :root {
-            --ghibli-cream: #f7f3e8;      /* 米色背景，像舊紙張 */
-            --ghibli-wood: #8b5e3c;       /* 木頭棕色，用於邊框和文字 */
-            --ghibli-forest: #4c825d;     /* 森林綠，取代原本的 Google 綠 */
-            --ghibli-sky: #7da3b7;        /* 天空藍，取代原本的 Google 藍 */
-            --ghibli-sun: #e0c075;        /* 溫暖黃，取代原本的 Google 黃 */
-            --ghibli-brick: #c76c54;      /* 磚瓦紅，取代原本的 Google 紅 */
-            --ghibli-shadow: rgba(139, 94, 60, 0.2); /* 柔和的棕色陰影 */
-        }
-
+        /* === 全局背景與字體設定 === */
         body {
-            /* 使用圓潤一點的字體 Comfortaa 搭配黑體 */
-            font-family: 'Comfortaa', 'Noto Sans+TC', cursive, sans-serif;
-            background-color: var(--ghibli-cream);
-            /* [教學重點] 加入一個淡淡的紙張紋理背景 */
-            background-image: url('https://www.transparenttextures.com/patterns/cream-paper.png');
-            color: var(--ghibli-wood);
-        }
-
-        /* 導覽列改造 - 木質感 */
-        .navbar {
-            background-color: var(--ghibli-cream) !important;
-            border-bottom: 3px solid var(--ghibli-wood);
-            box-shadow: 0 4px 6px var(--ghibli-shadow) !important;
-        }
-
-        .navbar-brand span, .nav-link {
-            color: var(--ghibli-wood) !important;
-            font-weight: 700;
-        }
-
-        /* 主視覺區塊改造 - 風景畫與手寫感 */
-        .hero-section {
-            /* [教學重點] 使用一張吉卜力風格的風景圖作為背景 (這裡使用一張免費圖庫的類似風格圖) */
-            background: linear-gradient(rgba(247, 243, 232, 0.8), rgba(247, 243, 232, 0.9)), url('https://images.unsplash.com/photo-1618331835717-801e976710b2?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
-            background-size: cover;
-            background-position: center bottom;
-            padding: 120px 0 100px 0;
-            text-align: center;
-            border-bottom: 3px dashed var(--ghibli-wood); /* 虛線邊框看起來像縫線 */
-        }
-
-        .hero-title {
-            font-weight: 700;
-            font-size: 3.5rem;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 0px var(--ghibli-cream); /* 增加文字描邊感 */
+            background: rgb(224,243,250);
+            background: linear-gradient(180deg, rgba(224,243,250,1) 0%, rgba(246,241,213,1) 60%, rgba(218,232,210,1) 100%);
+            background-attachment: fixed;
         }
         
-        .hero-subtitle {
-            color: var(--ghibli-wood);
-            font-size: 1.3rem;
-            max-width: 700px;
-            margin: 0 auto 30px auto;
-            line-height: 1.8;
-            font-weight: bold;
+        /* 這裡設定基礎字體大小，從原本的預設值大幅提升 */
+        .reveal {
+            font-family: 'Lora', serif;
+            color: #4a3b2a;
+            font-size: 42px; /* 基礎字體放大 */
+            font-weight: 500; /* 加粗一點點增加清晰度 */
         }
 
-        /* 卡片設計改造 - 像手繪的告示牌 */
-        .feature-card {
-            border: 3px solid var(--ghibli-wood); /* 粗糙的木頭邊框 */
+        /* === 標題樣式 (加大) === */
+        .reveal h1 { font-size: 2.5em; margin-bottom: 0.5em; } /* 特大標題 */
+        .reveal h2 { font-size: 1.8em; }
+        .reveal h3 { font-size: 1.4em; }
+        .reveal h4 { font-size: 1.2em; }
+
+        .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+            font-family: 'Cinzel Decorative', cursive;
+            color: #2e5d4b;
+            text-shadow: 2px 2px 0px rgba(255,255,255,0.4);
+            font-weight: 700;
+        }
+        
+        /* 列表與內文間距加大 */
+        .reveal ul, .reveal ol {
+            display: inline-block;
+            text-align: left;
+            margin-top: 20px;
+        }
+        .reveal li {
+            margin-bottom: 15px; /* 列表項目間距拉開 */
+            line-height: 1.4;
+        }
+
+        strong { color: #a86623; }
+
+        /* === 圖示加大 === */
+        .ghibli-icon {
+            font-size: 4.5em; /* 圖示放大 */
+            display: block;
+            margin-bottom: 30px;
+            opacity: 0.95;
+            filter: sepia(0.2);
+            animation: float 4s ease-in-out infinite;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(2deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+
+        /* === 羊皮紙容器 (加寬以容納大字) === */
+        .parchment-box {
+            background-color: #fffaf0;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+            border: 4px solid #cbb69d;
+            box-shadow: 0 8px 20px rgba(92, 64, 51, 0.2);
             border-radius: 20px;
-            background: #fffbf2; /* 比背景再亮一點的米色 */
-            /* 柔和、暈開的陰影 */
-            box-shadow: 5px 5px 15px var(--ghibli-shadow);
-            transition: all 0.3s ease-in-out;
+            padding: 35px; /* 內距加大 */
+            width: 95%; /* 寬度佔滿 */
+            margin: 0 auto; /* 居中 */
         }
 
-        .feature-card:hover {
-            transform: translateY(-8px) rotate(-1deg); /* 懸停時稍微歪一點，增加俏皮感 */
-            box-shadow: 8px 8px 20px var(--ghibli-shadow);
+        /* === 提示詞卡片 (加寬) === */
+        .prompt-card-container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            margin-top: 40px;
         }
-
-        .card-icon-box {
-            font-size: 2.5rem;
-            margin-bottom: 15px;
-            /* 讓 Icon 顏色變柔和 */
-            filter: saturate(0.7) brightness(0.9);
+        .prompt-card {
+            background-color: #fffaf0;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+            border-radius: 20px;
+            padding: 25px;
+            width: 240px; /* 卡片加寬以容納大字 */
+            text-align: center;
+            border: 3px solid #d2b48c;
+            box-shadow: 4px 4px 12px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
         }
+        .prompt-card:hover { transform: translateY(-8px); }
+        
+        .card-role { border-top: 8px solid #8fbbd9; }
+        .card-task { border-top: 8px solid #e6c75c; }
+        .card-context { border-top: 8px solid #98c9a3; }
+        .card-format { border-top: 8px solid #d9a7c7; }
+        
+        .prompt-card h4 { font-size: 1.1em; margin-bottom: 15px; }
+        .prompt-card small { font-size: 0.7em; line-height: 1.2; display: block; }
+        .prompt-card .icon { font-size: 3em; margin-bottom: 10px; }
 
-        h3 {
-            /* 標題左側的裝飾線改成木頭色 */
-            border-left: 5px solid var(--ghibli-wood) !important;
-            color: var(--ghibli-wood);
-            padding-left: 15px;
+        /* === 程式碼區塊 (字體加大) === */
+        .reveal pre {
+            width: 100%;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
         }
-
-        /* 徽章樣式 - 像手寫的小標籤 */
-        .badge-ai {
-            background: var(--ghibli-brick);
-            color: var(--ghibli-cream);
-            padding: 5px 12px;
-            border-radius: 10px 0 10px 0; /* 不對稱圓角 */
-            font-size: 0.8rem;
-            border: 2px solid var(--ghibli-wood);
-            box-shadow: 2px 2px 0 var(--ghibli-wood);
-        }
-
-        /* 按鈕改造 - 木塊與石頭感 */
-        .btn-primary, .btn-danger, .btn-outline-dark {
-            border: 3px solid var(--ghibli-wood) !important;
-            border-radius: 30px !important;
-            font-weight: bold;
-            box-shadow: 3px 3px 0 var(--ghibli-wood) !important; /* 硬陰影增加立體感 */
-            transition: all 0.2s;
+        .reveal pre code {
+            font-size: 1.2em; /* 程式碼字體加大 */
+            line-height: 1.3;
+            border-radius: 15px;
+            border: 3px solid #cbb69d;
+            background-color: #fdf6e3;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 20px;
         }
         
-        /* 主要按鈕 (天空藍) */
-        .btn-primary {
-            background-color: var(--ghibli-sky) !important;
-            color: var(--ghibli-cream) !important;
+        /* === 強調與資安區塊 === */
+        .highlight-box {
+            background-color: #fffbe6;
+            color: #a86623;
+            border: 3px dashed #d4af37;
+            padding: 25px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            display: inline-block;
         }
         
-        /* 紅色按鈕 (磚瓦紅) */
-        .btn-danger {
-            background-color: var(--ghibli-brick) !important;
-            color: var(--ghibli-cream) !important;
+        .security-alert {
+            background: linear-gradient(135deg, #1a3c34 0%, #2c574f 100%);
+            color: #e8f6f3;
+            padding: 30px;
+            border-radius: 25px;
+            border: 4px solid #d4af37;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         }
-
-        /* 按鈕按下效果 */
-        .btn-primary:active, .btn-danger:active {
-            transform: translate(2px, 2px); /* 按下時位移 */
-            box-shadow: 1px 1px 0 var(--ghibli-wood) !important;
-        }
-
-        /* 輸入框樣式 - 像在舊紙上寫字 */
-        .form-control {
-            background-color: transparent;
-            border: 2px dashed var(--ghibli-wood);
-            color: var(--ghibli-wood);
-            border-radius: 15px;
-        }
-        .form-control:focus {
-            background-color: #fff;
-            border-color: var(--ghibli-sky);
-            box-shadow: none;
-        }
-        .form-control::placeholder {
-            color: rgba(139, 94, 60, 0.6);
-        }
-
-        /* 模擬器輸出區塊 */
-        .ai-output-box {
-            background-color: #fffbf2;
-            border: 3px solid var(--ghibli-wood) !important;
-            border-radius: 15px;
-            box-shadow: inset 3px 3px 10px var(--ghibli-shadow); /* 內陰影增加凹陷感 */
-        }
-
-        /* 頁尾 */
-        footer {
-            background-color: var(--ghibli-wood) !important;
-            color: var(--ghibli-cream) !important;
-            border-top: none !important;
-        }
-        footer .text-muted {
-            color: rgba(247, 243, 232, 0.7) !important;
-        }
+        .security-alert h3 { color: #f1c40f !important; }
+        .security-alert p { font-size: 0.9em; }
     </style>
 </head>
 <body>
-
-    <nav class="navbar navbar-expand-lg navbar-light sticky-top">
-        <div class="container">
-            <a class="navbar-brand" href="#">
-                <i class="bi bi-google" style="color: var(--ghibli-forest);"></i> 
-                <span>Google AI 魔法森林</span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" style="border-color: var(--ghibli-wood)">
-                <span class="navbar-toggler-icon" style="filter: sepia(1) hue-rotate(140deg);"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="#search">智慧探索</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#productivity">魔法工具</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#photos">回憶相簿</a></li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
-    <section class="hero-section">
-        <div class="container">
-            <h1 class="hero-title">
-                <span style="color:var(--ghibli-sky)">G</span><span style="color:var(--ghibli-brick)">o</span><span style="color:var(--ghibli-sun)">o</span><span style="color:var(--ghibli-sky)">g</span><span style="color:var(--ghibli-forest)">l</span><span style="color:var(--ghibli-brick)">e</span> AI 魔法森林
-            </h1>
-            <p class="hero-subtitle">歡迎來到充滿魔法的科技世界，<br>探索隱藏在日常生活中的 AI 小精靈。</p>
-            <a href="#features" class="btn btn-primary btn-lg px-5 mt-3">開始冒險之旅</a>
-        </div>
-    </section>
-
-    <div class="container py-5" id="features">
-        
-        <div class="row mb-5 pt-4" id="search">
-            <div class="col-12 mb-4">
-                <h3>智慧探索 (Search & Maps)</h3>
-            </div>
+    <div class="reveal">
+        <div class="slides">
             
-            <div class="col-md-4 mb-4">
-                <div class="card feature-card p-4">
-                    <div class="card-icon-box" style="color: var(--ghibli-sky);"><i class="bi bi-search"></i></div>
-                    <h5>畫圈搜尋魔法 <span class="badge badge-ai">New</span></h5>
-                    <p class="small">不用切換視窗，輕輕畫一個圈，AI 小精靈就會幫你找出畫面中的秘密。</p>
-                </div>
-            </div>
+            <section>
+                <span class="ghibli-icon">☁️🌿🏰✨</span>
+                <h1>Gemini x GitHub</h1>
+                <h3>踏上雲端發布的奇幻旅程</h3>
+                <p>
+                    <small style="font-style: italic; font-size: 0.6em;">用 AI 的魔法咒語，在網路上建造你的天空之城</small>
+                </p>
+            </section>
 
-            <div class="col-md-4 mb-4">
-                <div class="card feature-card p-4">
-                    <div class="card-icon-box" style="color: var(--ghibli-forest);"><i class="bi bi-map"></i></div>
-                    <h5>沉浸式飛翔 (Immersive View)</h5>
-                    <p class="small">像鳥兒一樣飛翔，預覽目的地的天氣與光線，感受身歷其境的魔法。</p>
-                </div>
-            </div>
-
-            <div class="col-md-4 mb-4">
-                <div class="card feature-card p-4">
-                    <div class="card-icon-box" style="color: var(--ghibli-sun);"><i class="bi bi-camera"></i></div>
-                    <h5>智慧之眼 (Google Lens)</h5>
-                    <p class="small">拍下照片並加上文字描述，讓智慧之眼幫你尋找世界上相似的寶物。</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="row mb-5 pt-4" id="productivity">
-            <div class="col-12 mb-4">
-                <h3>魔法工具箱 (Workspace)</h3>
-            </div>
-
-            <div class="col-md-6 mb-4">
-                <div class="card feature-card p-4" style="border-color: var(--ghibli-brick);">
-                    <div class="d-flex align-items-center mb-3">
-                        <i class="bi bi-envelope-paper-heart fs-2 me-3" style="color: var(--ghibli-brick);"></i>
-                        <h5 class="mb-0 fw-bold">Gmail 寫信小精靈</h5>
+            <section>
+                <section>
+                    <h2>1. 遇見你的魔法精靈</h2>
+                    <p>Gemini 環境導覽</p>
+                    <span class="ghibli-icon" style="font-size: 3em;">🧚‍♂️✨</span>
+                </section>
+                <section>
+                    <h3>為什麼選擇這位精靈？</h3>
+                    <div class="parchment-box">
+                        <ul>
+                            <li class="fragment" style="list-style-type: '📜 ';"><strong>家族龐大</strong>：直通 Google 文件、信箱森林</li>
+                            <li class="fragment" style="list-style-type: '👁️ ';"><strong>通曉萬物</strong>：能讀懂圖畫中的故事</li>
+                            <li class="fragment" style="list-style-type: '🌬️ ';"><strong>思緒如風</strong>：長篇故事也難不倒牠</li>
+                        </ul>
                     </div>
-                    
-                    <p class="small">不知道該怎麼回信嗎？告訴小精靈關鍵字，例如：<strong>「請假」、「感謝」</strong>，它會施展魔法幫你寫好。</p>
-                    
-                    <div class="input-group mb-3">
-                        <input type="text" id="userInput" class="form-control" placeholder="輸入咒語關鍵字...">
-                        <button class="btn btn-danger" type="button" onclick="generateEmail()">
-                            <i class="bi bi-stars"></i> 施法
-                        </button>
+                </section>
+                <section>
+                    <h3>精靈的居所 (介面) 🖥️</h3>
+                    <div class="parchment-box" style="border-style: dashed;">
+                        <ul>
+                            <li>👈 <strong>左側迴廊</strong>：過往的對話卷軸</li>
+                            <li>👇 <strong>中央祭壇</strong>：詠唱咒語與獻上祭品</li>
+                            <li>👉 <strong>回應之窗</strong>：給予精靈讚賞</li>
+                        </ul>
                     </div>
+                </section>
+            </section>
 
-                    <div class="ai-output-box p-3 position-relative" style="min-height: 130px;">
-                        <span class="badge bg-secondary position-absolute top-0 end-0 m-2" id="aiStatus" style="border: 2px solid var(--ghibli-wood);">精靈待命中</span>
-                        <div id="aiOutput" class="fst-italic small" style="color: var(--ghibli-wood);">
-                            (等待您的咒語...)
+            <section>
+                <section>
+                    <h2>2. 學習詠唱咒語</h2>
+                    <p>如何精準傳達心意？</p>
+                    <span class="ghibli-icon" style="font-size: 3em;">📖🪄🌟</span>
+                </section>
+                <section>
+                    <h3>咒語的四塊基石 💎</h3>
+                    <div class="prompt-card-container">
+                        <div class="prompt-card card-role">
+                            <div class="icon">🧙‍♂️</div>
+                            <h4>角色 (Role)</h4>
+                            <small>你是誰？<br>例: 森林守護者</small>
+                        </div>
+                        <div class="prompt-card card-task">
+                            <div class="icon">📜</div>
+                            <h4>任務 (Task)</h4>
+                            <small>做什麼？<br>例: 寫冒險日誌</small>
+                        </div>
+                        <div class="prompt-card card-context">
+                            <div class="icon">🍃</div>
+                            <h4>背景 (Context)</h4>
+                            <small>情境是？<br>例: 給新手看</small>
+                        </div>
+                        <div class="prompt-card card-format">
+                            <div class="icon">🏺</div>
+                            <h4>格式 (Format)</h4>
+                            <small>長怎樣？<br>例: 條列式</small>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <div class="col-md-6 mb-4">
-                <div class="card feature-card p-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <i class="bi bi-feather fs-2 me-3" style="color: var(--ghibli-sky);"></i>
-                        <h5 class="mb-0">智慧羽毛筆 (Smart Compose)</h5>
+                </section>
+                <section>
+                    <h3>咒語演練 (NG vs OK)</h3>
+                    <div style="font-size: 0.85em;"> <div style="margin-bottom: 20px;">
+                             <p>🍂 破碎的咒語：<code style="background:none; border:none; color: #5a4a42;">"幫我寫計畫。"</code></p>
+                        </div>
+                        <div class="fragment">
+                            <p>🍃 完整的咒語：</p>
+                            <pre><code data-trim data-noescape style="background-color: #f0f8ff;">
+"[角色]你是資深飛行員，
+[背景]針對想看天空之城的旅客，
+[任務]規劃三天飛行路線，
+[格式]請用表格呈現高度與風景。"
+                            </code></pre>
+                        </div>
                     </div>
-                    <p>當你在打字時，羽毛筆會猜測你心裡想說的話。只要按下 Tab 鍵，句子就會自動完成。</p>
-                </div>
-            </div>
-        </div>
+                </section>
+            </section>
 
-        <div class="row mb-5 pt-4" id="photos">
-            <div class="col-12 mb-4">
-                <h3>回憶相簿 (Photos)</h3>
-            </div>
-            
-            <div class="col-lg-8 mx-auto">
-                <div class="card feature-card text-center p-5">
-                    <i class="bi bi-images fs-1 mb-3" style="color: var(--ghibli-sun);"></i>
-                    <h4>魔術畫布 (Magic Editor)</h4>
-                    <p class="lead" style="color: var(--ghibli-brick); font-weight:bold;">AI 生成式填補魔法</p>
-                    <p>照片裡有不速之客？只要圈選起來，魔法就會讓他們消失，並自動補上美麗的背景。</p>
-                    <div class="mt-4">
-                        <button class="btn btn-outline-dark px-4" style="background-color: var(--ghibli-cream); color: var(--ghibli-wood);" onclick="alert('教學提示：想像這裡展示的是魔法前後的對比照片！')">
-                            <i class="bi bi-play-circle"></i> 觀看魔法示範
-                        </button>
+            <section>
+                <section>
+                    <span class="ghibli-icon">🛡️🦉🔒</span>
+                    <h2>3. 守護你的真名</h2>
+                    <p>隱私保衛戰</p>
+                    <small>精靈的記憶，可能變成別人的故事...</small>
+                </section>
+
+                <section>
+                    <div class="security-alert">
+                        <h3>⚠️ 精靈不是保險箱 🦜</h3>
+                        <p style="margin-top:20px;">你的秘密不是被「存起來」，而是被<strong>「吃進去」</strong>。</p>
+                        <p>把機密合約餵給 AI，就像跟愛說話的鸚鵡講秘密，隨時可能說溜嘴。</p>
                     </div>
-                </div>
-            </div>
-        </div>
+                </section>
 
+                <section>
+                    <h3>冒險者的護身符 ⛑️</h3>
+                    <ol class="parchment-box" style="padding-left: 60px;">
+                        <li class="fragment">
+                            <strong>🚫 關閉「餵食」通道</strong><br>
+                            <small>到設定關閉紀錄，別當免費教材。</small>
+                        </li>
+                        <li class="fragment">
+                            <strong>🔗 別亂碰「分享」</strong><br>
+                            <small>除非你想讓全世界都看到這段對話。</small>
+                        </li>
+                        <li class="fragment">
+                            <strong>🎭 使用「假面」</strong><br>
+                            <small>用代號稱呼，絕不透漏真名與個資。</small>
+                        </li>
+                    </ol>
+                </section>
+                
+                <section>
+                    <h3>核心智慧 🧠</h3>
+                    <p class="highlight-box" style="background-color: #2c574f; color: #e8f6f3; border: 2px solid #d4af37;">
+                        利用法力強大的 AI 戰鬥，<br>
+                        但<strong>絕對不能交出藏寶圖 (個資)</strong>！
+                    </p>
+                </section>
+            </section>
+
+            <section>
+                <section>
+                    <h2>4. 建立飛行基地 (GitHub)</h2>
+                    <p>存放創造物的地方</p>
+                    <span class="ghibli-icon" style="font-size: 3em;">🐙🏰☁️</span>
+                </section>
+                <section>
+                    <h3>登記成為工匠 📝</h3>
+                    <div class="parchment-box" style="text-align: left; display: inline-block;">
+                        <ol>
+                            <li>前往 <strong>github.com</strong></li>
+                            <li>留下聯絡信鴿 (Email)</li>
+                            <li>設定開門密語 (Password)</li>
+                            <li><strong>刻上工匠名號 (Username)</strong> <br><small style="color:#a86623;">(這是你未來的網址 ID！)</small></li>
+                            <li>通過守門人考驗 (驗證)</li>
+                        </ol>
+                    </div>
+                </section>
+            </section>
+
+            <section>
+                <section>
+                    <h2>5. 讓天空之城升起！</h2>
+                    <p>GitHub Pages 部署儀式</p>
+                    <span class="ghibli-icon" style="font-size: 3em;">🌍🎉</span>
+                </section>
+                <section>
+                    <h3>儀式一：準備藏寶箱 📦</h3>
+                    <div class="parchment-box">
+                        <ul>
+                            <li>點右上角 "+" -> <strong>New repository</strong></li>
+                            <li>命名 (例: <code>sky-castle</code>)</li>
+                            <li>選 <strong>Public (公開)</strong></li>
+                            <li>勾選 "Add a README file"</li>
+                        </ul>
+                    </div>
+                </section>
+                <section>
+                    <h3>儀式二：放入設計圖 📂</h3>
+                    <div class="parchment-box">
+                        <ul>
+                            <li>點 "Add file" -> "Upload files"</li>
+                            <li>拖入 HTML 檔案</li>
+                            <li class="fragment" style="margin-top: 20px;">
+                                <div class="highlight-box">
+                                    ⚠️ <strong>關鍵咒語</strong><br>
+                                    主頁檔名一定要是 <code>index.html</code>！
+                                </div>
+                            </li>
+                            <li>點綠色按鈕 "Commit changes"</li>
+                        </ul>
+                    </div>
+                </section>
+                <section>
+                    <h3>儀式三：注入飛行石 ⚙️</h3>
+                    <div class="parchment-box">
+                        <ul>
+                            <li><strong>Settings</strong> -> 左側 <strong>Pages</strong></li>
+                            <li>Branch 選 <strong>main</strong>，資料夾 <strong>root</strong></li>
+                            <li>點 Save，等待風起 (約 1-2 分鐘)</li>
+                            <li><strong>城堡升空！</strong> <br><code style="color: #2e5d4b; background: #fff;">username.github.io/專案名</code></li>
+                        </ul>
+                    </div>
+                </section>
+            </section>
+
+            <section>
+                <span class="ghibli-icon">🎈✨🌄</span>
+                <h2>旅程完成！</h2>
+                <p>你已掌握了風的語言。</p>
+                <p style="font-style: italic;">現在，把這份卷軸放到你的天空之城分享吧！</p>
+            </section>
+        </div>
     </div>
 
-    <footer class="text-center py-5">
-        <div class="container">
-            <p class="mb-2 fw-bold fs-5">資訊科技教學範例 - 魔法篇</p>
-            <p class="small mb-0 text-muted">本網頁僅供教育用途，致敬吉卜力工作室的藝術風格。</p>
-            <p class="small text-muted">Designed with <i class="bi bi-suit-heart-fill" style="color: var(--ghibli-brick);"></i> & Bootstrap 5</p>
-        </div>
-    </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/highlight.min.js"></script>
     <script>
-        function generateEmail() {
-            const input = document.getElementById('userInput').value.toLowerCase();
-            const outputArea = document.getElementById('aiOutput');
-            const statusBadge = document.getElementById('aiStatus');
-
-            if (!input.trim()) {
-                alert("請先輸入一點提示咒語喔！例如：請假、感謝...");
-                return;
-            }
-
-            // 修改讀取中的文字和圖示
-            outputArea.innerHTML = '<div class="d-flex align-items-center"><div class="spinner-grow text-warning spinner-grow-sm me-2" role="status"></div> <span>小精靈正在施法撰寫中...</span></div>';
-            statusBadge.className = 'badge bg-warning text-dark position-absolute top-0 end-0 m-2';
-            statusBadge.style.border = "2px solid var(--ghibli-wood)";
-            statusBadge.innerText = '施法中...';
-
-            setTimeout(() => {
-                let resultText = "";
-
-                if (input.includes("請假") || input.includes("病假") || input.includes("休息")) {
-                    resultText = "<strong>📜 魔法信件：病假申請</strong><br><br>親愛的主管您好，<br><br>因身體微恙，今日需請病假一日在家休養恢復元氣。手邊的任務已請同事協助暫代，謝謝您的體諒。<br><br>祝福您 平安順心<br>職 [您的名字] 敬上";
-                } else if (input.includes("拒絕") || input.includes("不行") || input.includes("沒空")) {
-                    resultText = "<strong>📜 魔法信件：婉拒邀約</strong><br><br>Hi [Name],<br><br>謝謝您的熱情邀約！這真的是一個很棒的機會。<br>不過很遺憾，因為近期行程已滿，這次恐怕無法參加。<br><br>希望未來還有機會一起冒險！";
-                } else if (input.includes("感謝") || input.includes("謝謝") || input.includes("感恩")) {
-                    resultText = "<strong>📜 魔法信件：表達謝意</strong><br><br>親愛的 [Name],<br><br>非常感謝您的強力支援！如果沒有您的魔法協助，這次的任務絕對無法這麼順利完成。<br>改天請您喝杯魔法藥水表達我的謝意！<br><br>祝 順心";
-                } else {
-                    resultText = "這是一個很有趣的咒語！<br><br>根據您的提示「" + input + "」，小精靈還不太確定該怎麼寫...<br><br><span style='opacity:0.7;'>(系統提示：目前小精靈只學會了「請假」、「拒絕」、「感謝」等基礎魔法喔！)</span>";
-                }
-
-                outputArea.innerHTML = resultText;
-                statusBadge.className = 'badge bg-success position-absolute top-0 end-0 m-2';
-                statusBadge.style.backgroundColor = "var(--ghibli-forest) !important";
-                statusBadge.style.border = "2px solid var(--ghibli-wood)";
-                statusBadge.innerText = '魔法完成';
-                
-            }, 1500);
-        }
-
-        document.getElementById("userInput").addEventListener("keypress", function(event) {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                generateEmail();
-            }
+        // 初始化簡報
+        Reveal.initialize({
+            hash: true,
+            controls: true,
+            progress: false, 
+            center: true,
+            transition: 'convex',
+            backgroundTransition: 'fade',
+            // 設定簡報尺寸，確保在大螢幕上字體依然夠大
+            width: 1200,
+            height: 900,
+            plugins: [ RevealHighlight ]
         });
     </script>
 </body>
