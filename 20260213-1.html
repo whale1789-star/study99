@@ -3,114 +3,202 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini AI 教育與招生加速器 | 教師專用指南</title>
+    <title>Gemini 的魔法森林 | 教學與招生的奇幻之旅</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&family=Patrick+Hand&display=swap" rel="stylesheet">
+    
     <style>
-        body { font-family: 'Noto Sans TC', sans-serif; }
-        .gradient-bg { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); }
+        /* 吉卜力風格自定義 CSS */
+        :root {
+            --ghibli-cream: #fdfbf3;     /* 溫暖的米白背景 */
+            --ghibli-sky: #e3f2fd;       /* 柔和的天空藍 */
+            --ghibli-grass: #dcedc8;     /* 柔和的草地綠 */
+            --ghibli-brown: #5d4037;     /* 溫暖的深褐色文字 */
+            --ghibli-accent: #ffab91;    /* 柔和的強調色(類似夕陽) */
+            --ghibli-dark-green: #33691e; /* 提示詞框的深綠色 */
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            /* 背景模擬柔和的水彩天空與大地漸層 */
+            background: linear-gradient(180deg, var(--ghibli-sky) 0%, var(--ghibli-cream) 60%, var(--ghibli-grass) 100%);
+            color: var(--ghibli-brown);
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, .hand-font {
+            font-family: 'Patrick Hand', cursive; /* 套用手寫字體 */
+        }
+
+        /* 導航列玻璃質感 */
+        .nav-glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* 吉卜力風格卡片：圓潤、柔和陰影 */
+        .ghibli-card {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 25px;
+            border: 3px solid #fff;
+            box-shadow: 8px 8px 15px rgba(93, 64, 55, 0.1), -2px -2px 10px rgba(255,255,255,0.8);
+            transition: all 0.3s ease;
+        }
+        .ghibli-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 12px 12px 20px rgba(93, 64, 55, 0.15);
+        }
+
+        /* 提示詞區塊：深色黑板風格，配手寫字 */
+        .prompt-box {
+            background-color: var(--ghibli-dark-green);
+            color: #e8f5e9;
+            border-radius: 15px;
+            border: 2px dashed #81c784;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1.1rem;
+        }
+
+        /* 按鈕：像一顆溫潤的石頭 */
+        .ghibli-btn {
+            background: linear-gradient(135deg, #81d4fa 0%, #4fc3f7 100%);
+            color: white;
+            border-radius: 50px;
+            border: 2px solid white;
+            box-shadow: 4px 4px 10px rgba(0,0,0,0.1);
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+        }
+        .ghibli-btn:hover {
+            background: linear-gradient(135deg, #4fc3f7 0%, #29b6f6 100%);
+            transform: scale(1.05);
+        }
+
+        /* 複製按鈕 */
+        .copy-btn {
+            background-color: var(--ghibli-accent);
+            color: var(--ghibli-brown);
+            font-weight: bold;
+            border-radius: 12px;
+            border: 2px solid white;
+        }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body>
 
-    <nav class="bg-white shadow-md fixed w-full z-10 top-0">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
+    <nav class="nav-glass fixed w-full z-10 top-0">
+        <div class="max-w-7xl mx-auto px-6 py-3">
+            <div class="flex justify-between items-center">
                 <div class="flex items-center">
-                    <span class="text-2xl font-bold text-blue-800">Gemini <span class="text-blue-500">EduHub</span></span>
+                    <span class="text-3xl mr-2">☁️</span>
+                    <span class="text-2xl font-bold hand-font" style="color: var(--ghibli-brown);">Gemini <span style="color: var(--ghibli-accent);">魔法森林</span></span>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <a href="#teaching" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md font-medium">教學應用</a>
-                    <a href="#recruitment" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md font-medium">招生行銷</a>
-                    <a href="#tools" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md font-medium">實用工具</a>
+                <div class="hidden md:flex items-center space-x-6 hand-font text-lg">
+                    <a href="#teaching" class="hover:text-blue-500 transition">教學魔法書 📖</a>
+                    <a href="#recruitment" class="hover:text-blue-500 transition">招生飛行船 🚀</a>
                 </div>
             </div>
         </div>
     </nav>
 
-    <header class="gradient-bg text-white pt-32 pb-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 class="text-4xl md:text-5xl font-bold mb-6">讓 AI 成為您的教學與招生助手</h1>
-            <p class="text-xl md:text-2xl mb-8 opacity-90">專為中山工商夥伴們設計的 Gemini 實戰指南：從自動化出題到生成吸睛招生文案，只需幾秒鐘。</p>
-            <a href="#teaching" class="bg-white text-blue-700 font-bold py-3 px-8 rounded-full shadow-lg hover:bg-gray-100 transition duration-300">開始體驗</a>
+    <header class="pt-40 pb-24 text-center px-4 relative overflow-hidden">
+        <div class="absolute top-20 left-10 text-6xl opacity-20 animate-pulse">🌱</div>
+        <div class="absolute top-32 right-20 text-5xl opacity-30 animate-bounce" style="animation-duration: 3s;">✨</div>
+
+        <div class="max-w-4xl mx-auto relative z-10">
+            <h1 class="text-5xl md:text-6xl font-bold mb-8 text-brown-800">歡迎來到 AI 教學的<br>奇幻國度</h1>
+            <p class="text-xl md:text-2xl mb-10 opacity-90 hand-font">親愛的老師，讓 Gemini 精靈成為您的助手。<br>從備課的繁瑣中解放，一起創造更溫暖的教育現場。</p>
+            <a href="#teaching" class="ghibli-btn inline-block py-3 px-10">開始冒險之旅 🌿</a>
         </div>
     </header>
 
-    <section id="teaching" class="py-20 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 class="text-3xl font-bold text-center text-gray-800 mb-12">📚 教學備課：省時高效</h2>
+    <section id="teaching" class="py-20 relative">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="text-center mb-16">
+                 <span class="text-4xl">🏡</span>
+                <h2 class="text-4xl font-bold inline-block ml-2">教學魔法書：備課超能力</h2>
+            </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div class="bg-gray-50 p-8 rounded-xl shadow-md border border-gray-100">
-                    <div class="text-4xl mb-4">📝</div>
-                    <h3 class="text-xl font-bold mb-4">自動生成試題與解析</h3>
-                    <p class="text-gray-600 mb-4">輸入教材內容或主題，讓 Gemini 自動生成選擇題、簡答題，甚至包含詳細解析。</p>
-                    <div class="bg-gray-800 text-green-400 p-4 rounded-lg text-sm font-mono mb-4 relative group">
-                        <p id="prompt1">請幫我根據「電子商務的發展趨勢」這個主題，設計 10 題單選題，針對高中職學生程度，並附上每一題的正確答案與詳細解析。</p>
-                        <button onclick="copyToClipboard('prompt1')" class="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition">複製</button>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <div class="ghibli-card p-8">
+                    <div class="text-4xl mb-4 text-center">📜</div>
+                    <h3 class="text-2xl font-bold mb-4 text-center">自動生成試題卷軸</h3>
+                    <p class="mb-6 text-center">輸入課文主題，精靈會自動為您變出考題與詳解，就像變魔術一樣簡單。</p>
+                    <div class="prompt-box p-5 relative group">
+                        <p id="prompt1">✨ 請精靈幫我根據「電子商務的發展趨勢」這個主題，設計 10 題適合高中職學生的單選題，並附上每一題的正確答案與詳細又易懂的解析。</p>
+                        <button onclick="copyToClipboard('prompt1')" class="copy-btn absolute top-3 right-3 px-3 py-1 text-sm opacity-0 group-hover:opacity-100 transition cursor-pointer">複製咒語</button>
                     </div>
                 </div>
 
-                <div class="bg-gray-50 p-8 rounded-xl shadow-md border border-gray-100">
-                    <div class="text-4xl mb-4">💡</div>
-                    <h3 class="text-xl font-bold mb-4">複雜概念通俗化</h3>
-                    <p class="text-gray-600 mb-4">遇到難懂的專業術語？請 Gemini 用生動的比喻解釋，幫助學生理解。</p>
-                    <div class="bg-gray-800 text-green-400 p-4 rounded-lg text-sm font-mono mb-4 relative group">
-                        <p id="prompt2">請用「珍珠奶茶店的運作流程」來比喻電腦的 CPU、RAM 和硬碟之間的關係，讓完全不懂電腦的學生也能聽懂。</p>
-                        <button onclick="copyToClipboard('prompt2')" class="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition">複製</button>
+                <div class="ghibli-card p-8">
+                    <div class="text-4xl mb-4 text-center">💡</div>
+                    <h3 class="text-2xl font-bold mb-4 text-center">複雜概念的溫柔比喻</h3>
+                    <p class="mb-6 text-center">遇到艱澀的知識點？讓精靈用生活中有趣的故事，把知識種進學生的心裡。</p>
+                    <div class="prompt-box p-5 relative group">
+                        <p id="prompt2">🌱 請用「經營一間繁忙的珍珠奶茶店」來比喻電腦的 CPU (店長)、RAM (櫃台暫存區) 和硬碟 (後台大倉庫) 之間的關係，讓學生一聽就懂。</p>
+                        <button onclick="copyToClipboard('prompt2')" class="copy-btn absolute top-3 right-3 px-3 py-1 text-sm opacity-0 group-hover:opacity-100 transition cursor-pointer">複製咒語</button>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <section id="recruitment" class="py-20 bg-gray-100">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 class="text-3xl font-bold text-center text-gray-800 mb-12">🚀 招生行銷：吸睛社群文案</h2>
+    <section id="recruitment" class="py-20" style="background-color: rgba(255,255,255,0.4);">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <span class="text-4xl">✈️</span>
+                <h2 class="text-4xl font-bold inline-block ml-2">招生飛行船：散播學校的美好</h2>
+            </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
-                    <h3 class="text-lg font-bold text-blue-800 mb-2">社群貼文生成</h3>
-                    <p class="text-sm text-gray-500 mb-4">針對國中生家長或學生，撰寫冬令營或體驗課程的推廣文案。</p>
-                    <div class="bg-gray-100 p-3 rounded text-xs text-gray-700 font-mono relative group">
-                        <p id="prompt3">請幫我寫一篇 Instagram 貼文，宣傳資料處理科的「小小電競體驗營」。語氣要活潑、年輕，加入適當的 Emoji，強調「免費體驗」、「實際操作」和「認識新朋友」三個亮點。並加上 5 個熱門 Hashtag。</p>
-                        <button onclick="copyToClipboard('prompt3')" class="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition">複製</button>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+                <div class="ghibli-card p-6">
+                    <h3 class="text-xl font-bold mb-3 text-center text-blue-800">📣 充滿活力的社群貼文</h3>
+                    <p class="text-sm mb-4 text-center">為體驗營撰寫年輕、活潑的邀請函，吸引未來的學子。</p>
+                    <div class="prompt-box p-4 text-sm relative group">
+                        <p id="prompt3">🎈 請寫一篇 Instagram 貼文，宣傳資料處理科「小小電競體驗營」。語氣要像朋友聊天一樣活潑，強調「免費玩」、「學新招」和「認識同好」，加入 5 個熱門 Hashtag。</p>
+                        <button onclick="copyToClipboard('prompt3')" class="copy-btn absolute top-2 right-2 px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition cursor-pointer">複製</button>
                     </div>
                 </div>
 
-                <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
-                    <h3 class="text-lg font-bold text-blue-800 mb-2">多語系溝通 (僑生班適用)</h3>
-                    <p class="text-sm text-gray-500 mb-4">快速將學校通知單翻譯成越南語、印尼語，並潤飾語氣。</p>
-                    <div class="bg-gray-100 p-3 rounded text-xs text-gray-700 font-mono relative group">
-                        <p id="prompt4">請將這段「寒假返鄉安全注意事項」翻譯成越南語和印尼語。語氣要親切且正式，確保家長能清楚理解學校對學生的關心。</p>
-                        <button onclick="copyToClipboard('prompt4')" class="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition">複製</button>
+                <div class="ghibli-card p-6">
+                    <h3 class="text-xl font-bold mb-3 text-center text-blue-800">🌏 跨越語言的溫暖信件</h3>
+                    <p class="text-sm mb-4 text-center">將學校的關懷翻譯成多國語言，傳遞給每一位家長。</p>
+                    <div class="prompt-box p-4 text-sm relative group">
+                        <p id="prompt4">💌 請將這段「寒假返鄉安全叮嚀」翻譯成溫柔、親切的越南語和印尼語，讓僑生家長能感受到學校誠摯的關心。</p>
+                        <button onclick="copyToClipboard('prompt4')" class="copy-btn absolute top-2 right-2 px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition cursor-pointer">複製</button>
                     </div>
                 </div>
 
-                <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
-                    <h3 class="text-lg font-bold text-blue-800 mb-2">招生海報素材生成</h3>
-                    <p class="text-sm text-gray-500 mb-4">描述您想要的畫面，讓 Gemini 生成高品質圖片素材。</p>
-                    <div class="bg-gray-100 p-3 rounded text-xs text-gray-700 font-mono relative group">
-                        <p id="prompt5">生成一張充滿未來科技感的圖片，畫面中有一群高中生正在專注操作透明觸控螢幕，背景是數據流動的線條。風格為 3D 渲染，色彩明亮，象徵「資料處理」與「未來職涯」。</p>
-                        <button onclick="copyToClipboard('prompt5')" class="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition">複製</button>
+                <div class="ghibli-card p-6">
+                    <h3 class="text-xl font-bold mb-3 text-center text-blue-800">🎨 夢想中的招生畫面</h3>
+                    <p class="text-sm mb-4 text-center">描述您心中的願景，讓精靈畫出獨一無二的招生海報素材。</p>
+                    <div class="prompt-box p-4 text-sm relative group">
+                        <p id="prompt5">🖌️ 生成一張圖片：風格是溫暖的水彩畫。畫面是中山工商的校園，天空有巨大的雲朵和飛行船，一群高中生在陽光下開心地操作著發光的未來電腦，充滿希望與夢想的感覺。</p>
+                        <button onclick="copyToClipboard('prompt5')" class="copy-btn absolute top-2 right-2 px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition cursor-pointer">複製</button>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <footer class="bg-gray-800 text-white py-8">
-        <div class="max-w-7xl mx-auto px-4 text-center">
-            <p>&copy; 2026 資訊科技教學資源中心 | Designed by Teacher Hsieh</p>
-            <p class="text-gray-400 text-sm mt-2">Powered by Google Gemini 3</p>
+    <footer class="py-8 text-center relative" style="background: linear-gradient(0deg, #dcedc8 0%, rgba(255,255,255,0) 100%);">
+        <div class="max-w-7xl mx-auto px-4 hand-font">
+            <p class="text-lg mb-2" style="color: var(--ghibli-brown);">© 2026 中山工商資訊科技 | 用愛與科技灌溉教育 🌱</p>
+            <p class="text-sm opacity-70">Designed with ✨ by Teacher Hsieh & Gemini</p>
         </div>
     </footer>
 
     <script>
         function copyToClipboard(elementId) {
             const text = document.getElementById(elementId).innerText;
-            navigator.clipboard.writeText(text).then(() => {
-                alert('提示詞已複製！請貼上至 Gemini 對話框。');
+            // 移除提示詞中的裝飾 Emoji，只複製文字
+            const cleanText = text.replace(/✨|🌱|🎈|💌|🖌️/g, '').trim();
+
+            navigator.clipboard.writeText(cleanText).then(() => {
+                // 使用更溫柔的提示
+                alert('咒語已複製！快去對 Gemini 施展魔法吧！✨');
             }).catch(err => {
                 console.error('複製失敗: ', err);
             });
