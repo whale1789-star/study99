@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google AI 服務介紹 | 資訊科技教學範例</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+    <style>
+        /* --- CSS 設定區域 --- */
+
+        /* [教學重點] 自定義 CSS 變數，管理品牌顏色 */
+        :root {
+            --google-blue: #4285F4;
+            --google-red: #DB4437;
+            --google-yellow: #F4B400;
+            --google-green: #0F9D58;
+            --bg-gray: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Open Sans', 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-gray);
+            color: #202124;
+        }
+
+        /* 導覽列樣式 */
+        .navbar-brand span {
+            font-weight: bold;
+            letter-spacing: -0.5px;
+        }
+
+        /* 主視覺區塊 (Hero Section) */
+        .hero-section {
+            background-color: white;
+            padding: 100px 0;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+
+        .hero-title {
+            font-weight: 700;
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+        
+        .hero-subtitle {
+            color: #5f6368;
+            font-size: 1.25rem;
+            max-width: 700px;
+            margin: 0 auto 30px auto;
+            line-height: 1.6;
+        }
+
+        /* 卡片設計 - 模擬 Material Design */
+        .feature-card {
+            border: none;
+            border-radius: 24px; /* 較大的圓角 */
+            transition: transform 0.3s, box-shadow 0.3s;
+            height: 100%;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px); /* 滑鼠懸停上浮效果 */
+            box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22);
+        }
+
+        .card-icon-box {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        /* 標籤徽章樣式 */
+        .badge-ai {
+            background: linear-gradient(135deg, var(--google-blue), var(--google-red));
+            color: white;
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            vertical-align: middle;
+        }
+
+        /* 輸入框樣式優化 */
+        .form-control:focus {
+            border-color: var(--google-blue);
+            box-shadow: 0 0 0 0.25rem rgba(66, 133, 244, 0.25);
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-google text-primary"></i> 
+                <span>Google AI 探索</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="#search">智慧搜尋</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#productivity">生產力</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#photos">影像創作</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero-section">
+        <div class="container">
+            <h1 class="hero-title">
+                <span style="color:var(--google-blue)">G</span><span style="color:var(--google-red)">o</span><span style="color:var(--google-yellow)">o</span><span style="color:var(--google-blue)">g</span><span style="color:var(--google-green)">l</span><span style="color:var(--google-red)">e</span> AI 生活圈
+            </h1>
+            <p class="hero-subtitle">探索隱藏在 Gmail、地圖與相簿中的 AI 智慧，<br>看見科技如何解決你的生活難題。</p>
+            <a href="#features" class="btn btn-primary btn-lg rounded-pill px-5 shadow-sm">開始探索</a>
+        </div>
+    </section>
+
+    <div class="container py-5" id="features">
+        
+        <div class="row mb-5" id="search">
+            <div class="col-12 mb-4">
+                <h3 class="border-start border-4 border-primary ps-3">智慧搜尋與探索 (Search & Maps)</h3>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="card feature-card p-4">
+                    <div class="card-icon-box text-primary"><i class="bi bi-search"></i></div>
+                    <h5>畫圈搜尋 (Circle to Search) <span class="badge badge-ai">New</span></h5>
+                    <p class="text-muted small">不用切換 App，長按首頁鍵圈選任何文字或圖片，AI 立即辨識並搜尋相關資訊。</p>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-4">
+                <div class="card feature-card p-4">
+                    <div class="card-icon-box text-success"><i class="bi bi-map"></i></div>
+                    <h5>沉浸式實景 (Immersive View)</h5>
+                    <p class="text-muted small">利用 NeRF 技術將 2D 照片轉為 3D 模型，預覽景點的天氣與光線變化，彷彿身歷其境。</p>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-4">
+                <div class="card feature-card p-4">
+                    <div class="card-icon-box text-warning"><i class="bi bi-camera"></i></div>
+                    <h5>智慧鏡頭 (Google Lens)</h5>
+                    <p class="text-muted small">多重搜尋功能：拍下衣服照片並加上「藍色」文字，AI 幫你精準找到特定款式的商品。</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-5" id="productivity">
+            <div class="col-12 mb-4">
+                <h3 class="border-start border-4 border-danger ps-3">生產力與溝通 (Workspace)</h3>
+            </div>
+
+            <div class="col-md-6 mb-4">
+                <div class="card feature-card p-4 border-danger border-2" style="border-style: solid !important;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-envelope-paper-heart fs-2 text-danger me-3"></i>
+                        <h5 class="mb-0 fw-bold">Gmail 幫我寫 (模擬器)</h5>
+                    </div>
+                    
+                    <p class="small text-muted">試試看！在下方輸入關鍵字，如：<strong>「請假」、「拒絕」、「感謝」</strong>，看 AI 如何幫你寫信。</p>
+                    
+                    <div class="input-group mb-3">
+                        <input type="text" id="userInput" class="form-control" placeholder="輸入提示詞 (例: 向老闆請病假)">
+                        <button class="btn btn-danger" type="button" onclick="generateEmail()">
+                            <i class="bi bi-magic"></i> 生成
+                        </button>
+                    </div>
+
+                    <div class="bg-light p-3 rounded border position-relative" style="min-height: 120px;">
+                        <span class="badge bg-secondary position-absolute top-0 end-0 m-2" id="aiStatus">AI 待命</span>
+                        <div id="aiOutput" class="text-dark fst-italic small">
+                            (等待指令中...)
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 mb-4">
+                <div class="card feature-card p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-file-earmark-text fs-2 text-primary me-3"></i>
+                        <h5 class="mb-0">智慧撰寫 (Smart Compose)</h5>
+                    </div>
+                    <p>在 Google Docs 打字時，AI 會預測你的下一個詞彙。只要按下 Tab 鍵，就能瞬間完成句子，讓寫作快如閃電。</p>
+                    <hr>
+                    <p class="small text-muted"><i class="bi bi-info-circle"></i> 背後原理：使用大型語言模型 (LLM) 預測下一個最可能出現的單字機率。</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-5" id="photos">
+            <div class="col-12 mb-4">
+                <h3 class="border-start border-4 border-warning ps-3">影像創作與回憶 (Photos)</h3>
+            </div>
+            
+            <div class="col-lg-8 mx-auto">
+                <div class="card feature-card text-center p-5">
+                    <i class="bi bi-images fs-1 text-warning mb-3"></i>
+                    <h4>魔術修圖 (Magic Editor)</h4>
+                    <p class="lead text-muted">AI 生成式填補技術的極致展現</p>
+                    <p>路人入鏡了？天空不夠藍？只要圈選物件，AI 就能幫你移動位置、改變大小，甚至無中生有補全背景畫面。</p>
+                    <div class="mt-4">
+                        <button class="btn btn-outline-dark rounded-pill px-4" onclick="alert('教學提示：這裡可以放一個 Before/After 的圖片對比插件！')">
+                            <i class="bi bi-play-circle"></i> 觀看示範影片
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer class="bg-white text-center text-muted py-5 border-top">
+        <div class="container">
+            <p class="mb-2 fw-bold">資訊科技教學範例網頁</p>
+            <p class="small mb-0">本網頁僅供教育用途，所有商標歸 Google LLC 所有。</p>
+            <p class="small">Designed with <i class="bi bi-heart-fill text-danger"></i> & Bootstrap 5</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // 模擬 Google "Help me write" 的功能
+        function generateEmail() {
+            // 1. 取得使用者輸入
+            const input = document.getElementById('userInput').value.toLowerCase(); // 轉小寫方便比對
+            const outputArea = document.getElementById('aiOutput');
+            const statusBadge = document.getElementById('aiStatus');
+
+            // 2. 簡單的輸入檢查
+            if (!input.trim()) {
+                alert("請先輸入一點提示詞喔！例如：請假、感謝...");
+                return;
+            }
+
+            // 3. 模擬 AI "思考中" 的狀態 (UI 互動)
+            outputArea.innerHTML = '<div class="d-flex align-items-center"><div class="spinner-border text-primary spinner-border-sm me-2" role="status"></div> <span>正在撰寫草稿...</span></div>';
+            statusBadge.className = 'badge bg-warning text-dark position-absolute top-0 end-0 m-2';
+            statusBadge.innerText = '思考中...';
+
+            // 4. 設定延遲 (setTimeout) 讓學生感覺像真的在運算 (1.5秒後顯示結果)
+            setTimeout(() => {
+                let resultText = "";
+
+                // 5. 核心邏輯：關鍵字對應 (Rule-based Logic)
+                // 教學點：真正的 AI 是用機率預測下一個字，但這裡我們用 "關鍵字" 來模擬。
+                if (input.includes("請假") || input.includes("病假") || input.includes("休息")) {
+                    resultText = "<strong>主旨：病假申請</strong><br><br>主管您好，<br><br>因身體微恙，今日需請病假一日在家休養。手邊急件已請同事協助暫代，如有緊急事項仍可透過 Email 聯繫。<br><br>謝謝您的體諒。<br><br>職 [您的名字] 敬上";
+                } else if (input.includes("拒絕") || input.includes("不行") || input.includes("沒空")) {
+                    resultText = "<strong>主旨：關於您的邀約</strong><br><br>Hi [Name],<br><br>謝謝您的熱情邀約！這真的是一個很棒的機會。<br>不過很遺憾，因為近期工作排程已滿，我恐怕無法參加這次的活動。<br><br>希望未來還有合作的機會！";
+                } else if (input.includes("感謝") || input.includes("謝謝") || input.includes("感恩")) {
+                    resultText = "<strong>主旨：感謝您的協助</strong><br><br>親愛的 [Name],<br><br>非常感謝您的協助！這次專案如果沒有您的幫忙，絕對無法這麼順利完成。<br>改天有空請您喝杯咖啡表達我的謝意！<br><br>祝 順心";
+                } else {
+                    // 如果沒有對應到的關鍵字，給出一個通用回答，並藉機教育學生
+                    resultText = "這是一個很有趣的主題！<br><br>根據您的提示「" + input + "」，我可以幫您起個頭...<br><br><span class='text-muted'>(系統提示：因為這是模擬器，目前我只看得懂「請假」、「拒絕」、「感謝」等關鍵字喔！真正的 AI 則可以理解任何語境。)</span>";
+                }
+
+                // 6. 顯示結果
+                outputArea.innerHTML = resultText;
+                statusBadge.className = 'badge bg-success position-absolute top-0 end-0 m-2';
+                statusBadge.innerText = '生成完畢';
+                
+            }, 1500); // 1500 毫秒 = 1.5 秒
+        }
+
+        // 額外功能：按 Enter 鍵也可以送出
+        document.getElementById("userInput").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                generateEmail();
+            }
+        });
+    </script>
+</body>
+</html>
