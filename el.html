@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>托福單字練習站</title>
+    <style>
+        :root {
+            --primary-color: #4A90E2;
+            --secondary-color: #F5A623;
+            --bg-color: #F4F7F6;
+            --card-bg: #FFFFFF;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .score-board {
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            color: #333;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            min-height: 250px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            transition: transform 0.3s ease;
+        }
+
+        #word {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+        #phonetic {
+            color: #777;
+            font-style: italic;
+            margin-bottom: 20px;
+        }
+
+        #definition {
+            font-size: 1.2rem;
+            color: #444;
+            background: #eee;
+            padding: 10px;
+            border-radius: 5px;
+            visibility: hidden; /* 預設隱藏 */
+        }
+
+        .controls {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: opacity 0.2s;
+        }
+
+        .btn-show { background-color: var(--secondary-color); color: white; grid-column: span 2; }
+        .btn-correct { background-color: #2ECC71; color: white; }
+        .btn-wrong { background-color: #E74C3C; color: white; }
+
+        button:hover { opacity: 0.9; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="score-board">
+        已學會: <span id="correct-count">0</span> | 需複習: <span id="wrong-count">0</span>
+    </div>
+
+    <div class="card">
+        <h2 id="word">Loading...</h2>
+        <div id="phonetic"></div>
+        <div id="definition">點擊顯示釋義</div>
+    </div>
+
+    <div class="controls">
+        <button class="btn-show" onclick="toggleDefinition()">顯示釋義</button>
+        <button class="btn-wrong" onclick="nextWord(false)">還不熟</button>
+        <button class="btn-correct" onclick="nextWord(true)">記住了</button>
+    </div>
+</div>
+
+<script>
+    // 單字資料庫 (你可以自行在這裡增加單字)
+    const vocabulary = [
+        { word: "Advocate", phonetic: "/ˈæd.və.keɪt/", def: "擁護、提倡" },
+        { word: "Ambiguous", phonetic: "/æmˈbɪɡ.ju.əs/", def: "含糊不清的、模稜兩可的" },
+        { word: "Corroborate", phonetic: "/kəˈrɒb.ə.reɪt/", def: "證實、確證" },
+        { word: "Ephemeral", phonetic: "/ɪˈfem.ər.əl/", def: "轉瞬即逝的、短暫的" },
+        { word: "Inherent", phonetic: "/ɪnˈhɪə.rənt/", def: "內在的、固有的" }
+    ];
+
+    let currentIndex = 0;
+    let correctScore = 0;
+    let wrongScore = 0;
+
+    const wordEl = document.getElementById('word');
+    const phoneticEl = document.getElementById('phonetic');
+    const defEl = document.getElementById('definition');
+    const correctEl = document.getElementById('correct-count');
+    const wrongEl = document.getElementById('wrong-count');
+
+    function loadWord() {
+        const data = vocabulary[currentIndex];
+        wordEl.innerText = data.word;
+        phoneticEl.innerText = data.phonetic;
+        defEl.innerText = data.def;
+        defEl.style.visibility = "hidden";
+    }
+
+    function toggleDefinition() {
+        defEl.style.visibility = (defEl.style.visibility === "hidden") ? "visible" : "hidden";
+    }
+
+    function nextWord(isCorrect) {
+        if (isCorrect) {
+            correctScore++;
+            correctEl.innerText = correctScore;
+        } else {
+            wrongScore++;
+            wrongEl.innerText = wrongScore;
+        }
+
+        // 隨機切換到下一個單字 (或按順序)
+        currentIndex = Math.floor(Math.random() * vocabulary.length);
+        loadWord();
+    }
+
+    // 初始載入
+    loadWord();
+</script>
+
+</body>
+</html>
