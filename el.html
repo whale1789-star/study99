@@ -3,126 +3,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>托福單字練習站</title>
+    <title>托福單字閃卡練習站</title>
     <style>
         :root {
             --primary-color: #4A90E2;
             --secondary-color: #F5A623;
             --bg-color: #F4F7F6;
             --card-bg: #FFFFFF;
+            --text-dark: #333333;
+            --success: #2ECC71;
+            --danger: #E74C3C;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
             background-color: var(--bg-color);
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
         }
 
         .container {
             width: 90%;
-            max-width: 500px;
+            max-width: 450px;
             text-align: center;
         }
 
         .score-board {
             margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            font-size: 1rem;
+            color: var(--text-dark);
+        }
+
+        .score-val {
+            font-weight: bold;
             font-size: 1.2rem;
-            color: #333;
         }
 
         .card {
             background-color: var(--card-bg);
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            min-height: 250px;
+            padding: 50px 30px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            min-height: 200px;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            transition: transform 0.3s ease;
+            margin-bottom: 25px;
         }
 
         #word {
-            font-size: 2.5rem;
+            font-size: 2.8rem;
             color: var(--primary-color);
-            margin: 0;
+            margin: 0 0 10px 0;
+            letter-spacing: 1px;
         }
 
         #phonetic {
-            color: #777;
-            font-style: italic;
-            margin-bottom: 20px;
+            color: #888;
+            font-family: 'Arial';
+            font-size: 1.1rem;
+            margin-bottom: 25px;
         }
 
         #definition {
-            font-size: 1.2rem;
-            color: #444;
-            background: #eee;
-            padding: 10px;
-            border-radius: 5px;
-            visibility: hidden; /* 預設隱藏 */
+            font-size: 1.4rem;
+            color: #555;
+            background: #f9f9f9;
+            border: 1px dashed #ddd;
+            padding: 15px;
+            border-radius: 10px;
+            visibility: hidden; /* 初始隱藏 */
         }
 
         .controls {
-            margin-top: 30px;
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
         }
 
         button {
-            padding: 12px;
+            padding: 15px;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
             font-size: 1rem;
-            transition: opacity 0.2s;
+            font-weight: bold;
+            transition: all 0.2s;
         }
 
-        .btn-show { background-color: var(--secondary-color); color: white; grid-column: span 2; }
-        .btn-correct { background-color: #2ECC71; color: white; }
-        .btn-wrong { background-color: #E74C3C; color: white; }
+        .btn-show { 
+            background-color: var(--secondary-color); 
+            color: white; 
+            grid-column: span 2; 
+            margin-bottom: 5px;
+        }
 
+        .btn-correct { background-color: var(--success); color: white; }
+        .btn-wrong { background-color: var(--danger); color: white; }
+
+        button:active { transform: scale(0.98); }
         button:hover { opacity: 0.9; }
+
+        .btn-reset {
+            margin-top: 20px;
+            background: transparent;
+            color: #999;
+            font-size: 0.8rem;
+            text-decoration: underline;
+            padding: 5px;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="score-board">
-        已學會: <span id="correct-count">0</span> | 需複習: <span id="wrong-count">0</span>
+        已學會: <span id="correct-count" class="score-val" style="color: var(--success);">0</span> 
+        &nbsp;&nbsp;|&nbsp;&nbsp; 
+        需複習: <span id="wrong-count" class="score-val" style="color: var(--danger);">0</span>
     </div>
 
     <div class="card">
-        <h2 id="word">Loading...</h2>
+        <h2 id="word">載入中...</h2>
         <div id="phonetic"></div>
-        <div id="definition">點擊顯示釋義</div>
+        <div id="definition">點擊下方按鈕顯示釋義</div>
     </div>
 
     <div class="controls">
-        <button class="btn-show" onclick="toggleDefinition()">顯示釋義</button>
-        <button class="btn-wrong" onclick="nextWord(false)">還不熟</button>
-        <button class="btn-correct" onclick="nextWord(true)">記住了</button>
+        <button class="btn-show" onclick="toggleDefinition()">👁️ 顯示中文翻譯</button>
+        <button class="btn-wrong" onclick="nextWord(false)">❌ 還不熟</button>
+        <button class="btn-correct" onclick="nextWord(true)">✅ 記住了</button>
     </div>
+
+    <button class="btn-reset" onclick="resetProgress()">重設所有學習進度</button>
 </div>
 
 <script>
-    // 單字資料庫 (你可以自行在這裡增加單字)
+    // 托福單字庫
     const vocabulary = [
         { word: "Advocate", phonetic: "/ˈæd.və.keɪt/", def: "擁護、提倡" },
         { word: "Ambiguous", phonetic: "/æmˈbɪɡ.ju.əs/", def: "含糊不清的、模稜兩可的" },
         { word: "Corroborate", phonetic: "/kəˈrɒb.ə.reɪt/", def: "證實、確證" },
         { word: "Ephemeral", phonetic: "/ɪˈfem.ər.əl/", def: "轉瞬即逝的、短暫的" },
-        { word: "Inherent", phonetic: "/ɪnˈhɪə.rənt/", def: "內在的、固有的" }
+        { word: "Inherent", phonetic: "/ɪnˈhɪə.rənt/", def: "內在的、固有的" },
+        { word: "Exacerbate", phonetic: "/ɪɡˈzæs.ə.beɪt/", def: "使惡化、加重" },
+        { word: "Pragmatic", phonetic: "/præɡˈmæt.ɪk/", def: "務實的、重實效的" }
     ];
 
+    // 從 localStorage 讀取紀錄，若無則初始化為 0
+    let correctScore = parseInt(localStorage.getItem('toefl_correct')) || 0;
+    let wrongScore = parseInt(localStorage.getItem('toefl_wrong')) || 0;
     let currentIndex = 0;
-    let correctScore = 0;
-    let wrongScore = 0;
 
     const wordEl = document.getElementById('word');
     const phoneticEl = document.getElementById('phonetic');
@@ -130,7 +168,13 @@
     const correctEl = document.getElementById('correct-count');
     const wrongEl = document.getElementById('wrong-count');
 
+    // 初始化顯示
     function loadWord() {
+        // 更新計數器顯示
+        correctEl.innerText = correctScore;
+        wrongEl.innerText = wrongScore;
+
+        // 隨機選取一個單字（可避免按順序背誦的機械感）
         const data = vocabulary[currentIndex];
         wordEl.innerText = data.word;
         phoneticEl.innerText = data.phonetic;
@@ -138,26 +182,48 @@
         defEl.style.visibility = "hidden";
     }
 
+    // 切換釋義顯示/隱藏
     function toggleDefinition() {
-        defEl.style.visibility = (defEl.style.visibility === "hidden") ? "visible" : "hidden";
+        if (defEl.style.visibility === "hidden") {
+            defEl.style.visibility = "visible";
+        } else {
+            defEl.style.visibility = "hidden";
+        }
     }
 
+    // 處理下一步邏輯
     function nextWord(isCorrect) {
         if (isCorrect) {
             correctScore++;
-            correctEl.innerText = correctScore;
+            localStorage.setItem('toefl_correct', correctScore);
         } else {
             wrongScore++;
-            wrongEl.innerText = wrongScore;
+            localStorage.setItem('toefl_wrong', wrongScore);
         }
 
-        // 隨機切換到下一個單字 (或按順序)
-        currentIndex = Math.floor(Math.random() * vocabulary.length);
+        // 隨機跳到下一個（避免跟上一個重複）
+        let nextIndex;
+        do {
+            nextIndex = Math.floor(Math.random() * vocabulary.length);
+        } while (nextIndex === currentIndex && vocabulary.length > 1);
+        
+        currentIndex = nextIndex;
         loadWord();
     }
 
-    // 初始載入
-    loadWord();
+    // 重設功能
+    function resetProgress() {
+        if (confirm("確定要清除所有紀錄並重新開始嗎？")) {
+            correctScore = 0;
+            wrongScore = 0;
+            localStorage.setItem('toefl_correct', 0);
+            localStorage.setItem('toefl_wrong', 0);
+            loadWord();
+        }
+    }
+
+    // 啟動程式
+    window.onload = loadWord;
 </script>
 
 </body>
