@@ -3,227 +3,205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>托福單字閃卡練習站</title>
+    <title>托福單字精準複習站</title>
     <style>
         :root {
-            --primary-color: #4A90E2;
-            --secondary-color: #F5A623;
-            --bg-color: #F4F7F6;
-            --card-bg: #FFFFFF;
-            --text-dark: #333333;
+            --primary: #4A90E2;
             --success: #2ECC71;
             --danger: #E74C3C;
+            --bg: #F0F2F5;
         }
 
         body {
-            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
-            background-color: var(--bg-color);
+            font-family: 'PingFang TC', sans-serif;
+            background-color: var(--bg);
             display: flex;
             justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            padding-top: 50px;
             margin: 0;
         }
 
-        .container {
-            width: 90%;
-            max-width: 450px;
-            text-align: center;
-        }
+        .container { width: 90%; max-width: 500px; text-align: center; }
 
-        .score-board {
+        /* 篩選器樣式 */
+        .filter-tabs {
+            display: flex;
+            justify-content: space-around;
             margin-bottom: 20px;
-            padding: 15px;
-            background: white;
+            background: #fff;
+            padding: 10px;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            font-size: 1rem;
-            color: var(--text-dark);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
-        .score-val {
-            font-weight: bold;
-            font-size: 1.2rem;
+        .tab {
+            padding: 8px 15px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            color: #666;
         }
+
+        .tab.active { background: var(--primary); color: white; }
 
         .card {
-            background-color: var(--card-bg);
-            padding: 50px 30px;
+            background: white;
+            padding: 40px 20px;
             border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-            min-height: 200px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            min-height: 250px;
+            margin-bottom: 20px;
+            position: relative;
         }
 
-        #word {
-            font-size: 2.8rem;
-            color: var(--primary-color);
-            margin: 0 0 10px 0;
-            letter-spacing: 1px;
+        .status-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 0.8rem;
+            padding: 3px 8px;
+            border-radius: 4px;
         }
 
-        #phonetic {
-            color: #888;
-            font-family: 'Arial';
-            font-size: 1.1rem;
-            margin-bottom: 25px;
+        .status-learned { background: #e8f5e9; color: var(--success); }
+        .status-review { background: #ffebee; color: var(--danger); }
+
+        #word { font-size: 2.5rem; color: var(--primary); margin: 10px 0; }
+        #definition { 
+            font-size: 1.3rem; margin-top: 20px; padding: 15px;
+            background: #f9f9f9; border-radius: 8px; display: none;
         }
 
-        #definition {
-            font-size: 1.4rem;
-            color: #555;
-            background: #f9f9f9;
-            border: 1px dashed #ddd;
+        .controls button {
+            width: 100%;
             padding: 15px;
-            border-radius: 10px;
-            visibility: hidden; /* 初始隱藏 */
-        }
-
-        .controls {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-
-        button {
-            padding: 15px;
+            margin: 5px 0;
             border: none;
-            border-radius: 12px;
-            cursor: pointer;
+            border-radius: 10px;
             font-size: 1rem;
             font-weight: bold;
-            transition: all 0.2s;
+            cursor: pointer;
         }
 
-        .btn-show { 
-            background-color: var(--secondary-color); 
-            color: white; 
-            grid-column: span 2; 
-            margin-bottom: 5px;
-        }
-
-        .btn-correct { background-color: var(--success); color: white; }
-        .btn-wrong { background-color: var(--danger); color: white; }
-
-        button:active { transform: scale(0.98); }
-        button:hover { opacity: 0.9; }
-
-        .btn-reset {
-            margin-top: 20px;
-            background: transparent;
-            color: #999;
-            font-size: 0.8rem;
-            text-decoration: underline;
-            padding: 5px;
-        }
+        .btn-main { background: var(--primary); color: white; }
+        .btn-yes { background: var(--success); color: white; }
+        .btn-no { background: var(--danger); color: white; }
+        
+        .stats { margin-top: 20px; color: #888; font-size: 0.85rem; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="score-board">
-        已學會: <span id="correct-count" class="score-val" style="color: var(--success);">0</span> 
-        &nbsp;&nbsp;|&nbsp;&nbsp; 
-        需複習: <span id="wrong-count" class="score-val" style="color: var(--danger);">0</span>
+    <div class="filter-tabs">
+        <div class="tab active" onclick="setMode('all')">全部 (<span id="count-all">0</span>)</div>
+        <div class="tab" onclick="setMode('review')">需複習 (<span id="count-review">0</span>)</div>
+        <div class="tab" onclick="setMode('learned')">已學會 (<span id="count-learned">0</span>)</div>
     </div>
 
     <div class="card">
-        <h2 id="word">載入中...</h2>
-        <div id="phonetic"></div>
-        <div id="definition">點擊下方按鈕顯示釋義</div>
+        <div id="status" class="status-badge">未練習</div>
+        <h2 id="word">Loading...</h2>
+        <div id="phonetic" style="color:#999"></div>
+        <div id="definition"></div>
     </div>
 
     <div class="controls">
-        <button class="btn-show" onclick="toggleDefinition()">👁️ 顯示中文翻譯</button>
-        <button class="btn-wrong" onclick="nextWord(false)">❌ 還不熟</button>
-        <button class="btn-correct" onclick="nextWord(true)">✅ 記住了</button>
+        <button class="btn-main" onclick="showDef()">👁️ 顯示釋義</button>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-no" onclick="markWord('review')">❌ 還不熟</button>
+            <button class="btn-yes" onclick="markWord('learned')">✅ 記住了</button>
+        </div>
     </div>
 
-    <button class="btn-reset" onclick="resetProgress()">重設所有學習進度</button>
+    <div class="stats">
+        提示：切換上方分頁可針對特定群組進行強化複習。
+        <br><br>
+        <a href="#" onclick="resetAll()" style="color:#ccc">重設所有資料</a>
+    </div>
 </div>
 
 <script>
-    // 托福單字庫
-    const vocabulary = [
+    // 原始單字表
+    const rawVocabulary = [
         { word: "Advocate", phonetic: "/ˈæd.və.keɪt/", def: "擁護、提倡" },
-        { word: "Ambiguous", phonetic: "/æmˈbɪɡ.ju.əs/", def: "含糊不清的、模稜兩可的" },
+        { word: "Ambiguous", phonetic: "/æmˈbɪɡ.ju.əs/", def: "含糊不清的" },
         { word: "Corroborate", phonetic: "/kəˈrɒb.ə.reɪt/", def: "證實、確證" },
-        { word: "Ephemeral", phonetic: "/ɪˈfem.ər.əl/", def: "轉瞬即逝的、短暫的" },
-        { word: "Inherent", phonetic: "/ɪnˈhɪə.rənt/", def: "內在的、固有的" },
-        { word: "Exacerbate", phonetic: "/ɪɡˈzæs.ə.beɪt/", def: "使惡化、加重" },
-        { word: "Pragmatic", phonetic: "/præɡˈmæt.ɪk/", def: "務實的、重實效的" }
+        { word: "Ephemeral", phonetic: "/ɪˈfem.ər.əl/", def: "短暫的" },
+        { word: "Inherent", phonetic: "/ɪnˈhɪə.rənt/", def: "固有的" },
+        { word: "Pragmatic", phonetic: "/præɡˈmæt.ɪk/", def: "務實的" }
     ];
 
-    // 從 localStorage 讀取紀錄，若無則初始化為 0
-    let correctScore = parseInt(localStorage.getItem('toefl_correct')) || 0;
-    let wrongScore = parseInt(localStorage.getItem('toefl_wrong')) || 0;
-    let currentIndex = 0;
+    let db = JSON.parse(localStorage.getItem('toefl_db')) || {};
+    let currentMode = 'all'; // all, review, learned
+    let currentWordObj = null;
 
-    const wordEl = document.getElementById('word');
-    const phoneticEl = document.getElementById('phonetic');
-    const defEl = document.getElementById('definition');
-    const correctEl = document.getElementById('correct-count');
-    const wrongEl = document.getElementById('wrong-count');
-
-    // 初始化顯示
-    function loadWord() {
-        // 更新計數器顯示
-        correctEl.innerText = correctScore;
-        wrongEl.innerText = wrongScore;
-
-        // 隨機選取一個單字（可避免按順序背誦的機械感）
-        const data = vocabulary[currentIndex];
-        wordEl.innerText = data.word;
-        phoneticEl.innerText = data.phonetic;
-        defEl.innerText = data.def;
-        defEl.style.visibility = "hidden";
+    function updateCounts() {
+        const vals = Object.values(db);
+        document.getElementById('count-all').innerText = rawVocabulary.length;
+        document.getElementById('count-review').innerText = vals.filter(v => v === 'review').length;
+        document.getElementById('count-learned').innerText = vals.filter(v => v === 'learned').length;
     }
 
-    // 切換釋義顯示/隱藏
-    function toggleDefinition() {
-        if (defEl.style.visibility === "hidden") {
-            defEl.style.visibility = "visible";
-        } else {
-            defEl.style.visibility = "hidden";
-        }
+    function setMode(mode) {
+        currentMode = mode;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        event.target.classList.add('active');
+        nextWord();
     }
 
-    // 處理下一步邏輯
-    function nextWord(isCorrect) {
-        if (isCorrect) {
-            correctScore++;
-            localStorage.setItem('toefl_correct', correctScore);
+    function nextWord() {
+        let pool = [];
+        if (currentMode === 'all') {
+            pool = rawVocabulary;
         } else {
-            wrongScore++;
-            localStorage.setItem('toefl_wrong', wrongScore);
+            pool = rawVocabulary.filter(item => db[item.word] === currentMode);
         }
 
-        // 隨機跳到下一個（避免跟上一個重複）
-        let nextIndex;
-        do {
-            nextIndex = Math.floor(Math.random() * vocabulary.length);
-        } while (nextIndex === currentIndex && vocabulary.length > 1);
+        if (pool.length === 0) {
+            document.getElementById('word').innerText = "空空如也";
+            document.getElementById('phonetic').innerText = "";
+            document.getElementById('definition').innerText = "此分類目前沒有單字";
+            document.getElementById('status').innerText = "-";
+            return;
+        }
+
+        currentWordObj = pool[Math.floor(Math.random() * pool.length)];
         
-        currentIndex = nextIndex;
-        loadWord();
+        document.getElementById('word').innerText = currentWordObj.word;
+        document.getElementById('phonetic').innerText = currentWordObj.phonetic;
+        document.getElementById('definition').innerText = currentWordObj.def;
+        document.getElementById('definition').style.display = 'none';
+        
+        const status = db[currentWordObj.word];
+        const statusEl = document.getElementById('status');
+        statusEl.innerText = status === 'learned' ? '✅ 已學會' : (status === 'review' ? '❌ 需複習' : '⚪ 未練習');
+        statusEl.className = 'status-badge ' + (status === 'learned' ? 'status-learned' : (status === 'review' ? 'status-review' : ''));
+        
+        updateCounts();
     }
 
-    // 重設功能
-    function resetProgress() {
-        if (confirm("確定要清除所有紀錄並重新開始嗎？")) {
-            correctScore = 0;
-            wrongScore = 0;
-            localStorage.setItem('toefl_correct', 0);
-            localStorage.setItem('toefl_wrong', 0);
-            loadWord();
+    function showDef() {
+        document.getElementById('definition').style.display = 'block';
+    }
+
+    function markWord(status) {
+        if (!currentWordObj) return;
+        db[currentWordObj.word] = status;
+        localStorage.setItem('toefl_db', JSON.stringify(db));
+        nextWord();
+    }
+
+    function resetAll() {
+        if(confirm("確定重設嗎？")) {
+            localStorage.removeItem('toefl_db');
+            db = {};
+            nextWord();
         }
     }
 
-    // 啟動程式
-    window.onload = loadWord;
+    // 初始化
+    nextWord();
 </script>
 
 </body>
