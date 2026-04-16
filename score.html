@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>教職員績效評分系統</title>
+    <title>績效評分系統</title>
     
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -614,7 +614,7 @@
                                 <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
                                     <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                                         <IconAward className="text-blue-600 flex-shrink-0" />
-                                        教職員績效評分系統
+                                        績效評分系統
                                     </h1>
                                     
                                     <div className="flex items-center flex-wrap justify-center gap-2 w-full lg:w-auto">
@@ -868,9 +868,10 @@
                                             <span className="text-sm text-slate-500 font-medium">共 {displayedTeachersCount} 筆資料</span>
                                         </div>
 
-                                        <div className="overflow-x-auto pb-4">
+                                        {/* 為資料表外層加入固定高度與捲動軸，實現凍結窗格效果 */}
+                                        <div className="overflow-auto max-h-[70vh]">
                                             <table className="min-w-full divide-y divide-slate-200 text-sm">
-                                                <thead className="bg-slate-100 text-slate-600">
+                                                <thead className="bg-slate-100 text-slate-600 sticky top-0 z-10 shadow-sm outline outline-1 outline-slate-200">
                                                     <tr>
                                                         <th className="px-4 py-3 text-left font-semibold whitespace-nowrap align-middle">卡號</th>
                                                         <th className="px-4 py-3 text-left font-semibold whitespace-nowrap align-middle">姓名</th>
@@ -930,9 +931,9 @@
                                                         ))
                                                     )}
                                                 </tbody>
-                                                {/* 置底智能平均值列 */}
+                                                {/* 置底智能平均值列 - 加入 sticky bottom-0 */}
                                                 {displayedTeachersCount > 0 && !loading && (
-                                                    <tfoot className="bg-blue-50 font-bold border-t-[3px] border-blue-200">
+                                                    <tfoot className="bg-blue-50 font-bold border-t-[3px] border-blue-200 sticky bottom-0 z-10 outline outline-1 outline-blue-200 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
                                                         <tr className="text-blue-900">
                                                             <td colSpan="3" className="px-4 py-4 text-right border-r border-blue-200/50 align-top pt-4">
                                                                 {selectedGroup === '全部' ? '全體人員平均值：' : `【${selectedGroup}】平均值：`}
