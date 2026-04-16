@@ -40,9 +40,10 @@
 
     <script type="text/babel" data-type="module">
         // --- ES Module Imports ---
+        // 新增 getDocs, collection 用於抓取所有人員資料
         import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // =========================================================================
         // 利用立即執行函式 (IIFE) 隔離作用域
@@ -77,8 +78,10 @@
             const IconChevronRight = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>;
             const IconUpload = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>;
             const IconX = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
-            // 編輯圖示
             const IconEdit = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>;
+            // 總覽圖示與返回圖示
+            const IconTable = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="9" x2="9" y2="21"></line><line x1="15" y1="9" x2="15" y2="21"></line></svg>;
+            const IconArrowLeft = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>;
 
             // =========================================================================
             // ★★★ 請替換成您自己的 Firebase 專案設定 ★★★
@@ -214,6 +217,9 @@
             };
 
             function App() {
+                // UI 視角狀態
+                const [viewMode, setViewMode] = useState('single'); // 'single' 員工評分 | 'manager' 主管總覽
+                
                 const [user, setUser] = useState(null);
                 const [loading, setLoading] = useState(true);
                 const [searchInput, setSearchInput] = useState('');
@@ -236,6 +242,9 @@
                 const [showImportModal, setShowImportModal] = useState(false);
                 const [importText, setImportText] = useState('');
                 const [isImporting, setIsImporting] = useState(false);
+
+                // 主管總覽狀態
+                const [allTeachers, setAllTeachers] = useState([]);
 
                 useEffect(() => {
                     if (!isValidConfig) {
@@ -268,6 +277,32 @@
                     return () => unsubscribe();
                 }, []);
 
+                // 監聽視角切換，若切換到 manager 則拉取所有資料
+                useEffect(() => {
+                    if (viewMode === 'manager' && user && db) {
+                        const fetchAll = async () => {
+                            setLoading(true);
+                            try {
+                                const colRef = collection(db, getCollectionPath());
+                                const snapshot = await executeWithTimeout(getDocs(colRef));
+                                const dataList = [];
+                                snapshot.forEach(docSnap => {
+                                    dataList.push({ id: docSnap.id, ...docSnap.data() });
+                                });
+                                // 依卡號排序
+                                dataList.sort((a, b) => a.id.localeCompare(b.id));
+                                setAllTeachers(dataList);
+                            } catch (error) {
+                                console.error("抓取全體資料失敗:", error);
+                                showToast('抓取資料失敗，請確認權限', 'error');
+                            } finally {
+                                setLoading(false);
+                            }
+                        };
+                        fetchAll();
+                    }
+                }, [viewMode, user, db]);
+
                 const showToast = (message, type = 'success', duration = 3000) => {
                     setToast({ message, type });
                     setTimeout(() => setToast(null), duration);
@@ -279,7 +314,7 @@
 
                     setLoading(true);
                     setIsCreating(false);
-                    setIsEditingProfile(false); // 查詢新資料時關閉編輯狀態
+                    setIsEditingProfile(false);
                     
                     try {
                         const docPath = `${getCollectionPath()}/${searchInput.trim()}`;
@@ -332,7 +367,6 @@
                         setIsCreating(false);
                         showToast('人員建立成功！');
                     } catch (error) {
-                        console.error("Error creating document:", error);
                         if (error.message === "FIREBASE_TIMEOUT") {
                             showToast('建立失敗：連線逾時，請確認 Firestore Database 是否已開通。', 'error', 5000);
                         } else {
@@ -343,7 +377,6 @@
                     }
                 };
 
-                // --- 新增：儲存個人資料編輯 ---
                 const handleSaveProfile = async () => {
                     if (!editName.trim() || !editTitle.trim()) {
                         showToast('姓名與職稱不可為空', 'error');
@@ -355,7 +388,6 @@
                         const docPath = `${getCollectionPath()}/${currentCardNumber}`;
                         const docRef = doc(db, docPath);
                         
-                        // 使用 merge: true 只更新姓名與職稱，不覆蓋分數
                         await executeWithTimeout(setDoc(docRef, {
                             name: editName.trim(),
                             title: editTitle.trim()
@@ -369,7 +401,6 @@
                         setIsEditingProfile(false);
                         showToast('基本資料修改成功！');
                     } catch (error) {
-                        console.error("Error updating profile:", error);
                         if (error.message === "FIREBASE_TIMEOUT") {
                             showToast('修改失敗：連線逾時', 'error', 5000);
                         } else {
@@ -400,7 +431,6 @@
                         await executeWithTimeout(setDoc(docRef, { scores: teacherData.scores }, { merge: true }));
                         showToast('分數儲存成功！');
                     } catch (error) {
-                        console.error("Error saving document:", error);
                         if (error.message === "FIREBASE_TIMEOUT") {
                             showToast('儲存失敗：連線逾時，請確認 Firestore Database 是否已開通。', 'error', 5000);
                         } else {
@@ -442,7 +472,6 @@
                                     );
                                     successCount++;
                                 } catch (e) {
-                                    console.error("匯入錯誤:", e);
                                     if (e.message === "FIREBASE_TIMEOUT") {
                                         isTimeout = true;
                                     } else {
@@ -469,6 +498,13 @@
                     }
                 };
 
+                // 計算全部人員在某個欄位的平均值
+                const getAverage = (key) => {
+                    if (allTeachers.length === 0) return "0.0";
+                    const sum = allTeachers.reduce((acc, curr) => acc + (curr.scores?.[key] || 0), 0);
+                    return (sum / allTeachers.length).toFixed(1);
+                };
+
                 if (!isValidConfig) {
                     return (
                         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-slate-600">
@@ -491,51 +527,76 @@
                     </div>;
                 }
 
+                // 取得當前 Tab 的所有欄位設定
+                const currentItems = SCORING_CATEGORIES[activeTab].sections.flatMap(s => s.items);
+
                 return (
                     <div>
+                        {/* 頂部導覽列 */}
                         <div className="bg-white shadow-sm sticky top-0 z-10">
-                            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                                     <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                                         <IconAward className="text-blue-600" />
                                         績效評分系統
                                     </h1>
                                     
-                                    <div className="flex items-center gap-3 w-full sm:w-auto">
-                                        <button
-                                            onClick={() => setShowImportModal(true)}
-                                            className="flex items-center gap-1 text-sm bg-slate-100 text-slate-600 px-3 py-2 rounded-lg hover:bg-slate-200 transition-colors font-medium border border-slate-200"
-                                        >
-                                            <IconUpload className="w-4 h-4" />
-                                            <span className="hidden sm:inline">批次匯入</span>
-                                        </button>
+                                    <div className="flex items-center flex-wrap justify-center gap-3 w-full sm:w-auto">
+                                        {viewMode === 'single' ? (
+                                            <>
+                                                <button
+                                                    onClick={() => setViewMode('manager')}
+                                                    className="flex items-center gap-1 text-sm bg-blue-50 text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-100 transition-colors font-bold border border-blue-200"
+                                                >
+                                                    <IconTable className="w-4 h-4" />
+                                                    <span className="hidden sm:inline">主管總覽</span>
+                                                </button>
 
-                                        <form onSubmit={handleSearch} className="flex flex-grow sm:flex-grow-0">
-                                            <div className="relative flex-grow sm:w-64">
-                                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                    <IconSearch className="h-4 w-4 text-gray-400" />
-                                                </div>
-                                                <input
-                                                    type="text"
-                                                    placeholder="輸入卡號..."
-                                                    value={searchInput}
-                                                    onChange={(e) => setSearchInput(e.target.value)}
-                                                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-l-lg focus:ring-blue-500 focus:border-blue-500 text-sm"
-                                                />
-                                            </div>
+                                                <button
+                                                    onClick={() => setShowImportModal(true)}
+                                                    className="flex items-center gap-1 text-sm bg-slate-100 text-slate-600 px-3 py-2 rounded-lg hover:bg-slate-200 transition-colors font-medium border border-slate-200"
+                                                >
+                                                    <IconUpload className="w-4 h-4" />
+                                                    <span className="hidden lg:inline">批次匯入</span>
+                                                </button>
+
+                                                <form onSubmit={handleSearch} className="flex flex-grow sm:flex-grow-0">
+                                                    <div className="relative flex-grow sm:w-64">
+                                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                            <IconSearch className="h-4 w-4 text-gray-400" />
+                                                        </div>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="輸入卡號..."
+                                                            value={searchInput}
+                                                            onChange={(e) => setSearchInput(e.target.value)}
+                                                            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-l-lg focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        type="submit"
+                                                        disabled={loading}
+                                                        className="bg-blue-600 text-white px-4 py-2 rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm font-medium transition-colors disabled:bg-blue-400"
+                                                    >
+                                                        查詢
+                                                    </button>
+                                                </form>
+                                            </>
+                                        ) : (
                                             <button
-                                                type="submit"
-                                                disabled={loading}
-                                                className="bg-blue-600 text-white px-4 py-2 rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm font-medium transition-colors disabled:bg-blue-400"
+                                                onClick={() => setViewMode('single')}
+                                                className="flex items-center gap-2 text-sm bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors font-medium"
                                             >
-                                                查詢
+                                                <IconArrowLeft className="w-4 h-4" />
+                                                返回單人評分
                                             </button>
-                                        </form>
+                                        )}
                                     </div>
                                 </div>
                             </div>
                         </div>
 
+                        {/* 批次匯入 Modal */}
                         {showImportModal && (
                             <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
                                 <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
@@ -585,138 +646,24 @@
                             </div>
                         )}
 
-                        <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                            {toast && (
-                                <div className={`fixed top-20 right-4 p-4 rounded-lg shadow-lg flex items-center gap-2 text-white z-50 transition-opacity ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`}>
-                                    {toast.type === 'error' ? <IconAlertCircle className="w-5 h-5" /> : <IconCheckCircle className="w-5 h-5" />}
-                                    {toast.message}
-                                </div>
-                            )}
+                        {/* 全域 Toast 提示 */}
+                        {toast && (
+                            <div className={`fixed top-20 right-4 p-4 rounded-lg shadow-lg flex items-center gap-2 text-white z-50 transition-opacity ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`}>
+                                {toast.type === 'error' ? <IconAlertCircle className="w-5 h-5" /> : <IconCheckCircle className="w-5 h-5" />}
+                                {toast.message}
+                            </div>
+                        )}
 
-                            {!currentCardNumber && !loading && (
-                                <div className="text-center py-20 text-slate-500">
-                                    <IconSearch className="w-16 h-16 mx-auto text-slate-300 mb-4" />
-                                    <p className="text-lg">請在上方輸入卡號以查詢，或點擊「批次匯入」建立資料</p>
-                                </div>
-                            )}
-
-                            {isCreating && (
-                                <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200 max-w-lg mx-auto mt-10">
-                                    <div className="text-center mb-6">
-                                        <div className="bg-blue-100 text-blue-600 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                                            <IconUserPlus className="w-6 h-6" />
-                                        </div>
-                                        <h2 className="text-xl font-bold">新增教職員資料</h2>
-                                        <p className="text-slate-500 text-sm mt-1">查無卡號「{currentCardNumber}」，請輸入基本資料建立檔案。</p>
-                                    </div>
-                                    
-                                    <form onSubmit={handleCreateTeacher} className="space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">姓名</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                value={newName}
-                                                onChange={(e) => setNewName(e.target.value)}
-                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-                                                placeholder="例如：王小明"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">職稱</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                value={newTitle}
-                                                onChange={(e) => setNewTitle(e.target.value)}
-                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-                                                placeholder="例如：主任"
-                                            />
-                                        </div>
-                                        <button
-                                            type="submit"
-                                            className="w-full bg-blue-600 text-white rounded-lg py-2.5 font-medium hover:bg-blue-700 transition-colors"
-                                        >
-                                            確認建立
-                                        </button>
-                                    </form>
-                                </div>
-                            )}
-
-                            {teacherData && !isCreating && (
-                                <div className="space-y-6">
-                                    {/* 頂部個人資料區塊 */}
-                                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                        {isEditingProfile ? (
-                                            /* 編輯狀態 */
-                                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full">
-                                                <div className="flex items-center gap-4 w-full sm:w-auto">
-                                                    <div className="bg-slate-100 p-3 rounded-full hidden sm:block flex-shrink-0">
-                                                        <IconUser className="w-8 h-8 text-slate-600" />
-                                                    </div>
-                                                    <div className="flex flex-col gap-2 w-full sm:w-auto">
-                                                        <input
-                                                            type="text"
-                                                            value={editName}
-                                                            onChange={(e) => setEditName(e.target.value)}
-                                                            placeholder="姓名"
-                                                            className="border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-blue-500 focus:border-blue-500 text-lg font-bold w-full sm:w-48"
-                                                        />
-                                                        <input
-                                                            type="text"
-                                                            value={editTitle}
-                                                            onChange={(e) => setEditTitle(e.target.value)}
-                                                            placeholder="職稱"
-                                                            className="border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-blue-500 focus:border-blue-500 text-sm w-full sm:w-48"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="flex gap-2 w-full sm:w-auto sm:ml-auto mt-2 sm:mt-0">
-                                                    <button onClick={handleSaveProfile} disabled={loading} className="flex-1 sm:flex-none text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium transition-colors">確認修改</button>
-                                                    <button onClick={() => setIsEditingProfile(false)} disabled={loading} className="flex-1 sm:flex-none text-sm bg-slate-100 text-slate-600 px-4 py-2 rounded-lg hover:bg-slate-200 font-medium border border-slate-200 transition-colors">取消</button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            /* 唯讀狀態 */
-                                            <>
-                                                <div className="flex items-center gap-4">
-                                                    <div className="bg-slate-100 p-3 rounded-full flex-shrink-0">
-                                                        <IconUser className="w-8 h-8 text-slate-600" />
-                                                    </div>
-                                                    <div>
-                                                        <div className="flex items-center gap-2">
-                                                            <h2 className="text-2xl font-bold text-slate-800">{teacherData.name}</h2>
-                                                            <button 
-                                                                onClick={() => {
-                                                                    setEditName(teacherData.name);
-                                                                    setEditTitle(teacherData.title);
-                                                                    setIsEditingProfile(true);
-                                                                }}
-                                                                className="text-slate-400 hover:text-blue-600 transition-colors p-1 rounded-full hover:bg-blue-50"
-                                                                title="修改基本資料"
-                                                            >
-                                                                <IconEdit className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-                                                        <div className="flex flex-wrap gap-3 text-sm text-slate-500 mt-1">
-                                                            <span className="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{teacherData.title}</span>
-                                                            <span className="flex items-center gap-1"><span className="text-slate-400">卡號:</span> {currentCardNumber}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={handleSaveScores}
-                                                    disabled={loading}
-                                                    className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-lg hover:bg-emerald-700 transition-colors font-medium shadow-sm w-full sm:w-auto justify-center"
-                                                >
-                                                    <IconSave className="w-4 h-4" />
-                                                    儲存所有變更
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-
+                        {/* 主畫面區域：根據 viewMode 切換 */}
+                        <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                            
+                            {/* ===================================================================== */}
+                            {/* 視角 B：主管總覽 (Manager View) */}
+                            {/* ===================================================================== */}
+                            {viewMode === 'manager' && (
+                                <div className="space-y-6 animate-in fade-in duration-300">
                                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                                        {/* 總覽頁籤 */}
                                         <div className="flex overflow-x-auto border-b border-slate-200 bg-slate-50 hide-scrollbar">
                                             {Object.values(SCORING_CATEGORIES).map((cat) => (
                                                 <button
@@ -733,54 +680,272 @@
                                                 </button>
                                             ))}
                                         </div>
+                                        
+                                        {/* 資料表格區 */}
+                                        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white">
+                                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                                {SCORING_CATEGORIES[activeTab].icon}
+                                                {SCORING_CATEGORIES[activeTab].title} - 全體成績總覽
+                                            </h3>
+                                            <span className="text-sm text-slate-500 font-medium">共 {allTeachers.length} 筆資料</span>
+                                        </div>
 
-                                        <div className="p-6">
-                                            <div className="mb-6 border-b border-slate-100 pb-4">
-                                                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                                    {SCORING_CATEGORIES[activeTab].icon}
-                                                    {SCORING_CATEGORIES[activeTab].title} - 評分項目
-                                                </h3>
-                                                <p className="text-sm text-slate-500 mt-1">請在對應欄位輸入數值（支援正數加分與負數扣分）。</p>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                                                {SCORING_CATEGORIES[activeTab].sections.map((section, idx) => (
-                                                    <div key={idx} className="bg-slate-50 p-4 rounded-lg border border-slate-100">
-                                                        <h4 className="font-semibold text-slate-700 mb-3 text-sm flex items-center gap-1">
-                                                            <IconChevronRight className="w-4 h-4 text-slate-400" />
-                                                            {section.title}
-                                                        </h4>
-                                                        <div className="space-y-3">
-                                                            {section.items.map((item) => {
-                                                                const currentVal = teacherData.scores?.[item.key] || 0;
-                                                                return (
-                                                                    <div key={item.key} className="flex items-center justify-between gap-4 bg-white p-2.5 rounded border border-slate-200 shadow-sm hover:border-blue-200 transition-colors">
-                                                                        <label className="text-sm text-slate-700 flex-grow font-medium leading-tight">
-                                                                            {item.label}
-                                                                        </label>
-                                                                        <div className="flex items-center flex-shrink-0">
-                                                                            <input
-                                                                                type="number"
-                                                                                value={currentVal || ''}
-                                                                                onChange={(e) => handleScoreChange(item.key, e.target.value)}
-                                                                                placeholder="0"
-                                                                                className={`w-20 text-center border rounded-md py-1 px-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none ${
-                                                                                    currentVal > 0 ? 'text-emerald-600 font-bold border-emerald-200 bg-emerald-50' :
-                                                                                    currentVal < 0 ? 'text-red-600 font-bold border-red-200 bg-red-50' :
-                                                                                    'text-slate-600 border-slate-300'
-                                                                                }`}
-                                                                            />
-                                                                            <span className="text-xs text-slate-500 ml-2 w-8 text-left font-medium">{item.unit}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                        <div className="overflow-x-auto pb-4">
+                                            <table className="min-w-full divide-y divide-slate-200 text-sm">
+                                                <thead className="bg-slate-100 text-slate-600">
+                                                    <tr>
+                                                        <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">卡號</th>
+                                                        <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">姓名</th>
+                                                        <th className="px-4 py-3 text-left font-semibold whitespace-nowrap border-r border-slate-200">職稱</th>
+                                                        {currentItems.map(item => (
+                                                            <th key={item.key} className="px-3 py-3 text-center font-semibold whitespace-nowrap min-w-[100px]">
+                                                                <div className="flex flex-col items-center">
+                                                                    <span>{item.label}</span>
+                                                                    <span className="text-xs text-slate-400 font-normal">({item.unit})</span>
+                                                                </div>
+                                                            </th>
+                                                        ))}
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100 bg-white">
+                                                    {loading ? (
+                                                        <tr><td colSpan={currentItems.length + 3} className="px-4 py-8 text-center text-slate-500">載入中...</td></tr>
+                                                    ) : allTeachers.length === 0 ? (
+                                                        <tr><td colSpan={currentItems.length + 3} className="px-4 py-8 text-center text-slate-500">尚無人員資料，請先匯入或建立。</td></tr>
+                                                    ) : (
+                                                        allTeachers.map(teacher => (
+                                                            <tr key={teacher.id} className="hover:bg-blue-50/50 transition-colors">
+                                                                <td className="px-4 py-3 whitespace-nowrap font-mono text-slate-500">{teacher.id}</td>
+                                                                <td className="px-4 py-3 whitespace-nowrap font-bold text-slate-700">{teacher.name}</td>
+                                                                <td className="px-4 py-3 whitespace-nowrap text-slate-500 border-r border-slate-100">{teacher.title}</td>
+                                                                {currentItems.map(item => {
+                                                                    const val = teacher.scores?.[item.key] || 0;
+                                                                    return (
+                                                                        <td key={item.key} className={`px-3 py-3 whitespace-nowrap text-center font-medium ${
+                                                                            val > 0 ? 'text-emerald-600' : val < 0 ? 'text-red-600' : 'text-slate-400'
+                                                                        }`}>
+                                                                            {val}
+                                                                        </td>
+                                                                    );
+                                                                })}
+                                                            </tr>
+                                                        ))
+                                                    )}
+                                                </tbody>
+                                                {/* 置底平均值列 */}
+                                                {allTeachers.length > 0 && !loading && (
+                                                    <tfoot className="bg-blue-50 font-bold text-blue-900 border-t-[3px] border-blue-200">
+                                                        <tr>
+                                                            <td colSpan="3" className="px-4 py-4 text-right border-r border-blue-200/50">
+                                                                全體人員平均值：
+                                                            </td>
+                                                            {currentItems.map(item => (
+                                                                <td key={item.key} className="px-3 py-4 whitespace-nowrap text-center text-[15px]">
+                                                                    {getAverage(item.key)}
+                                                                </td>
+                                                            ))}
+                                                        </tr>
+                                                    </tfoot>
+                                                )}
+                                            </table>
                                         </div>
                                     </div>
+                                </div>
+                            )}
+
+                            {/* ===================================================================== */}
+                            {/* 視角 A：單人評分 (Single User View) - 原有功能 */}
+                            {/* ===================================================================== */}
+                            {viewMode === 'single' && (
+                                <div className="animate-in fade-in duration-300">
+                                    {!currentCardNumber && !loading && (
+                                        <div className="text-center py-20 text-slate-500">
+                                            <IconSearch className="w-16 h-16 mx-auto text-slate-300 mb-4" />
+                                            <p className="text-lg">請在上方輸入卡號以查詢，或點擊「批次匯入」建立資料</p>
+                                        </div>
+                                    )}
+
+                                    {isCreating && (
+                                        <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200 max-w-lg mx-auto mt-10">
+                                            <div className="text-center mb-6">
+                                                <div className="bg-blue-100 text-blue-600 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                                                    <IconUserPlus className="w-6 h-6" />
+                                                </div>
+                                                <h2 className="text-xl font-bold">新增教職員資料</h2>
+                                                <p className="text-slate-500 text-sm mt-1">查無卡號「{currentCardNumber}」，請輸入基本資料建立檔案。</p>
+                                            </div>
+                                            
+                                            <form onSubmit={handleCreateTeacher} className="space-y-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        value={newName}
+                                                        onChange={(e) => setNewName(e.target.value)}
+                                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                                                        placeholder="例如：王小明"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">職稱</label>
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        value={newTitle}
+                                                        onChange={(e) => setNewTitle(e.target.value)}
+                                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                                                        placeholder="例如：主任"
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="submit"
+                                                    className="w-full bg-blue-600 text-white rounded-lg py-2.5 font-medium hover:bg-blue-700 transition-colors"
+                                                >
+                                                    確認建立
+                                                </button>
+                                            </form>
+                                        </div>
+                                    )}
+
+                                    {teacherData && !isCreating && (
+                                        <div className="space-y-6">
+                                            {/* 頂部個人資料區塊 */}
+                                            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                                {isEditingProfile ? (
+                                                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full">
+                                                        <div className="flex items-center gap-4 w-full sm:w-auto">
+                                                            <div className="bg-slate-100 p-3 rounded-full hidden sm:block flex-shrink-0">
+                                                                <IconUser className="w-8 h-8 text-slate-600" />
+                                                            </div>
+                                                            <div className="flex flex-col gap-2 w-full sm:w-auto">
+                                                                <input
+                                                                    type="text"
+                                                                    value={editName}
+                                                                    onChange={(e) => setEditName(e.target.value)}
+                                                                    placeholder="姓名"
+                                                                    className="border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-blue-500 focus:border-blue-500 text-lg font-bold w-full sm:w-48"
+                                                                />
+                                                                <input
+                                                                    type="text"
+                                                                    value={editTitle}
+                                                                    onChange={(e) => setEditTitle(e.target.value)}
+                                                                    placeholder="職稱"
+                                                                    className="border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-blue-500 focus:border-blue-500 text-sm w-full sm:w-48"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex gap-2 w-full sm:w-auto sm:ml-auto mt-2 sm:mt-0">
+                                                            <button onClick={handleSaveProfile} disabled={loading} className="flex-1 sm:flex-none text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium transition-colors">確認修改</button>
+                                                            <button onClick={() => setIsEditingProfile(false)} disabled={loading} className="flex-1 sm:flex-none text-sm bg-slate-100 text-slate-600 px-4 py-2 rounded-lg hover:bg-slate-200 font-medium border border-slate-200 transition-colors">取消</button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="bg-slate-100 p-3 rounded-full flex-shrink-0">
+                                                                <IconUser className="w-8 h-8 text-slate-600" />
+                                                            </div>
+                                                            <div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <h2 className="text-2xl font-bold text-slate-800">{teacherData.name}</h2>
+                                                                    <button 
+                                                                        onClick={() => {
+                                                                            setEditName(teacherData.name);
+                                                                            setEditTitle(teacherData.title);
+                                                                            setIsEditingProfile(true);
+                                                                        }}
+                                                                        className="text-slate-400 hover:text-blue-600 transition-colors p-1 rounded-full hover:bg-blue-50"
+                                                                        title="修改基本資料"
+                                                                    >
+                                                                        <IconEdit className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
+                                                                <div className="flex flex-wrap gap-3 text-sm text-slate-500 mt-1">
+                                                                    <span className="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{teacherData.title}</span>
+                                                                    <span className="flex items-center gap-1"><span className="text-slate-400">卡號:</span> {currentCardNumber}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={handleSaveScores}
+                                                            disabled={loading}
+                                                            className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-lg hover:bg-emerald-700 transition-colors font-medium shadow-sm w-full sm:w-auto justify-center"
+                                                        >
+                                                            <IconSave className="w-4 h-4" />
+                                                            儲存所有變更
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+
+                                            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                                                <div className="flex overflow-x-auto border-b border-slate-200 bg-slate-50 hide-scrollbar">
+                                                    {Object.values(SCORING_CATEGORIES).map((cat) => (
+                                                        <button
+                                                            key={cat.id}
+                                                            onClick={() => setActiveTab(cat.id)}
+                                                            className={`flex items-center gap-2 px-6 py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                                                                activeTab === cat.id
+                                                                    ? 'border-blue-600 text-blue-700 bg-white'
+                                                                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+                                                            }`}
+                                                        >
+                                                            {cat.icon}
+                                                            {cat.title}
+                                                        </button>
+                                                    ))}
+                                                </div>
+
+                                                <div className="p-6">
+                                                    <div className="mb-6 border-b border-slate-100 pb-4">
+                                                        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                                            {SCORING_CATEGORIES[activeTab].icon}
+                                                            {SCORING_CATEGORIES[activeTab].title} - 評分項目
+                                                        </h3>
+                                                        <p className="text-sm text-slate-500 mt-1">請在對應欄位輸入數值（支援正數加分與負數扣分）。</p>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                                                        {SCORING_CATEGORIES[activeTab].sections.map((section, idx) => (
+                                                            <div key={idx} className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                                                                <h4 className="font-semibold text-slate-700 mb-3 text-sm flex items-center gap-1">
+                                                                    <IconChevronRight className="w-4 h-4 text-slate-400" />
+                                                                    {section.title}
+                                                                </h4>
+                                                                <div className="space-y-3">
+                                                                    {section.items.map((item) => {
+                                                                        const currentVal = teacherData.scores?.[item.key] || 0;
+                                                                        return (
+                                                                            <div key={item.key} className="flex items-center justify-between gap-4 bg-white p-2.5 rounded border border-slate-200 shadow-sm hover:border-blue-200 transition-colors">
+                                                                                <label className="text-sm text-slate-700 flex-grow font-medium leading-tight">
+                                                                                    {item.label}
+                                                                                </label>
+                                                                                <div className="flex items-center flex-shrink-0">
+                                                                                    <input
+                                                                                        type="number"
+                                                                                        value={currentVal || ''}
+                                                                                        onChange={(e) => handleScoreChange(item.key, e.target.value)}
+                                                                                        placeholder="0"
+                                                                                        className={`w-20 text-center border rounded-md py-1 px-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none ${
+                                                                                            currentVal > 0 ? 'text-emerald-600 font-bold border-emerald-200 bg-emerald-50' :
+                                                                                            currentVal < 0 ? 'text-red-600 font-bold border-red-200 bg-red-50' :
+                                                                                            'text-slate-600 border-slate-300'
+                                                                                        }`}
+                                                                                    />
+                                                                                    <span className="text-xs text-slate-500 ml-2 w-8 text-left font-medium">{item.unit}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </main>
