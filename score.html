@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>績效評分系統</title>
+    <title>教職員績效評分系統</title>
     
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -81,6 +81,7 @@
             const IconTable = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="9" x2="9" y2="21"></line><line x1="15" y1="9" x2="15" y2="21"></line></svg>;
             const IconArrowLeft = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>;
             const IconFilter = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>;
+            const IconSettings = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>;
 
             // =========================================================================
             // ★★★ 請替換成您自己的 Firebase 專案設定 ★★★
@@ -93,6 +94,7 @@
   messagingSenderId: "1094885321898",
   appId: "1:1094885321898:web:ea32b921d0895b29a2f4d3",
   measurementId: "G-074B99MKDR"
+
             };
 
             let firebaseConfig = fallbackConfig;
@@ -124,8 +126,9 @@
 
             const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'teacher-score-sys'; 
             const getCollectionPath = () => `artifacts/${APP_ID}/public/data/teachers`;
+            const getSettingsPath = () => `artifacts/${APP_ID}/public/data/settings`;
 
-            // --- Data Schema (包含自訂單位 unit) ---
+            // --- Data Schema ---
             const SCORING_CATEGORIES = {
                 internship: {
                     id: 'internship', icon: <IconAward className="w-5 h-5" />, title: '實習組',
@@ -237,11 +240,15 @@
                 const [importText, setImportText] = useState('');
                 const [isImporting, setIsImporting] = useState(false);
 
+                // 主管總覽狀態
                 const [allTeachers, setAllTeachers] = useState([]);
-                // 儲存依職稱分組後的資料
                 const [groupedTeachers, setGroupedTeachers] = useState({});
-                // 職稱過濾狀態，預設顯示全部
                 const [selectedGroup, setSelectedGroup] = useState('全部');
+
+                // 權重轉換狀態
+                const [scoringWeights, setScoringWeights] = useState({}); // 儲存後台拉取的正式權重
+                const [showWeightModal, setShowWeightModal] = useState(false);
+                const [tempWeights, setTempWeights] = useState({}); // 用於 Modal 編輯時的暫存權重
 
                 useEffect(() => {
                     if (!isValidConfig) {
@@ -267,8 +274,20 @@
                     };
                     initAuth();
                     
-                    const unsubscribe = onAuthStateChanged(auth, (u) => {
+                    const unsubscribe = onAuthStateChanged(auth, async (u) => {
                         setUser(u);
+                        // 登入成功後，立刻抓取全域的轉換權重
+                        if (u && db) {
+                            try {
+                                const weightDocRef = doc(db, getSettingsPath(), 'weights');
+                                const weightSnap = await executeWithTimeout(getDoc(weightDocRef));
+                                if (weightSnap.exists()) {
+                                    setScoringWeights(weightSnap.data());
+                                }
+                            } catch (error) {
+                                console.error("無法拉取轉換權重", error);
+                            }
+                        }
                         setLoading(false);
                     });
                     return () => unsubscribe();
@@ -277,7 +296,7 @@
                 // 監聽視角切換，若切換到 manager 則拉取所有資料並分組
                 useEffect(() => {
                     if (viewMode === 'manager' && user && db) {
-                        setSelectedGroup('全部'); // 每次進入總覽時重置為顯示全部
+                        setSelectedGroup('全部'); 
                         const fetchAll = async () => {
                             setLoading(true);
                             try {
@@ -287,11 +306,9 @@
                                 snapshot.forEach(docSnap => {
                                     dataList.push({ id: docSnap.id, ...docSnap.data() });
                                 });
-                                // 依卡號排序
                                 dataList.sort((a, b) => a.id.localeCompare(b.id));
                                 setAllTeachers(dataList);
 
-                                // 將資料依據「職稱」進行分組 (Group By)
                                 const groups = dataList.reduce((acc, curr) => {
                                     const titleKey = curr.title || '未分類';
                                     if (!acc[titleKey]) {
@@ -422,7 +439,7 @@
                 };
 
                 const handleScoreChange = (key, value) => {
-                    const numValue = value === '' ? 0 : parseInt(value, 10);
+                    const numValue = value === '' ? 0 : parseFloat(value);
                     setTeacherData(prev => ({
                         ...prev,
                         scores: {
@@ -508,12 +525,53 @@
                     }
                 };
 
-                // 智能計算平均值 (連動過濾按鈕)
-                const getAverage = (key) => {
+                // --- 處理權重設定 ---
+                const openWeightModal = () => {
+                    setTempWeights({ ...scoringWeights }); // 複製目前設定供編輯
+                    setShowWeightModal(true);
+                };
+
+                const handleTempWeightChange = (key, value) => {
+                    const numValue = value === '' ? 0 : parseFloat(value);
+                    setTempWeights(prev => ({
+                        ...prev,
+                        [key]: numValue
+                    }));
+                };
+
+                const handleSaveWeights = async () => {
+                    setLoading(true);
+                    try {
+                        const weightDocRef = doc(db, getSettingsPath(), 'weights');
+                        await executeWithTimeout(setDoc(weightDocRef, tempWeights));
+                        setScoringWeights(tempWeights);
+                        setShowWeightModal(false);
+                        showToast('轉換標準設定已成功更新！');
+                    } catch (error) {
+                        console.error("更新轉換權重失敗:", error);
+                        showToast('更新失敗，請檢查連線狀態', 'error');
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+
+                // 獲取該項目的權重（若未設定預設為 1，即 1:1 等值）
+                const getWeight = (key) => {
+                    return scoringWeights[key] !== undefined ? scoringWeights[key] : 1;
+                };
+
+                // 智能計算平均值 (連動過濾按鈕與權重轉換)
+                const getAverage = (key, returnConverted = false) => {
                     const listToCalculate = selectedGroup === '全部' ? allTeachers : (groupedTeachers[selectedGroup] || []);
                     if (listToCalculate.length === 0) return "0.0";
+                    
                     const sum = listToCalculate.reduce((acc, curr) => acc + (curr.scores?.[key] || 0), 0);
-                    return (sum / listToCalculate.length).toFixed(1);
+                    const rawAvg = sum / listToCalculate.length;
+                    
+                    if (returnConverted) {
+                        return (rawAvg * getWeight(key)).toFixed(1);
+                    }
+                    return rawAvg.toFixed(1);
                 };
 
                 if (!isValidConfig) {
@@ -552,14 +610,14 @@
                     <div>
                         {/* 頂部導覽列 */}
                         <div className="bg-white shadow-sm sticky top-0 z-10">
-                            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                                <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
                                     <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                                        <IconAward className="text-blue-600" />
-                                        績效評分系統
+                                        <IconAward className="text-blue-600 flex-shrink-0" />
+                                        教職員績效評分系統
                                     </h1>
                                     
-                                    <div className="flex items-center flex-wrap justify-center gap-3 w-full sm:w-auto">
+                                    <div className="flex items-center flex-wrap justify-center gap-2 w-full lg:w-auto">
                                         {viewMode === 'single' ? (
                                             <>
                                                 <button
@@ -585,7 +643,7 @@
                                                         </div>
                                                         <input
                                                             type="text"
-                                                            placeholder="輸入卡號..."
+                                                            placeholder="輸入卡號查詢..."
                                                             value={searchInput}
                                                             onChange={(e) => setSearchInput(e.target.value)}
                                                             className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-l-lg focus:ring-blue-500 focus:border-blue-500 text-sm"
@@ -601,18 +659,90 @@
                                                 </form>
                                             </>
                                         ) : (
-                                            <button
-                                                onClick={() => setViewMode('single')}
-                                                className="flex items-center gap-2 text-sm bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors font-medium"
-                                            >
-                                                <IconArrowLeft className="w-4 h-4" />
-                                                返回單人評分
-                                            </button>
+                                            <>
+                                                <button
+                                                    onClick={openWeightModal}
+                                                    className="flex items-center gap-1 text-sm bg-amber-50 text-amber-700 px-3 py-2 rounded-lg hover:bg-amber-100 transition-colors font-bold border border-amber-200"
+                                                >
+                                                    <IconSettings className="w-4 h-4" />
+                                                    <span className="hidden sm:inline">設定轉換標準</span>
+                                                </button>
+
+                                                <button
+                                                    onClick={() => setViewMode('single')}
+                                                    className="flex items-center gap-2 text-sm bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors font-medium ml-auto"
+                                                >
+                                                    <IconArrowLeft className="w-4 h-4" />
+                                                    返回單人評分
+                                                </button>
+                                            </>
                                         )}
                                     </div>
                                 </div>
                             </div>
                         </div>
+
+                        {/* 轉換標準設定 Modal */}
+                        {showWeightModal && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+                                <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
+                                    <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-amber-50">
+                                        <h3 className="text-lg font-bold text-amber-800 flex items-center gap-2">
+                                            <IconSettings className="w-5 h-5" />
+                                            各項目轉換分數標準設定
+                                        </h3>
+                                        <button onClick={() => setShowWeightModal(false)} className="text-amber-600 hover:text-amber-800 bg-amber-100/50 p-1 rounded-full">
+                                            <IconX className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                    
+                                    <div className="p-6 overflow-y-auto bg-slate-50 space-y-6">
+                                        <div className="text-sm text-amber-700 bg-amber-100/50 p-3 rounded-lg border border-amber-200/60 font-medium">
+                                            💡 說明：在此設定各項目的「乘數權重」。例如：若設定為 5，則當老師取得 2 張證書時，系統會自動換算為 10 分 (2×5=10)。若不需換算，保留 1 即可。
+                                        </div>
+
+                                        {Object.values(SCORING_CATEGORIES).map(cat => (
+                                            <div key={cat.id} className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+                                                <h4 className="text-md font-bold text-blue-800 mb-4 flex items-center gap-2 border-b border-blue-100 pb-2">
+                                                    {cat.icon} {cat.title}
+                                                </h4>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                                                    {cat.sections.map(section => (
+                                                        <div key={section.title} className="space-y-2">
+                                                            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{section.title}</div>
+                                                            {section.items.map(item => (
+                                                                <div key={item.key} className="flex items-center justify-between gap-3 bg-slate-50 p-2 rounded border border-slate-100">
+                                                                    <div className="text-sm text-slate-700 flex-grow font-medium truncate" title={item.label}>
+                                                                        {item.label} <span className="text-xs text-slate-400 font-normal">({item.unit})</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-slate-400 text-sm">×</span>
+                                                                        <input
+                                                                            type="number"
+                                                                            step="0.1"
+                                                                            value={tempWeights[item.key] !== undefined ? tempWeights[item.key] : 1}
+                                                                            onChange={(e) => handleTempWeightChange(item.key, e.target.value)}
+                                                                            className="w-16 text-center border border-amber-300 bg-amber-50 text-amber-900 rounded py-1 px-1 text-sm font-bold focus:ring-2 focus:ring-amber-500 outline-none"
+                                                                        />
+                                                                        <span className="text-slate-500 text-sm font-medium w-4">分</span>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="px-6 py-4 border-t border-slate-100 bg-white flex justify-end gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                                        <button onClick={() => setShowWeightModal(false)} className="px-5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">取消變更</button>
+                                        <button onClick={handleSaveWeights} disabled={loading} className="bg-amber-600 text-white px-6 py-2 rounded-lg hover:bg-amber-700 transition-colors text-sm font-bold shadow-sm flex items-center gap-2">
+                                            <IconSave className="w-4 h-4" /> 儲存轉換標準
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* 批次匯入 Modal */}
                         {showImportModal && (
@@ -673,7 +803,7 @@
                         )}
 
                         {/* 主畫面區域：根據 viewMode 切換 */}
-                        <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                             
                             {/* ===================================================================== */}
                             {/* 視角 B：主管總覽 (Manager View) */}
@@ -742,14 +872,14 @@
                                             <table className="min-w-full divide-y divide-slate-200 text-sm">
                                                 <thead className="bg-slate-100 text-slate-600">
                                                     <tr>
-                                                        <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">卡號</th>
-                                                        <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">姓名</th>
-                                                        <th className="px-4 py-3 text-left font-semibold whitespace-nowrap border-r border-slate-200">職稱</th>
+                                                        <th className="px-4 py-3 text-left font-semibold whitespace-nowrap align-middle">卡號</th>
+                                                        <th className="px-4 py-3 text-left font-semibold whitespace-nowrap align-middle">姓名</th>
+                                                        <th className="px-4 py-3 text-left font-semibold whitespace-nowrap border-r border-slate-200 align-middle">職稱</th>
                                                         {currentItems.map(item => (
-                                                            <th key={item.key} className="px-3 py-3 text-center font-semibold whitespace-nowrap min-w-[100px]">
+                                                            <th key={item.key} className="px-3 py-3 text-center font-semibold whitespace-nowrap min-w-[110px]">
                                                                 <div className="flex flex-col items-center">
                                                                     <span>{item.label}</span>
-                                                                    <span className="text-xs text-slate-400 font-normal">({item.unit})</span>
+                                                                    <span className="text-[11px] text-slate-400 font-normal">({item.unit}) [權重: {getWeight(item.key)}]</span>
                                                                 </div>
                                                             </th>
                                                         ))}
@@ -777,12 +907,20 @@
                                                                         <td className="px-4 py-3 whitespace-nowrap font-bold text-slate-700">{teacher.name}</td>
                                                                         <td className="px-4 py-3 whitespace-nowrap text-slate-500 border-r border-slate-100">{teacher.title}</td>
                                                                         {currentItems.map(item => {
-                                                                            const val = teacher.scores?.[item.key] || 0;
+                                                                            const rawVal = teacher.scores?.[item.key] || 0;
+                                                                            const convertedVal = rawVal * getWeight(item.key);
                                                                             return (
-                                                                                <td key={item.key} className={`px-3 py-3 whitespace-nowrap text-center font-medium ${
-                                                                                    val > 0 ? 'text-emerald-600' : val < 0 ? 'text-red-600' : 'text-slate-400'
-                                                                                }`}>
-                                                                                    {val}
+                                                                                <td key={item.key} className="px-3 py-2 whitespace-nowrap text-center">
+                                                                                    <div className="flex flex-col items-center justify-center leading-tight">
+                                                                                        <span className={`text-sm font-medium ${rawVal !== 0 ? 'text-slate-700' : 'text-slate-300'}`}>
+                                                                                            {rawVal}
+                                                                                        </span>
+                                                                                        {rawVal !== 0 && (
+                                                                                            <span className={`text-[11px] font-bold mt-0.5 ${convertedVal > 0 ? 'text-blue-600' : 'text-red-500'}`}>
+                                                                                                [{convertedVal.toFixed(1).replace(/\.0$/, '')} 分]
+                                                                                            </span>
+                                                                                        )}
+                                                                                    </div>
                                                                                 </td>
                                                                             );
                                                                         })}
@@ -794,14 +932,17 @@
                                                 </tbody>
                                                 {/* 置底智能平均值列 */}
                                                 {displayedTeachersCount > 0 && !loading && (
-                                                    <tfoot className="bg-blue-50 font-bold text-blue-900 border-t-[3px] border-blue-200">
-                                                        <tr>
-                                                            <td colSpan="3" className="px-4 py-4 text-right border-r border-blue-200/50">
+                                                    <tfoot className="bg-blue-50 font-bold border-t-[3px] border-blue-200">
+                                                        <tr className="text-blue-900">
+                                                            <td colSpan="3" className="px-4 py-4 text-right border-r border-blue-200/50 align-top pt-4">
                                                                 {selectedGroup === '全部' ? '全體人員平均值：' : `【${selectedGroup}】平均值：`}
                                                             </td>
                                                             {currentItems.map(item => (
-                                                                <td key={item.key} className="px-3 py-4 whitespace-nowrap text-center text-[15px]">
-                                                                    {getAverage(item.key)}
+                                                                <td key={item.key} className="px-3 py-3 whitespace-nowrap text-center">
+                                                                    <div className="flex flex-col items-center justify-center leading-tight">
+                                                                        <span className="text-[13px] text-slate-500 mb-0.5">原始: {getAverage(item.key)}</span>
+                                                                        <span className="text-[15px] text-blue-700 font-black">轉換: {getAverage(item.key, true)} 分</span>
+                                                                    </div>
                                                                 </td>
                                                             ))}
                                                         </tr>
@@ -814,7 +955,7 @@
                             )}
 
                             {/* ===================================================================== */}
-                            {/* 視角 A：單人評分 (Single User View) - 原有功能 */}
+                            {/* 視角 A：單人評分 (Single User View) */}
                             {/* ===================================================================== */}
                             {viewMode === 'single' && (
                                 <div className="animate-in fade-in duration-300">
@@ -963,7 +1104,9 @@
                                                             {SCORING_CATEGORIES[activeTab].icon}
                                                             {SCORING_CATEGORIES[activeTab].title} - 評分項目
                                                         </h3>
-                                                        <p className="text-sm text-slate-500 mt-1">請在對應欄位輸入數值（支援正數加分與負數扣分）。</p>
+                                                        <p className="text-sm text-slate-500 mt-1">
+                                                            請在對應欄位輸入數值，系統將會自動乘上主管設定的換算權重。
+                                                        </p>
                                                     </div>
 
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
@@ -976,24 +1119,36 @@
                                                                 <div className="space-y-3">
                                                                     {section.items.map((item) => {
                                                                         const currentVal = teacherData.scores?.[item.key] || 0;
+                                                                        const weight = getWeight(item.key);
+                                                                        const convertedVal = currentVal * weight;
+                                                                        
                                                                         return (
-                                                                            <div key={item.key} className="flex items-center justify-between gap-4 bg-white p-2.5 rounded border border-slate-200 shadow-sm hover:border-blue-200 transition-colors">
+                                                                            <div key={item.key} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white p-2.5 rounded border border-slate-200 shadow-sm hover:border-blue-200 transition-colors">
                                                                                 <label className="text-sm text-slate-700 flex-grow font-medium leading-tight">
                                                                                     {item.label}
                                                                                 </label>
-                                                                                <div className="flex items-center flex-shrink-0">
-                                                                                    <input
-                                                                                        type="number"
-                                                                                        value={currentVal || ''}
-                                                                                        onChange={(e) => handleScoreChange(item.key, e.target.value)}
-                                                                                        placeholder="0"
-                                                                                        className={`w-20 text-center border rounded-md py-1 px-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none ${
-                                                                                            currentVal > 0 ? 'text-emerald-600 font-bold border-emerald-200 bg-emerald-50' :
-                                                                                            currentVal < 0 ? 'text-red-600 font-bold border-red-200 bg-red-50' :
-                                                                                            'text-slate-600 border-slate-300'
-                                                                                        }`}
-                                                                                    />
-                                                                                    <span className="text-xs text-slate-500 ml-2 w-8 text-left font-medium">{item.unit}</span>
+                                                                                <div className="flex items-center justify-end flex-shrink-0 gap-2">
+                                                                                    <div className="flex items-center">
+                                                                                        <input
+                                                                                            type="number"
+                                                                                            value={currentVal || ''}
+                                                                                            onChange={(e) => handleScoreChange(item.key, e.target.value)}
+                                                                                            placeholder="0"
+                                                                                            className={`w-16 text-center border rounded-md py-1 px-1 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none ${
+                                                                                                currentVal > 0 ? 'text-emerald-600 font-bold border-emerald-200 bg-emerald-50' :
+                                                                                                currentVal < 0 ? 'text-red-600 font-bold border-red-200 bg-red-50' :
+                                                                                                'text-slate-600 border-slate-300'
+                                                                                            }`}
+                                                                                        />
+                                                                                        <span className="text-xs text-slate-500 ml-1.5 w-6 text-left">{item.unit}</span>
+                                                                                    </div>
+                                                                                    {/* 動態顯示換算結果 */}
+                                                                                    <div className="flex items-center bg-slate-50 border border-slate-100 rounded px-2 py-1 min-w-[90px] justify-end">
+                                                                                        <span className="text-[10px] text-slate-400 mr-1.5">×{weight}=</span>
+                                                                                        <span className={`text-sm font-bold ${convertedVal > 0 ? 'text-blue-600' : convertedVal < 0 ? 'text-red-500' : 'text-slate-400'}`}>
+                                                                                            {convertedVal.toFixed(1).replace(/\.0$/, '')}分
+                                                                                        </span>
+                                                                                    </div>
                                                                                 </div>
                                                                             </div>
                                                                         );
