@@ -23,11 +23,24 @@
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans pb-20">
-    <div id="root"></div>
+    <!-- 加入防空白底圖機制：若 React 成功載入會自動覆蓋此區塊；若發生致命錯誤則會保留這些文字 -->
+    <div id="root">
+        <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #f8fafc; color: #475569; font-family: sans-serif; padding: 20px; text-align: center;">
+            <div style="border: 4px solid #cbd5e1; border-top-color: #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px;"></div>
+            <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+            <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 10px; color: #1e293b;">系統載入中...</h2>
+            <p style="max-width: 550px; line-height: 1.6; font-size: 0.95rem; text-align: left; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <strong style="color: #ef4444;">若長時間停留在這個畫面，代表發生了嚴重錯誤導致系統停止：</strong><br><br>
+                1. <strong>請勿直接雙擊打開：</strong> 如果網址列開頭是 <code style="background: #f1f5f9; padding: 2px 4px; border-radius: 4px;">file:///</code>，現代瀏覽器會基於安全性阻擋核心模組載入。請將檔案上傳至您的網頁空間再開啟。<br>
+                2. <strong>檢查設定：</strong> 請確保原始碼中的 <code>firebaseConfig</code> 已正確填寫。<br>
+                3. <strong>查看錯誤日誌：</strong> 您可按下鍵盤 <kbd style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-family: monospace;">F12</kbd> 開啟「開發者工具」，切換至 <strong>Console (主控台)</strong> 查看紅字錯誤訊息。
+            </p>
+        </div>
+    </div>
 
     <script type="text/babel" data-type="module">
-        // --- 引入 Firebase SDK (ESM) ---
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        // --- 引入 Firebase SDK (ESM) - 新增 getApps, getApp 避免重複初始化 ---
+        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -78,7 +91,12 @@
         let app, auth, db;
         try {
             if (isValidConfig) {
-                app = initializeApp(firebaseConfig);
+                // 檢查是否已初始化過，防止熱重載時導致重複建立 App 而崩潰
+                if (getApps().length === 0) {
+                    app = initializeApp(firebaseConfig);
+                } else {
+                    app = getApp();
+                }
                 auth = getAuth(app);
                 db = getFirestore(app);
             }
@@ -159,7 +177,10 @@
                     setLoading(false);
                     return; 
                 }
-                if (!auth) return;
+                if (!auth) {
+                    setLoading(false);
+                    return;
+                }
 
                 const initAuth = async () => {
                     try {
@@ -323,14 +344,20 @@
                     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-slate-600">
                         <IconAlertCircle className="w-16 h-16 text-red-400 mb-4" />
                         <div className="text-2xl font-bold mb-2">系統尚未連線至資料庫</div>
-                        <div className="text-sm">請打開原始碼，在「firebaseConfig」區塊填寫您的專屬設定。</div>
+                        <div className="text-sm text-center max-w-md mt-2">
+                            請打開原始碼，在「firebaseConfig」區塊填寫您的專屬設定。<br/>
+                            <span className="text-gray-400 text-xs mt-2 block">若您已填寫但仍看到此畫面，請檢查格式是否正確。</span>
+                        </div>
                     </div>
                 );
             }
 
             if (loading && !user) {
                 return <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-gray-500">
-                    <div className="mb-4 text-lg">系統初始化中...</div>
+                    <div className="mb-4 text-lg flex items-center gap-2">
+                        <div className="w-5 h-5 border-2 border-gray-400 border-t-blue-600 rounded-full animate-spin"></div>
+                        系統初始化中...
+                    </div>
                 </div>;
             }
 
