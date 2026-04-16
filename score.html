@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>績效評分系統</title>
+    <title>教職員績效評分系統</title>
     
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -242,8 +242,9 @@
 
                 // 主管總覽狀態
                 const [allTeachers, setAllTeachers] = useState([]);
-                const [groupedTeachers, setGroupedTeachers] = useState({});
                 const [selectedGroup, setSelectedGroup] = useState('全部');
+                const [managerSearchQuery, setManagerSearchQuery] = useState(''); // 新增：主管總覽的搜尋字串
+                const [expandedTeacherId, setExpandedTeacherId] = useState(null); // 新增：紀錄目前展開看明細的老師 ID
 
                 // 權重轉換狀態
                 const [scoringWeights, setScoringWeights] = useState({}); // 儲存後台拉取的正式權重
@@ -276,7 +277,6 @@
                     
                     const unsubscribe = onAuthStateChanged(auth, async (u) => {
                         setUser(u);
-                        // 登入成功後，立刻抓取全域的轉換權重
                         if (u && db) {
                             try {
                                 const weightDocRef = doc(db, getSettingsPath(), 'weights');
@@ -293,10 +293,13 @@
                     return () => unsubscribe();
                 }, []);
 
-                // 監聽視角切換，若切換到 manager 則拉取所有資料並分組
+                // 監聽視角切換，若切換到 manager 則拉取所有資料
                 useEffect(() => {
                     if (viewMode === 'manager' && user && db) {
                         setSelectedGroup('全部'); 
+                        setManagerSearchQuery('');
+                        setExpandedTeacherId(null);
+                        
                         const fetchAll = async () => {
                             setLoading(true);
                             try {
@@ -308,17 +311,6 @@
                                 });
                                 dataList.sort((a, b) => a.id.localeCompare(b.id));
                                 setAllTeachers(dataList);
-
-                                const groups = dataList.reduce((acc, curr) => {
-                                    const titleKey = curr.title || '未分類';
-                                    if (!acc[titleKey]) {
-                                        acc[titleKey] = [];
-                                    }
-                                    acc[titleKey].push(curr);
-                                    return acc;
-                                }, {});
-                                setGroupedTeachers(groups);
-
                             } catch (error) {
                                 console.error("抓取全體資料失敗:", error);
                                 showToast('抓取資料失敗，請確認權限', 'error');
@@ -525,9 +517,8 @@
                     }
                 };
 
-                // --- 處理權重設定 ---
                 const openWeightModal = () => {
-                    setTempWeights({ ...scoringWeights }); // 複製目前設定供編輯
+                    setTempWeights({ ...scoringWeights });
                     setShowWeightModal(true);
                 };
 
@@ -555,24 +546,71 @@
                     }
                 };
 
-                // 獲取該項目的權重（若未設定預設為 1，即 1:1 等值）
                 const getWeight = (key) => {
                     return scoringWeights[key] !== undefined ? scoringWeights[key] : 1;
                 };
 
-                // 智能計算平均值 (連動過濾按鈕與權重轉換)
-                const getAverage = (key, returnConverted = false) => {
-                    const listToCalculate = selectedGroup === '全部' ? allTeachers : (groupedTeachers[selectedGroup] || []);
-                    if (listToCalculate.length === 0) return "0.0";
-                    
-                    const sum = listToCalculate.reduce((acc, curr) => acc + (curr.scores?.[key] || 0), 0);
-                    const rawAvg = sum / listToCalculate.length;
-                    
-                    if (returnConverted) {
-                        return (rawAvg * getWeight(key)).toFixed(1);
-                    }
-                    return rawAvg.toFixed(1);
+                // --- 總覽計算邏輯 ---
+                // 計算單一老師在「某個類別 (實習/建教/...)」的轉換總分
+                const getTeacherCategoryTotal = (teacher, catId) => {
+                    if (!teacher || !teacher.scores) return 0;
+                    const items = SCORING_CATEGORIES[catId].sections.flatMap(s => s.items);
+                    let total = 0;
+                    items.forEach(item => {
+                        const raw = teacher.scores[item.key] || 0;
+                        total += raw * getWeight(item.key);
+                    });
+                    return total;
                 };
+
+                // 計算單一老師的「所有類別」總分
+                const getTeacherGrandTotal = (teacher) => {
+                    return Object.keys(SCORING_CATEGORIES).reduce((acc, catId) => acc + getTeacherCategoryTotal(teacher, catId), 0);
+                };
+
+                // --- 總覽列表過濾邏輯 (雙重過濾：職稱 + 關鍵字) ---
+                const getManagerDisplayList = () => {
+                    return allTeachers.filter(teacher => {
+                        const matchGroup = selectedGroup === '全部' || (teacher.title || '未分類') === selectedGroup;
+                        const query = managerSearchQuery.toLowerCase();
+                        const matchSearch = query === '' || 
+                                            teacher.id.toLowerCase().includes(query) || 
+                                            teacher.name.toLowerCase().includes(query);
+                        return matchGroup && matchSearch;
+                    });
+                };
+                
+                const managerDisplayList = getManagerDisplayList();
+
+                // 計算當前顯示列表的「某類別」平均總分
+                const getCategoryAverageTotal = (catId) => {
+                    if (managerDisplayList.length === 0) return 0;
+                    const sum = managerDisplayList.reduce((acc, curr) => acc + getTeacherCategoryTotal(curr, catId), 0);
+                    return sum / managerDisplayList.length;
+                };
+
+                // 計算當前顯示列表的「全域」平均總分
+                const getGrandAverageTotal = () => {
+                    if (managerDisplayList.length === 0) return 0;
+                    const sum = managerDisplayList.reduce((acc, curr) => acc + getTeacherGrandTotal(curr), 0);
+                    return sum / managerDisplayList.length;
+                };
+
+                // 將過濾後的名單重新依據「職稱」分組，以渲染標題列
+                const groupedFilteredTeachers = managerDisplayList.reduce((acc, curr) => {
+                    const titleKey = curr.title || '未分類';
+                    if (!acc[titleKey]) acc[titleKey] = [];
+                    acc[titleKey].push(curr);
+                    return acc;
+                }, {});
+
+                // 為了產生「所有存在的職稱過濾按鈕」，需要基於未被關鍵字過濾的原始資料分組
+                const baseTitleGroups = allTeachers.reduce((acc, curr) => {
+                    const titleKey = curr.title || '未分類';
+                    acc[titleKey] = true;
+                    return acc;
+                }, {});
+
 
                 if (!isValidConfig) {
                     return (
@@ -596,16 +634,6 @@
                     </div>;
                 }
 
-                const currentItems = SCORING_CATEGORIES[activeTab].sections.flatMap(s => s.items);
-
-                // 過濾要顯示的群組
-                const filteredGroups = selectedGroup === '全部' 
-                    ? Object.entries(groupedTeachers) 
-                    : Object.entries(groupedTeachers).filter(([title]) => title === selectedGroup);
-
-                // 計算當前顯示的總人數
-                const displayedTeachersCount = selectedGroup === '全部' ? allTeachers.length : (groupedTeachers[selectedGroup]?.length || 0);
-
                 return (
                     <div>
                         {/* 頂部導覽列 */}
@@ -614,7 +642,7 @@
                                 <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
                                     <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                                         <IconAward className="text-blue-600 flex-shrink-0" />
-                                        績效評分系統
+                                        教職員績效評分系統
                                     </h1>
                                     
                                     <div className="flex items-center flex-wrap justify-center gap-2 w-full lg:w-auto">
@@ -809,29 +837,14 @@
                             {/* 視角 B：主管總覽 (Manager View) */}
                             {/* ===================================================================== */}
                             {viewMode === 'manager' && (
-                                <div className="space-y-6 animate-in fade-in duration-300">
+                                <div className="space-y-4 animate-in fade-in duration-300">
+                                    
                                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                                        {/* 總覽頁籤 */}
-                                        <div className="flex overflow-x-auto border-b border-slate-200 bg-slate-50 hide-scrollbar">
-                                            {Object.values(SCORING_CATEGORIES).map((cat) => (
-                                                <button
-                                                    key={cat.id}
-                                                    onClick={() => setActiveTab(cat.id)}
-                                                    className={`flex items-center gap-2 px-6 py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-                                                        activeTab === cat.id
-                                                            ? 'border-blue-600 text-blue-700 bg-white'
-                                                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100'
-                                                    }`}
-                                                >
-                                                    {cat.icon}
-                                                    {cat.title}
-                                                </button>
-                                            ))}
-                                        </div>
                                         
-                                        {/* 職稱過濾按鈕區 */}
-                                        {Object.keys(groupedTeachers).length > 0 && (
-                                            <div className="px-5 py-3 bg-white border-b border-slate-100 flex flex-wrap gap-2 items-center">
+                                        {/* 總覽上方的過濾與搜尋列 */}
+                                        <div className="px-5 py-4 bg-white border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            {/* 左側：職稱篩選 */}
+                                            <div className="flex flex-wrap gap-2 items-center">
                                                 <IconFilter className="w-4 h-4 text-slate-400 mr-1" />
                                                 <span className="text-sm font-semibold text-slate-600 mr-2">職稱篩選：</span>
                                                 <button
@@ -842,7 +855,7 @@
                                                 >
                                                     全體人員
                                                 </button>
-                                                {Object.keys(groupedTeachers).sort().map(title => (
+                                                {Object.keys(baseTitleGroups).sort().map(title => (
                                                     <button
                                                         key={title}
                                                         onClick={() => setSelectedGroup(title)}
@@ -854,98 +867,186 @@
                                                     </button>
                                                 ))}
                                             </div>
-                                        )}
+                                            
+                                            {/* 右側：關鍵字搜尋 */}
+                                            <div className="relative w-full md:w-72">
+                                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                    <IconSearch className="h-4 w-4 text-slate-400" />
+                                                </div>
+                                                <input
+                                                    type="text"
+                                                    placeholder="搜尋卡號或姓名..."
+                                                    value={managerSearchQuery}
+                                                    onChange={(e) => setManagerSearchQuery(e.target.value)}
+                                                    className="block w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-slate-50 focus:bg-white transition-colors"
+                                                />
+                                                {managerSearchQuery && (
+                                                    <button 
+                                                        onClick={() => setManagerSearchQuery('')}
+                                                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                                                    >
+                                                        <IconX className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
 
-                                        {/* 資料表格區 */}
-                                        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                                {SCORING_CATEGORIES[activeTab].icon}
-                                                {SCORING_CATEGORIES[activeTab].title} 
-                                                <span className="text-slate-500 text-sm font-normal">
-                                                    ({selectedGroup === '全部' ? '全體名單' : `僅顯示：${selectedGroup}`})
-                                                </span>
-                                            </h3>
-                                            <span className="text-sm text-slate-500 font-medium">共 {displayedTeachersCount} 筆資料</span>
+                                        <div className="p-3 border-b border-slate-100 flex justify-between items-center bg-slate-50 px-5">
+                                            <p className="text-sm text-slate-500">
+                                                💡 <span className="font-semibold text-blue-600">點擊人員資料列</span>，即可展開查看該人員各項目的詳細分數紀錄。
+                                            </p>
+                                            <span className="text-sm font-bold text-slate-600 bg-white px-3 py-1 rounded border border-slate-200 shadow-sm">
+                                                共找到 {managerDisplayList.length} 筆資料
+                                            </span>
                                         </div>
 
                                         {/* 為資料表外層加入固定高度與捲動軸，實現凍結窗格效果 */}
                                         <div className="overflow-auto max-h-[70vh]">
-                                            <table className="min-w-full divide-y divide-slate-200 text-sm">
-                                                <thead className="bg-slate-100 text-slate-600 sticky top-0 z-10 shadow-sm outline outline-1 outline-slate-200">
+                                            <table className="min-w-full text-sm border-collapse">
+                                                <thead className="bg-slate-100 text-slate-600 sticky top-0 z-20 shadow-sm outline outline-1 outline-slate-200">
                                                     <tr>
-                                                        <th className="px-4 py-3 text-left font-semibold whitespace-nowrap align-middle">卡號</th>
-                                                        <th className="px-4 py-3 text-left font-semibold whitespace-nowrap align-middle">姓名</th>
-                                                        <th className="px-4 py-3 text-left font-semibold whitespace-nowrap border-r border-slate-200 align-middle">職稱</th>
-                                                        {currentItems.map(item => (
-                                                            <th key={item.key} className="px-3 py-3 text-center font-semibold whitespace-nowrap min-w-[110px]">
+                                                        <th className="px-4 py-3 text-left font-semibold whitespace-nowrap align-middle border-b border-slate-200">卡號</th>
+                                                        <th className="px-4 py-3 text-left font-semibold whitespace-nowrap align-middle border-b border-slate-200">姓名</th>
+                                                        <th className="px-4 py-3 text-left font-semibold whitespace-nowrap align-middle border-b border-slate-200 border-r">職稱</th>
+                                                        {Object.values(SCORING_CATEGORIES).map(cat => (
+                                                            <th key={cat.id} className="px-3 py-3 text-center font-semibold whitespace-nowrap min-w-[100px] border-b border-slate-200">
                                                                 <div className="flex flex-col items-center">
-                                                                    <span>{item.label}</span>
-                                                                    <span className="text-[11px] text-slate-400 font-normal">({item.unit}) [權重: {getWeight(item.key)}]</span>
+                                                                    <span>{cat.title}</span>
+                                                                    <span className="text-[11px] text-slate-400 font-normal">(總分)</span>
                                                                 </div>
                                                             </th>
                                                         ))}
+                                                        <th className="px-4 py-3 text-center font-bold text-blue-700 whitespace-nowrap bg-blue-50/50 border-b border-slate-200 border-l">
+                                                            <div className="flex flex-col items-center">
+                                                                <span>個人總計</span>
+                                                            </div>
+                                                        </th>
                                                     </tr>
                                                 </thead>
-                                                <tbody className="divide-y divide-slate-100 bg-white">
+                                                <tbody className="bg-white">
                                                     {loading ? (
-                                                        <tr><td colSpan={currentItems.length + 3} className="px-4 py-8 text-center text-slate-500">載入中...</td></tr>
-                                                    ) : displayedTeachersCount === 0 ? (
-                                                        <tr><td colSpan={currentItems.length + 3} className="px-4 py-8 text-center text-slate-500">此分類尚無人員資料。</td></tr>
+                                                        <tr><td colSpan={Object.keys(SCORING_CATEGORIES).length + 4} className="px-4 py-8 text-center text-slate-500">載入中...</td></tr>
+                                                    ) : managerDisplayList.length === 0 ? (
+                                                        <tr><td colSpan={Object.keys(SCORING_CATEGORIES).length + 4} className="px-4 py-8 text-center text-slate-500">找不到符合條件的人員資料。</td></tr>
                                                     ) : (
                                                         // 渲染被過濾後的資料群組
                                                         filteredGroups.map(([groupTitle, teachersInGroup]) => (
                                                             <Fragment key={groupTitle}>
                                                                 {/* 職稱群組標題列 */}
-                                                                <tr className="bg-slate-100/80 border-y border-slate-200">
-                                                                    <td colSpan={currentItems.length + 3} className="px-4 py-2.5 font-bold text-slate-700 text-left">
+                                                                <tr className="bg-slate-100/80 border-b border-slate-200">
+                                                                    <td colSpan={Object.keys(SCORING_CATEGORIES).length + 4} className="px-4 py-2 font-bold text-slate-700 text-left shadow-[inset_0_1px_0_rgba(0,0,0,0.02)]">
                                                                         【{groupTitle}】 <span className="text-xs text-slate-500 font-normal ml-2">此類別共 {teachersInGroup.length} 人</span>
                                                                     </td>
                                                                 </tr>
                                                                 {/* 該群組內的人員名單 */}
-                                                                {teachersInGroup.map(teacher => (
-                                                                    <tr key={teacher.id} className="hover:bg-blue-50/50 transition-colors">
-                                                                        <td className="px-4 py-3 whitespace-nowrap font-mono text-slate-500">{teacher.id}</td>
-                                                                        <td className="px-4 py-3 whitespace-nowrap font-bold text-slate-700">{teacher.name}</td>
-                                                                        <td className="px-4 py-3 whitespace-nowrap text-slate-500 border-r border-slate-100">{teacher.title}</td>
-                                                                        {currentItems.map(item => {
-                                                                            const rawVal = teacher.scores?.[item.key] || 0;
-                                                                            const convertedVal = rawVal * getWeight(item.key);
-                                                                            return (
-                                                                                <td key={item.key} className="px-3 py-2 whitespace-nowrap text-center">
-                                                                                    <div className="flex flex-col items-center justify-center leading-tight">
-                                                                                        <span className={`text-sm font-medium ${rawVal !== 0 ? 'text-slate-700' : 'text-slate-300'}`}>
-                                                                                            {rawVal}
-                                                                                        </span>
-                                                                                        {rawVal !== 0 && (
-                                                                                            <span className={`text-[11px] font-bold mt-0.5 ${convertedVal > 0 ? 'text-blue-600' : 'text-red-500'}`}>
-                                                                                                [{convertedVal.toFixed(1).replace(/\.0$/, '')} 分]
-                                                                                            </span>
-                                                                                        )}
+                                                                {teachersInGroup.map(teacher => {
+                                                                    const isExpanded = expandedTeacherId === teacher.id;
+                                                                    const teacherGrandTotal = getTeacherGrandTotal(teacher);
+                                                                    
+                                                                    return (
+                                                                        <Fragment key={teacher.id}>
+                                                                            {/* 點擊展開的觸發列 */}
+                                                                            <tr 
+                                                                                onClick={() => setExpandedTeacherId(isExpanded ? null : teacher.id)}
+                                                                                className={`cursor-pointer transition-colors border-b border-slate-100 ${isExpanded ? 'bg-blue-50/60' : 'hover:bg-slate-50'}`}
+                                                                            >
+                                                                                <td className="px-4 py-3 whitespace-nowrap font-mono text-slate-500">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <span className={`text-[10px] w-4 text-center transition-transform ${isExpanded ? 'rotate-90 text-blue-500' : 'text-slate-300'}`}>▶</span>
+                                                                                        {teacher.id}
                                                                                     </div>
                                                                                 </td>
-                                                                            );
-                                                                        })}
-                                                                    </tr>
-                                                                ))}
+                                                                                <td className="px-4 py-3 whitespace-nowrap font-bold text-slate-700">{teacher.name}</td>
+                                                                                <td className="px-4 py-3 whitespace-nowrap text-slate-500 border-r border-slate-100">{teacher.title}</td>
+                                                                                {/* 各分類總分 */}
+                                                                                {Object.values(SCORING_CATEGORIES).map(cat => {
+                                                                                    const catTotal = getTeacherCategoryTotal(teacher, cat.id);
+                                                                                    return (
+                                                                                        <td key={cat.id} className="px-3 py-3 whitespace-nowrap text-center">
+                                                                                            {catTotal !== 0 ? (
+                                                                                                <span className={`font-bold ${catTotal > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                                                                                    {catTotal.toFixed(1).replace(/\.0$/, '')}
+                                                                                                </span>
+                                                                                            ) : (
+                                                                                                <span className="text-slate-300 font-medium">0</span>
+                                                                                            )}
+                                                                                        </td>
+                                                                                    );
+                                                                                })}
+                                                                                <td className="px-4 py-3 whitespace-nowrap text-center font-black text-blue-600 border-l border-slate-100 bg-blue-50/30 text-[15px]">
+                                                                                    {teacherGrandTotal.toFixed(1).replace(/\.0$/, '')}
+                                                                                </td>
+                                                                            </tr>
+                                                                            
+                                                                            {/* 展開的明細視窗 */}
+                                                                            {isExpanded && (
+                                                                                <tr className="bg-slate-50 border-b border-slate-200">
+                                                                                    <td colSpan={Object.keys(SCORING_CATEGORIES).length + 4} className="p-0">
+                                                                                        <div className="p-5 shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] bg-slate-50">
+                                                                                            <h4 className="font-bold text-blue-800 mb-3 border-b border-blue-200/50 pb-2 flex items-center gap-2">
+                                                                                                <IconUser className="w-4 h-4" />
+                                                                                                {teacher.name} 的詳細加扣分紀錄
+                                                                                            </h4>
+                                                                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                                                                                                {Object.values(SCORING_CATEGORIES).map(cat => {
+                                                                                                    const items = cat.sections.flatMap(s => s.items);
+                                                                                                    const hasScore = items.some(item => (teacher.scores?.[item.key] || 0) !== 0);
+                                                                                                    
+                                                                                                    return (
+                                                                                                        <div key={cat.id} className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
+                                                                                                            <div className="font-bold text-slate-700 mb-2 flex items-center gap-1 border-b border-slate-100 pb-1.5 text-sm">
+                                                                                                                {cat.icon} {cat.title}
+                                                                                                            </div>
+                                                                                                            {hasScore ? (
+                                                                                                                <div className="space-y-1.5">
+                                                                                                                    {items.map(item => {
+                                                                                                                        const raw = teacher.scores?.[item.key] || 0;
+                                                                                                                        if (raw === 0) return null;
+                                                                                                                        const conv = raw * getWeight(item.key);
+                                                                                                                        return (
+                                                                                                                            <div key={item.key} className="flex justify-between items-center text-sm border-b border-slate-50 pb-1 last:border-0">
+                                                                                                                                <span className="text-slate-600 text-xs truncate mr-2" title={item.label}>{item.label}</span>
+                                                                                                                                <div className="text-right whitespace-nowrap">
+                                                                                                                                    <span className={`font-bold ${conv > 0 ? 'text-blue-600' : 'text-red-500'}`}>{conv.toFixed(1).replace(/\.0$/, '')}</span>
+                                                                                                                                    <span className="text-[10px] text-slate-400 ml-1">(原:{raw}{item.unit})</span>
+                                                                                                                                </div>
+                                                                                                                            </div>
+                                                                                                                        )
+                                                                                                                    })}
+                                                                                                                </div>
+                                                                                                            ) : (
+                                                                                                                <div className="text-xs text-slate-400 text-center py-4 bg-slate-50/50 rounded">無得分紀錄</div>
+                                                                                                            )}
+                                                                                                        </div>
+                                                                                                    )
+                                                                                                })}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            )}
+                                                                        </Fragment>
+                                                                    );
+                                                                })}
                                                             </Fragment>
                                                         ))
                                                     )}
                                                 </tbody>
                                                 {/* 置底智能平均值列 - 加入 sticky bottom-0 */}
-                                                {displayedTeachersCount > 0 && !loading && (
-                                                    <tfoot className="bg-blue-50 font-bold border-t-[3px] border-blue-200 sticky bottom-0 z-10 outline outline-1 outline-blue-200 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
+                                                {managerDisplayList.length > 0 && !loading && (
+                                                    <tfoot className="bg-blue-50/95 backdrop-blur-sm font-bold border-t-[3px] border-blue-200 sticky bottom-0 z-20 outline outline-1 outline-blue-200 shadow-[0_-2px_6px_rgba(0,0,0,0.06)]">
                                                         <tr className="text-blue-900">
-                                                            <td colSpan="3" className="px-4 py-4 text-right border-r border-blue-200/50 align-top pt-4">
-                                                                {selectedGroup === '全部' ? '全體人員平均值：' : `【${selectedGroup}】平均值：`}
+                                                            <td colSpan="3" className="px-4 py-4 text-right border-r border-blue-200/50 align-middle">
+                                                                {selectedGroup === '全部' ? '全體人員平均總分：' : `【${selectedGroup}】平均總分：`}
                                                             </td>
-                                                            {currentItems.map(item => (
-                                                                <td key={item.key} className="px-3 py-3 whitespace-nowrap text-center">
-                                                                    <div className="flex flex-col items-center justify-center leading-tight">
-                                                                        <span className="text-[13px] text-slate-500 mb-0.5">原始: {getAverage(item.key)}</span>
-                                                                        <span className="text-[15px] text-blue-700 font-black">轉換: {getAverage(item.key, true)} 分</span>
-                                                                    </div>
+                                                            {Object.values(SCORING_CATEGORIES).map(cat => (
+                                                                <td key={cat.id} className="px-3 py-4 whitespace-nowrap text-center text-[15px]">
+                                                                    {getCategoryAverageTotal(cat.id).toFixed(1).replace(/\.0$/, '')}
                                                                 </td>
                                                             ))}
+                                                            <td className="px-4 py-4 whitespace-nowrap text-center text-lg font-black text-blue-700 border-l border-blue-200/50 bg-blue-100/50">
+                                                                {getGrandAverageTotal().toFixed(1).replace(/\.0$/, '')}
+                                                            </td>
                                                         </tr>
                                                     </tfoot>
                                                 )}
