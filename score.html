@@ -45,11 +45,12 @@
         const IconGlobe = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>;
         const IconMegaphone = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 19 2 12 11 5 11 19"></polygon><path d="M22 12A10 10 0 0 1 12 22"></path></svg>;
         const IconChevronRight = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>;
-        // 新增的圖示：匯入與關閉
         const IconUpload = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>;
         const IconX = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
 
-    
+        // =========================================================================
+        // ★★★ 請替換成您自己的 Firebase 專案設定 ★★★
+        // =========================================================================
         const firebaseConfig = {
   apiKey: "AIzaSyD0yBqxk2fHQimeHoWxfVPXbOWgnYrnJr4",
   authDomain: "teacher-dd3a7.firebaseapp.com",
@@ -61,9 +62,17 @@
 };
 
 
-        // 自動判斷：若在測試環境則使用環境變數，否則使用上方手動設定的 fallbackConfig
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : fallbackConfig;
-        const isValidConfig = firebaseConfig.apiKey && firebaseConfig.apiKey !== "請在此填入您的_API_KEY";
+        // 加入 Try-Catch 錯誤保護機制，避免因環境變數解析錯誤導致白畫面
+        let firebaseConfig = fallbackConfig;
+        try {
+            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                firebaseConfig = typeof __firebase_config === 'string' ? JSON.parse(__firebase_config) : __firebase_config;
+            }
+        } catch (error) {
+            console.warn("無法解析 Firebase 環境變數，將切換至手動設定模式:", error);
+        }
+
+        const isValidConfig = firebaseConfig && firebaseConfig.apiKey && firebaseConfig.apiKey !== "請在此填入您的_API_KEY";
         // =========================================================================
         
         let app, auth, db;
@@ -148,7 +157,7 @@
             useEffect(() => {
                 if (!isValidConfig) {
                     setLoading(false);
-                    return; // 等待使用者填寫 Config，不再拋出強制錯誤以避免白畫面
+                    return; 
                 }
                 if (!auth) return;
 
@@ -268,16 +277,12 @@
                 if (!importText.trim() || !user || !db) return;
                 setIsImporting(true);
                 
-                // 以換行符號切割每一列資料
                 const rows = importText.trim().split('\n');
                 let successCount = 0;
                 let failCount = 0;
 
                 for (const row of rows) {
-                    // 支援 Tab (Excel 複製出來的預設) 或 逗號 進行切割
                     const cols = row.split(/[\t,]/).map(c => c.trim());
-                    
-                    // 至少要有 卡號 跟 姓名
                     if (cols.length >= 2) {
                         const cardNum = cols[0];
                         const name = cols[1];
@@ -287,14 +292,11 @@
                             try {
                                 const docPath = `${getCollectionPath()}/${cardNum}`;
                                 const docRef = doc(db, docPath);
-                                
-                                // 我們使用 { merge: true }，這樣即使該卡號已有舊資料，也只會更新姓名與職稱，不會洗掉原先的分數
                                 await setDoc(docRef, {
                                     name: name,
                                     title: title,
                                     createdAt: new Date().toISOString()
                                 }, { merge: true });
-                                
                                 successCount++;
                             } catch (e) {
                                 console.error("匯入錯誤:", e);
@@ -315,10 +317,20 @@
                 }
             };
 
+            // 如果尚未設定 Firebase，顯示防呆畫面而不是整個白掉
+            if (!isValidConfig) {
+                return (
+                    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-slate-600">
+                        <IconAlertCircle className="w-16 h-16 text-red-400 mb-4" />
+                        <div className="text-2xl font-bold mb-2">系統尚未連線至資料庫</div>
+                        <div className="text-sm">請打開原始碼，在「firebaseConfig」區塊填寫您的專屬設定。</div>
+                    </div>
+                );
+            }
+
             if (loading && !user) {
                 return <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-gray-500">
-                    <div className="mb-4">系統初始化中...</div>
-                    <div className="text-sm">若停在此畫面，請確認是否已填寫正確的 Firebase Config。</div>
+                    <div className="mb-4 text-lg">系統初始化中...</div>
                 </div>;
             }
 
