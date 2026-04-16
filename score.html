@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>績效系統</title>
+    <title>績效評分系統</title>
     
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -77,18 +77,19 @@
             const IconChevronRight = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>;
             const IconUpload = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>;
             const IconX = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
+            // 編輯圖示
+            const IconEdit = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>;
 
             // =========================================================================
             // ★★★ 請替換成您自己的 Firebase 專案設定 ★★★
             // =========================================================================
             const fallbackConfig = {
-               apiKey: "AIzaSyD0yBqxk2fHQimeHoWxfVPXbOWgnYrnJr4",
-  authDomain: "teacher-dd3a7.firebaseapp.com",
-  projectId: "teacher-dd3a7",
-  storageBucket: "teacher-dd3a7.firebasestorage.app",
-  messagingSenderId: "1094885321898",
-  appId: "1:1094885321898:web:ea32b921d0895b29a2f4d3",
-  measurementId: "G-074B99MKDR"
+                apiKey: "請在此填入您的_API_KEY",
+                authDomain: "請在此填入您的_AUTH_DOMAIN.firebaseapp.com",
+                projectId: "請在此填入您的_PROJECT_ID",
+                storageBucket: "請在此填入您的_PROJECT_ID.appspot.com",
+                messagingSenderId: "請在此填入您的_SENDER_ID",
+                appId: "請在此填入您的_APP_ID"
             };
 
             let firebaseConfig = fallbackConfig;
@@ -121,7 +122,7 @@
             const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'teacher-score-sys'; 
             const getCollectionPath = () => `artifacts/${APP_ID}/public/data/teachers`;
 
-            // --- 全新 Data Schema (包含自訂單位 unit) ---
+            // --- Data Schema (包含自訂單位 unit) ---
             const SCORING_CATEGORIES = {
                 internship: {
                     id: 'internship', icon: <IconAward className="w-5 h-5" />, title: '實習組',
@@ -218,11 +219,18 @@
                 const [teacherData, setTeacherData] = useState(null);
                 const [activeTab, setActiveTab] = useState('internship');
                 const [toast, setToast] = useState(null);
-                const [isCreating, setIsCreating] = useState(false);
                 
+                // 建立與編輯共用的輸入狀態
+                const [isCreating, setIsCreating] = useState(false);
                 const [newName, setNewName] = useState('');
                 const [newTitle, setNewTitle] = useState('');
 
+                // 編輯個人資料的狀態
+                const [isEditingProfile, setIsEditingProfile] = useState(false);
+                const [editName, setEditName] = useState('');
+                const [editTitle, setEditTitle] = useState('');
+
+                // 批次匯入狀態
                 const [showImportModal, setShowImportModal] = useState(false);
                 const [importText, setImportText] = useState('');
                 const [isImporting, setIsImporting] = useState(false);
@@ -269,6 +277,7 @@
 
                     setLoading(true);
                     setIsCreating(false);
+                    setIsEditingProfile(false); // 查詢新資料時關閉編輯狀態
                     
                     try {
                         const docPath = `${getCollectionPath()}/${searchInput.trim()}`;
@@ -332,8 +341,44 @@
                     }
                 };
 
+                // --- 新增：儲存個人資料編輯 ---
+                const handleSaveProfile = async () => {
+                    if (!editName.trim() || !editTitle.trim()) {
+                        showToast('姓名與職稱不可為空', 'error');
+                        return;
+                    }
+                    
+                    setLoading(true);
+                    try {
+                        const docPath = `${getCollectionPath()}/${currentCardNumber}`;
+                        const docRef = doc(db, docPath);
+                        
+                        // 使用 merge: true 只更新姓名與職稱，不覆蓋分數
+                        await executeWithTimeout(setDoc(docRef, {
+                            name: editName.trim(),
+                            title: editTitle.trim()
+                        }, { merge: true }));
+                        
+                        setTeacherData(prev => ({
+                            ...prev,
+                            name: editName.trim(),
+                            title: editTitle.trim()
+                        }));
+                        setIsEditingProfile(false);
+                        showToast('基本資料修改成功！');
+                    } catch (error) {
+                        console.error("Error updating profile:", error);
+                        if (error.message === "FIREBASE_TIMEOUT") {
+                            showToast('修改失敗：連線逾時', 'error', 5000);
+                        } else {
+                            showToast('修改失敗', 'error');
+                        }
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+
                 const handleScoreChange = (key, value) => {
-                    // 允許輸入負數或正數
                     const numValue = value === '' ? 0 : parseInt(value, 10);
                     setTeacherData(prev => ({
                         ...prev,
@@ -598,27 +643,75 @@
 
                             {teacherData && !isCreating && (
                                 <div className="space-y-6">
+                                    {/* 頂部個人資料區塊 */}
                                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                        <div className="flex items-center gap-4">
-                                            <div className="bg-slate-100 p-3 rounded-full">
-                                                <IconUser className="w-8 h-8 text-slate-600" />
-                                            </div>
-                                            <div>
-                                                <h2 className="text-2xl font-bold text-slate-800">{teacherData.name}</h2>
-                                                <div className="flex gap-3 text-sm text-slate-500 mt-1">
-                                                    <span className="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{teacherData.title}</span>
-                                                    <span className="flex items-center gap-1"><span className="text-slate-400">卡號:</span> {currentCardNumber}</span>
+                                        {isEditingProfile ? (
+                                            /* 編輯狀態 */
+                                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full">
+                                                <div className="flex items-center gap-4 w-full sm:w-auto">
+                                                    <div className="bg-slate-100 p-3 rounded-full hidden sm:block flex-shrink-0">
+                                                        <IconUser className="w-8 h-8 text-slate-600" />
+                                                    </div>
+                                                    <div className="flex flex-col gap-2 w-full sm:w-auto">
+                                                        <input
+                                                            type="text"
+                                                            value={editName}
+                                                            onChange={(e) => setEditName(e.target.value)}
+                                                            placeholder="姓名"
+                                                            className="border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-blue-500 focus:border-blue-500 text-lg font-bold w-full sm:w-48"
+                                                        />
+                                                        <input
+                                                            type="text"
+                                                            value={editTitle}
+                                                            onChange={(e) => setEditTitle(e.target.value)}
+                                                            placeholder="職稱"
+                                                            className="border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-blue-500 focus:border-blue-500 text-sm w-full sm:w-48"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2 w-full sm:w-auto sm:ml-auto mt-2 sm:mt-0">
+                                                    <button onClick={handleSaveProfile} disabled={loading} className="flex-1 sm:flex-none text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium transition-colors">確認修改</button>
+                                                    <button onClick={() => setIsEditingProfile(false)} disabled={loading} className="flex-1 sm:flex-none text-sm bg-slate-100 text-slate-600 px-4 py-2 rounded-lg hover:bg-slate-200 font-medium border border-slate-200 transition-colors">取消</button>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <button
-                                            onClick={handleSaveScores}
-                                            disabled={loading}
-                                            className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-lg hover:bg-emerald-700 transition-colors font-medium shadow-sm w-full sm:w-auto justify-center"
-                                        >
-                                            <IconSave className="w-4 h-4" />
-                                            儲存所有變更
-                                        </button>
+                                        ) : (
+                                            /* 唯讀狀態 */
+                                            <>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="bg-slate-100 p-3 rounded-full flex-shrink-0">
+                                                        <IconUser className="w-8 h-8 text-slate-600" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex items-center gap-2">
+                                                            <h2 className="text-2xl font-bold text-slate-800">{teacherData.name}</h2>
+                                                            <button 
+                                                                onClick={() => {
+                                                                    setEditName(teacherData.name);
+                                                                    setEditTitle(teacherData.title);
+                                                                    setIsEditingProfile(true);
+                                                                }}
+                                                                className="text-slate-400 hover:text-blue-600 transition-colors p-1 rounded-full hover:bg-blue-50"
+                                                                title="修改基本資料"
+                                                            >
+                                                                <IconEdit className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-3 text-sm text-slate-500 mt-1">
+                                                            <span className="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{teacherData.title}</span>
+                                                            <span className="flex items-center gap-1"><span className="text-slate-400">卡號:</span> {currentCardNumber}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={handleSaveScores}
+                                                    disabled={loading}
+                                                    className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-lg hover:bg-emerald-700 transition-colors font-medium shadow-sm w-full sm:w-auto justify-center"
+                                                >
+                                                    <IconSave className="w-4 h-4" />
+                                                    儲存所有變更
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
 
                                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -675,7 +768,6 @@
                                                                                     'text-slate-600 border-slate-300'
                                                                                 }`}
                                                                             />
-                                                                            {/* 動態渲染專屬的計量單位 */}
                                                                             <span className="text-xs text-slate-500 ml-2 w-8 text-left font-medium">{item.unit}</span>
                                                                         </div>
                                                                     </div>
