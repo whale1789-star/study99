@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>教職員績效評分系統</title>
+    <title>績效評分系統</title>
     
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -87,7 +87,7 @@
             // ★★★ 請替換成您自己的 Firebase 專案設定 ★★★
             // =========================================================================
             const fallbackConfig = {
-                apiKey: "AIzaSyD0yBqxk2fHQimeHoWxfVPXbOWgnYrnJr4",
+              apiKey: "AIzaSyD0yBqxk2fHQimeHoWxfVPXbOWgnYrnJr4",
   authDomain: "teacher-dd3a7.firebaseapp.com",
   projectId: "teacher-dd3a7",
   storageBucket: "teacher-dd3a7.firebasestorage.app",
@@ -243,13 +243,13 @@
                 // 主管總覽狀態
                 const [allTeachers, setAllTeachers] = useState([]);
                 const [selectedGroup, setSelectedGroup] = useState('全部');
-                const [managerSearchQuery, setManagerSearchQuery] = useState(''); // 新增：主管總覽的搜尋字串
-                const [expandedTeacherId, setExpandedTeacherId] = useState(null); // 新增：紀錄目前展開看明細的老師 ID
+                const [managerSearchQuery, setManagerSearchQuery] = useState('');
+                const [expandedTeacherId, setExpandedTeacherId] = useState(null);
 
                 // 權重轉換狀態
-                const [scoringWeights, setScoringWeights] = useState({}); // 儲存後台拉取的正式權重
+                const [scoringWeights, setScoringWeights] = useState({}); 
                 const [showWeightModal, setShowWeightModal] = useState(false);
-                const [tempWeights, setTempWeights] = useState({}); // 用於 Modal 編輯時的暫存權重
+                const [tempWeights, setTempWeights] = useState({}); 
 
                 useEffect(() => {
                     if (!isValidConfig) {
@@ -551,7 +551,6 @@
                 };
 
                 // --- 總覽計算邏輯 ---
-                // 計算單一老師在「某個類別 (實習/建教/...)」的轉換總分
                 const getTeacherCategoryTotal = (teacher, catId) => {
                     if (!teacher || !teacher.scores) return 0;
                     const items = SCORING_CATEGORIES[catId].sections.flatMap(s => s.items);
@@ -563,38 +562,19 @@
                     return total;
                 };
 
-                // 計算單一老師的「所有類別」總分
                 const getTeacherGrandTotal = (teacher) => {
                     return Object.keys(SCORING_CATEGORIES).reduce((acc, catId) => acc + getTeacherCategoryTotal(teacher, catId), 0);
                 };
 
-                // --- 總覽列表過濾邏輯 (雙重過濾：職稱 + 關鍵字) ---
-                const getManagerDisplayList = () => {
-                    return allTeachers.filter(teacher => {
-                        const matchGroup = selectedGroup === '全部' || (teacher.title || '未分類') === selectedGroup;
-                        const query = managerSearchQuery.toLowerCase();
-                        const matchSearch = query === '' || 
-                                            teacher.id.toLowerCase().includes(query) || 
-                                            teacher.name.toLowerCase().includes(query);
-                        return matchGroup && matchSearch;
-                    });
-                };
-                
-                const managerDisplayList = getManagerDisplayList();
-
-                // 計算當前顯示列表的「某類別」平均總分
-                const getCategoryAverageTotal = (catId) => {
-                    if (managerDisplayList.length === 0) return 0;
-                    const sum = managerDisplayList.reduce((acc, curr) => acc + getTeacherCategoryTotal(curr, catId), 0);
-                    return sum / managerDisplayList.length;
-                };
-
-                // 計算當前顯示列表的「全域」平均總分
-                const getGrandAverageTotal = () => {
-                    if (managerDisplayList.length === 0) return 0;
-                    const sum = managerDisplayList.reduce((acc, curr) => acc + getTeacherGrandTotal(curr), 0);
-                    return sum / managerDisplayList.length;
-                };
+                // --- 總覽列表過濾邏輯 (雙重過濾：防呆處理 name 與 id 為空的情況) ---
+                const managerDisplayList = allTeachers.filter(teacher => {
+                    const matchGroup = selectedGroup === '全部' || (teacher.title || '未分類') === selectedGroup;
+                    const query = managerSearchQuery.toLowerCase();
+                    const matchSearch = query === '' || 
+                                        (teacher.id || '').toLowerCase().includes(query) || 
+                                        (teacher.name || '').toLowerCase().includes(query);
+                    return matchGroup && matchSearch;
+                });
 
                 // 將過濾後的名單重新依據「職稱」分組，以渲染標題列
                 const groupedFilteredTeachers = managerDisplayList.reduce((acc, curr) => {
@@ -603,6 +583,10 @@
                     acc[titleKey].push(curr);
                     return acc;
                 }, {});
+                
+                // 供畫面遍歷的分組陣列
+                const filteredGroups = Object.entries(groupedFilteredTeachers).sort(([a], [b]) => a.localeCompare(b));
+                const displayedTeachersCount = managerDisplayList.length;
 
                 // 為了產生「所有存在的職稱過濾按鈕」，需要基於未被關鍵字過濾的原始資料分組
                 const baseTitleGroups = allTeachers.reduce((acc, curr) => {
@@ -610,6 +594,19 @@
                     acc[titleKey] = true;
                     return acc;
                 }, {});
+
+                // 計算當前顯示列表的平均總分
+                const getCategoryAverageTotal = (catId) => {
+                    if (managerDisplayList.length === 0) return 0;
+                    const sum = managerDisplayList.reduce((acc, curr) => acc + getTeacherCategoryTotal(curr, catId), 0);
+                    return sum / managerDisplayList.length;
+                };
+
+                const getGrandAverageTotal = () => {
+                    if (managerDisplayList.length === 0) return 0;
+                    const sum = managerDisplayList.reduce((acc, curr) => acc + getTeacherGrandTotal(curr), 0);
+                    return sum / managerDisplayList.length;
+                };
 
 
                 if (!isValidConfig) {
@@ -634,6 +631,8 @@
                     </div>;
                 }
 
+                const currentItems = SCORING_CATEGORIES[activeTab].sections.flatMap(s => s.items);
+
                 return (
                     <div>
                         {/* 頂部導覽列 */}
@@ -642,7 +641,7 @@
                                 <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
                                     <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                                         <IconAward className="text-blue-600 flex-shrink-0" />
-                                        教職員績效評分系統
+                                        績效評分系統
                                     </h1>
                                     
                                     <div className="flex items-center flex-wrap justify-center gap-2 w-full lg:w-auto">
@@ -896,7 +895,7 @@
                                                 💡 <span className="font-semibold text-blue-600">點擊人員資料列</span>，即可展開查看該人員各項目的詳細分數紀錄。
                                             </p>
                                             <span className="text-sm font-bold text-slate-600 bg-white px-3 py-1 rounded border border-slate-200 shadow-sm">
-                                                共找到 {managerDisplayList.length} 筆資料
+                                                共找到 {displayedTeachersCount} 筆資料
                                             </span>
                                         </div>
 
@@ -926,7 +925,7 @@
                                                 <tbody className="bg-white">
                                                     {loading ? (
                                                         <tr><td colSpan={Object.keys(SCORING_CATEGORIES).length + 4} className="px-4 py-8 text-center text-slate-500">載入中...</td></tr>
-                                                    ) : managerDisplayList.length === 0 ? (
+                                                    ) : displayedTeachersCount === 0 ? (
                                                         <tr><td colSpan={Object.keys(SCORING_CATEGORIES).length + 4} className="px-4 py-8 text-center text-slate-500">找不到符合條件的人員資料。</td></tr>
                                                     ) : (
                                                         // 渲染被過濾後的資料群組
@@ -1033,7 +1032,7 @@
                                                     )}
                                                 </tbody>
                                                 {/* 置底智能平均值列 - 加入 sticky bottom-0 */}
-                                                {managerDisplayList.length > 0 && !loading && (
+                                                {displayedTeachersCount > 0 && !loading && (
                                                     <tfoot className="bg-blue-50/95 backdrop-blur-sm font-bold border-t-[3px] border-blue-200 sticky bottom-0 z-20 outline outline-1 outline-blue-200 shadow-[0_-2px_6px_rgba(0,0,0,0.06)]">
                                                         <tr className="text-blue-900">
                                                             <td colSpan="3" className="px-4 py-4 text-right border-r border-blue-200/50 align-middle">
