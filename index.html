@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <title>九九乘法冒險島</title>
+  <title>王公數學冒險島</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap" rel="stylesheet"/>
@@ -58,7 +58,6 @@
 <body>
   <canvas id="gameCanvas"></canvas>
 
-  <!-- 覆蓋式輸入與選單 -->
   <input
     id="nameInput"
     type="text"
@@ -125,7 +124,7 @@
     let score = 0;
     let answerButtons = [];
     let uiButtons = [];
-    let questionRange = 0;     // 題型：1~10 或 '混合'
+    let questionRange = 0;     // 題型：1~10, '混合', '1位數加法', '2位數加法', '3位數加法'
     let lastQuestion = {};
     let playerName = '';
     let leaderboardData = [];
@@ -196,7 +195,7 @@
       g.addColorStop(0,'#87CEEB'); g.addColorStop(1,'#66CDAA');
       ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
       drawCloud(150,100,1); drawCloud(canvas.width-200,150,0.8);
-      drawText('王公九九乘法冒險島', canvas.width/2, canvas.height*0.25, canvas.width>600?50:36, '#000080');
+      drawText('王公數學冒險島', canvas.width/2, canvas.height*0.25, canvas.width>600?50:36, '#000080');
       drawText('等你來挑戰', canvas.width/2, canvas.height*0.35, canvas.width>600?24:18, '#000080');
 
       if (characterImage && characterImage.complete && characterImage.naturalWidth>0) {
@@ -228,25 +227,40 @@
       const g=ctx.createLinearGradient(0,0,0,canvas.height);
       g.addColorStop(0,'#9ACD32'); g.addColorStop(1,'#FFD700');
       ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
-      drawText('選擇你的乘法挑戰！', canvas.width/2, canvas.height*0.1, canvas.width>600?40:28, '#8B4513');
+      drawText('選擇你的數學挑戰！', canvas.width/2, canvas.height*0.08, canvas.width>600?40:28, '#8B4513');
 
       uiButtons = [];
-      const nums = [1,2,3,4,5,6,7,8,9,10,'混合'];
-      const cols = canvas.width>800?4:3;
-      const bw = Math.floor((canvas.width*0.8)/cols);
-      const bh = 60;
-      const spacingX = bw + 20, spacingY = bh + 20;
-      const startX = (canvas.width - (cols*spacingX - 20))/2 + bw/2;
-      const startY = canvas.height*0.25;
+      // 擴充題型清單：包含乘法與加法
+      const items = [
+        { value: 1, label: '1 的乘法' }, { value: 2, label: '2 的乘法' }, { value: 3, label: '3 的乘法' },
+        { value: 4, label: '4 的乘法' }, { value: 5, label: '5 的乘法' }, { value: 6, label: '6 的乘法' },
+        { value: 7, label: '7 的乘法' }, { value: 8, label: '8 的乘法' }, { value: 9, label: '9 的乘法' },
+        { value: 10, label: '10 的乘法' }, { value: '混合', label: '混合乘法' },
+        { value: '1位數加法', label: '1位數加法' }, { value: '2位數加法', label: '2位數加法' }, { value: '3位數加法', label: '3位數加法' }
+      ];
 
-      nums.forEach((num, i)=>{
+      // 彈性佈局計算：根據視窗寬度決定欄數
+      const cols = canvas.width > 900 ? 4 : (canvas.width > 600 ? 3 : 2);
+      const paddingX = 15, paddingY = 15;
+      const bw = Math.floor((canvas.width * 0.85) / cols) - paddingX;
+      const bh = canvas.height > 700 ? 55 : 45;
+      
+      const rows = Math.ceil(items.length / cols);
+      const totalW = cols * bw + (cols - 1) * paddingX;
+      const startX = (canvas.width - totalW) / 2 + bw / 2;
+      const startY = canvas.height * 0.16;
+
+      items.forEach((item, i)=>{
         const r = Math.floor(i/cols), c = i%cols;
-        const x = startX + c*spacingX;
-        const y = startY + r*spacingY;
-        const label = (num==='混合') ? '混合' : `${num} 的乘法`;
-        drawButton(label, x, y, bw, bh, '#4CAF50', '#FFFFFF');
-        uiButtons.push({ id:'select', value:num, x, y, width:bw, height:bh });
+        const x = startX + c * (bw + paddingX);
+        const y = startY + r * (bh + paddingY);
+        
+        // 加法按鈕使用深橘色作為區隔，乘法維持綠色
+        const btnColor = item.value.toString().includes('加法') ? '#FF5722' : '#4CAF50';
+        drawButton(item.label, x, y, bw, bh, btnColor, '#FFFFFF');
+        uiButtons.push({ id:'select', value:item.value, x, y, width:bw, height:bh });
       });
+
       hideNameInput();
       hideTypeSelect();
     }
@@ -260,7 +274,10 @@
       ctx.fillStyle='rgba(255,255,255,0.8)';
       ctx.beginPath(); ctx.arc(bx,by,br,0,Math.PI*2); ctx.fill();
 
-      drawText(`${currentQuestion.num1} x ${currentQuestion.num2} = ?`, bx,by, canvas.width>600?48:36, '#000080');
+      // 根據題目類型決定顯示「+」或「x」
+      const operator = currentQuestion.type === '加法' ? '+' : 'x';
+      drawText(`${currentQuestion.num1} ${operator} ${currentQuestion.num2} = ?`, bx, by, canvas.width>600?44:32, '#000080');
+      
       if (feedbackMessage) drawText(feedbackMessage, canvas.width/2, canvas.height*0.35, canvas.width>600?36:24, '#FF4500');
 
       drawScore(); drawTime(); drawCharacter();
@@ -363,18 +380,41 @@
       hideTypeSelect();
     }
 
-    // === 排行榜（下拉篩選） ===
+    function drawEnterNamePage() {
+      const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      g.addColorStop(0, '#FF8C00'); g.addColorStop(1, '#FFD700');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const mw = canvas.width * 0.8, mh = canvas.height * 0.5;
+      const mx = (canvas.width - mw) / 2, my = (canvas.height - mh) / 2;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+      ctx.strokeStyle = '#FF4500'; ctx.lineWidth = 6;
+      rr(ctx, mx, my, mw, mh, 20); ctx.fill(); ctx.stroke();
+
+      drawText('榮譽榜留名', canvas.width / 2, my + mh * 0.18, canvas.width > 600 ? 36 : 28, '#FF4500');
+      drawText('請輸入冒險者大名：', canvas.width / 2, my + mh * 0.35, 18, '#333');
+
+      const geom = computeEnterNameGeom();
+      positionNameInput(geom);
+      showNameInput();
+
+      const bw = 180, bh = 55;
+      const bx = canvas.width / 2;
+      const by = my + mh * 0.8;
+      drawButton('確定送出', bx, by, bw, bh, '#28a745', '#FFF');
+
+      uiButtons = [{ id: 'confirm_name', x: bx, y: by, width: bw, height: bh }];
+    }
+
     function drawLeaderboardPage() {
       const g=ctx.createLinearGradient(0,0,0,canvas.height);
       g.addColorStop(0,'#4e54c8'); g.addColorStop(1,'#8f94fb');
       ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
       drawText('速度挑戰排行榜', canvas.width/2, canvas.height*0.08, 40, '#fff');
 
-      // 顯示與定位下拉選單
       showTypeSelect();
       positionTypeSelect();
 
-      // 表頭
       const startY=canvas.height*0.25, lh=40;
       drawText('排名', canvas.width*0.15, startY, 20, '#FFD700');
       drawText('名字', canvas.width*0.35, startY, 20, '#FFD700');
@@ -382,16 +422,15 @@
       drawText('時間(秒)', canvas.width*0.75, startY, 20, '#FFD700');
       drawText('類型', canvas.width*0.9, startY, 20, '#FFD700');
 
-      uiButtons = []; // 僅保留底部返回鍵
+      uiButtons = []; 
 
-      // 內容
       if (isLeaderboardLoading) {
         drawText('讀取中...', canvas.width/2, canvas.height/2, 30, '#fff');
       } else if (!db) {
         drawText('排行榜功能暫時無法使用', canvas.width/2, canvas.height/2, 24, '#FFD700');
       } else {
         const filtered = leaderboardData.filter(e=>{
-          const t = e.type; // 可能為 undefined
+          const t = e.type; 
           if (leaderboardType === TYPE_ALL) return true;
           if (leaderboardType === TYPE_UNTAGGED) return (typeof t === 'undefined');
           return t === leaderboardType;
@@ -411,7 +450,6 @@
         }
       }
 
-      // 底部返回鍵
       const bw=200,bh=60,bx=canvas.width/2,by=canvas.height-80;
       drawButton('返回首頁', bx,by,bw,bh,'#6c757d','#fff');
       uiButtons.push({id:'back_home', x:bx, y:by, width:bw, height:bh});
@@ -422,14 +460,13 @@
       ctx.shadowColor='rgba(0,0,0,0.3)'; ctx.shadowBlur=10; ctx.shadowOffsetX=4; ctx.shadowOffsetY=4;
       ctx.fillStyle=color; rr(ctx, x-w/2, y-h/2, w,h,15); ctx.fill();
       ctx.restore();
-      drawText(text, x,y,Math.max(18, Math.min(22, w/6)), textColor);
+      drawText(text, x,y,Math.max(16, Math.min(22, w/6)), textColor);
     }
 
-    // --- 名字輸入框定位 ---
     function computeEnterNameGeom() {
-      const mw=canvas.width*0.7, mh=canvas.height*0.5;
+      const mw=canvas.width*0.8, mh=canvas.height*0.5;
       const mx=(canvas.width-mw)/2, my=(canvas.height-mh)/2;
-      const iw=mw*0.8, ih=60, ix=(canvas.width-iw)/2, iy=my+mh*0.4;
+      const iw=mw*0.7, ih=50, ix=(canvas.width-iw)/2, iy=my+mh*0.45;
       return { ix, iy, iw, ih };
     }
     function positionNameInput(geom) {
@@ -438,10 +475,11 @@
       nameInputEl.style.top  = `${Math.round(iy)}px`;
       nameInputEl.style.width  = `${Math.round(iw)}px`;
       nameInputEl.style.height = `${Math.round(ih)}px`;
-      nameInputEl.style.fontSize = `${Math.max(22, Math.min(28, Math.round(ih*0.5)))}px`;
+      nameInputEl.style.fontSize = `${Math.max(18, Math.min(24, Math.round(ih*0.5)))}px`;
       nameInputEl.style.lineHeight = `${Math.round(ih)}px`;
     }
     function showNameInput() {
+      if(nameInputEl.style.display === 'block') return;
       nameInputEl.style.display = 'block';
       nameInputEl.value = playerName;
       requestAnimationFrame(()=> {
@@ -455,12 +493,11 @@
       if (document.activeElement === nameInputEl) nameInputEl.blur();
     }
 
-    // --- 類型下拉選單定位/控制 ---
     function positionTypeSelect() {
       const selW = Math.min(320, Math.max(220, Math.floor(canvas.width * 0.4)));
       const selH = 42;
       const x = (canvas.width - selW) / 2;
-      const y = Math.max(10, Math.floor(canvas.height * 0.14)); // 標題下方
+      const y = Math.max(10, Math.floor(canvas.height * 0.14)); 
       typeSelectEl.style.left = `${Math.round(x)}px`;
       typeSelectEl.style.top  = `${Math.round(y)}px`;
       typeSelectEl.style.width  = `${Math.round(selW)}px`;
@@ -470,14 +507,12 @@
     }
     function showTypeSelect() {
       if (typeSelectEl.style.display !== 'block') typeSelectEl.style.display = 'block';
-      // 同步選項值
       typeSelectEl.value = leaderboardType;
     }
     function hideTypeSelect() {
       typeSelectEl.style.display = 'none';
     }
 
-    // --- 中文輸入組字處理 ---
     let isComposing = false;
     nameInputEl.addEventListener('compositionstart', () => { isComposing = true; });
     nameInputEl.addEventListener('compositionend', () => {
@@ -496,49 +531,72 @@
     });
     nameInputEl.addEventListener('click', (e)=>e.stopPropagation());
 
-    // --- 角色跳躍 ---
     function startCharacterAnimation(){
       if (isCharacterJumping) return;
       isCharacterJumping = true; jumpStartTime = Date.now();
     }
 
-    // --- 出題與作答 ---
+    // --- 修改干擾項生成器：增加對大數字加法的支援，拉開干擾範圍 ---
     function generateWrongAnswers(answer, count=5) {
       const set = new Set();
-      for (let off = -9; off <= 9 && set.size < count; off++) {
+      // 根據答案的大小動態決定波動幅度
+      const step = answer > 100 ? 5 : 1; 
+      
+      for (let off = -5; off <= 5 && set.size < count; off++) {
         if (off === 0) continue;
-        const v = answer + off;
+        const v = answer + off * step;
         if (v > 0) set.add(v);
       }
+      
       let tries = 0;
-      const upper = Math.max(answer + 20, 30);
+      const range = answer > 100 ? 50 : 20;
       while (set.size < count && tries < 500) {
-        const v = Math.floor(Math.random() * upper) + 1;
-        if (v !== answer) set.add(v);
+        const v = answer + (Math.floor(Math.random() * (range * 2)) - range);
+        if (v !== answer && v > 0) set.add(v);
         tries++;
       }
       return Array.from(set).slice(0, count);
     }
 
+    // --- 核心修改：出題核心邏輯，完整支援加法與乘法，並做到前後題不重複 ---
     function generateNewQuestion() {
-      let num1, num2, nq;
+      let num1, num2, isAddition = false;
+      let nq = {};
+
       do {
-        if (questionRange==='混合') {
-          num1 = Math.floor(Math.random()*10)+1;
-          num2 = Math.floor(Math.random()*9)+1;
+        if (questionRange === '1位數加法') {
+          num1 = Math.floor(Math.random() * 9) + 1; // 1~9
+          num2 = Math.floor(Math.random() * 9) + 1; // 1~9
+          isAddition = true;
+        } else if (questionRange === '2位數加法') {
+          num1 = Math.floor(Math.random() * 90) + 10; // 10~99
+          num2 = Math.floor(Math.random() * 90) + 10; // 10~99
+          isAddition = true;
+        } else if (questionRange === '3位數加法') {
+          num1 = Math.floor(Math.random() * 900) + 100; // 100~999
+          num2 = Math.floor(Math.random() * 900) + 100; // 100~999
+          isAddition = true;
+        } else if (questionRange === '混合') {
+          num1 = Math.floor(Math.random() * 10) + 1;
+          num2 = Math.floor(Math.random() * 9) + 1;
+          isAddition = false;
         } else {
-          num1 = questionRange;
-          num2 = Math.floor(Math.random()*9)+1;
+          num1 = parseInt(questionRange, 10);
+          num2 = Math.floor(Math.random() * 9) + 1;
+          isAddition = false;
         }
-        nq = {num1,num2};
-      } while (lastQuestion.num1===nq.num1 && lastQuestion.num2===nq.num2);
-      const answer = num1*num2;
-      currentQuestion = {num1,num2,answer};
+        nq = { num1, num2, isAddition };
+      } while (lastQuestion.num1 === nq.num1 && lastQuestion.num2 === nq.num2 && lastQuestion.isAddition === nq.isAddition);
+
+      // 計算正確解答
+      const answer = isAddition ? (num1 + num2) : (num1 * num2);
+      currentQuestion = { num1, num2, answer, type: isAddition ? '加法' : '乘法' };
       lastQuestion = nq;
 
+      // 產生混淆答案選項
       const wrongs = generateWrongAnswers(answer, 5);
-      answerButtons = [{value:answer, correct:true}, ...wrongs.map(v=>({value:v, correct:false}))];
-      answerButtons.sort(()=>Math.random()-0.5);
+      answerButtons = [{ value: answer, correct: true }, ...wrongs.map(v => ({ value: v, correct: false }))];
+      answerButtons.sort(() => Math.random() - 0.5);
       feedbackMessage = '';
     }
 
@@ -555,7 +613,7 @@
         startCharacterAnimation();
       } else {
         feedbackMessage = '再想想看喔！';
-        score = Math.max(0, score - 2);
+        score = Math.max(0, score - 2); // 答錯維持倒扣分數
         if (wrongSynth) wrongSynth.triggerAttackRelease('C3','4n');
       }
       feedbackEndTime = Date.now() + 1500;
@@ -567,32 +625,31 @@
       startTime=0; elapsedTime=0;
       feedbackMessage=''; lastQuestion={};
       playerName=''; isAnswerLocked=false;
+      nameInputEl.value = '';
       hideNameInput();
       hideTypeSelect();
     }
 
-    // --- 儲存成績：含 type 欄位 ---
     async function saveScoreToLeaderboard(name, score, time) {
       if (!db) return;
       try {
-        const type =
-          (questionRange === '混合')
-            ? '混合'
-            : `${questionRange} 的乘法`;
+        let type = '';
+        if (questionRange.toString().includes('加法')) {
+          type = questionRange;
+        } else {
+          type = (questionRange === '混合') ? '混合' : `${questionRange} 的乘法`;
+        }
 
         await db.collection('leaderboard').add({
           name,
           score,
           time,
-          type,              // ← 記錄是哪一個測驗
+          type,              
           createdAt: new Date()
         });
-      } catch (e) {
-        // 可選：console.log(e);
-      }
+      } catch (e) { }
     }
 
-    // --- 讀取排行榜（前端篩選，以支援「未標記」） ---
     async function fetchLeaderboard(){
       isLeaderboardLoading = true;
       if (!db) { leaderboardData=[]; isLeaderboardLoading=false; return; }
@@ -605,7 +662,6 @@
       isLeaderboardLoading = false;
     }
 
-    // --- 音效 ---
     function initializeAudio(){
       if (audioInitialized || typeof Tone==='undefined') return;
       Tone.start().then(()=>{
@@ -616,7 +672,6 @@
       }).catch(()=>{});
     }
 
-    // --- 鍵盤事件 ---
     function handleKeyPress(e){
       if (currentPage !== 'enterName') return;
       if (document.activeElement === nameInputEl) {
@@ -626,7 +681,6 @@
       if (e.key === 'Enter') clickConfirmName();
     }
 
-    // --- 滑鼠點擊 ---
     canvas.addEventListener('click', (event)=>{
       initializeAudio();
       const rect = canvas.getBoundingClientRect();
@@ -653,14 +707,12 @@
                 break;
               case 'save_score':
                 currentPage='enterName';
-                positionNameInput();   // 切換頁面時定位一次
-                showNameInput();       // 顯示+focus 一次
                 break;
               case 'confirm_name':
                 clickConfirmName(); break;
               case 'show_leaderboard':
                 currentPage='leaderboard';
-                leaderboardType = TYPE_ALL;          // 進排行榜預設顯示全部
+                leaderboardType = TYPE_ALL;          
                 isLeaderboardLoading=true; fetchLeaderboard();
                 break;
               case 'back_home':
@@ -678,22 +730,25 @@
     });
 
     function clickConfirmName(){
-      if (!playerName || !playerName.trim()) {
-        if (currentPage==='enterName') {
-          positionNameInput();
-          showNameInput();
-        }
-        return;
-      }
-      currentPage='leaderboard'; isLeaderboardLoading=true;
+      if (!playerName || !playerName.trim()) return;
+      
+      const savedScore = score;
+      const savedTime = Math.floor(elapsedTime/1000);
+      const nameToSend = playerName.trim();
+
+      currentPage='leaderboard'; 
+      isLeaderboardLoading=true;
       hideNameInput();
+      
+      startTime = 0;
+      elapsedTime = 0;
+
       Promise.resolve().then(async ()=>{
-        await saveScoreToLeaderboard(playerName.trim(), score, Math.floor(elapsedTime/1000));
+        await saveScoreToLeaderboard(nameToSend, savedScore, savedTime);
         await fetchLeaderboard();
       });
     }
 
-    // --- 主循環 ---
     function drawScreen(){
       ctx.clearRect(0,0,canvas.width,canvas.height);
       switch(currentPage){
@@ -722,20 +777,26 @@
         if (feedbackEndTime>0 && now>=feedbackEndTime){
           feedbackEndTime=0;
           if (lastAnswerWasCorrect){
-            if (correctAnswersCount>=20) currentPage='gameOver';
+            if (correctAnswersCount>=20) currentPage='gameOver'; // 固定 20 題挑戰結束
             else { generateNewQuestion(); isAnswerLocked=false; }
           } else {
             feedbackMessage=''; isAnswerLocked=false;
           }
         }
         drawScreen();
-      } catch(e){ /* 單幀錯誤不影響整體 */ }
+      } catch(e){ }
       requestAnimationFrame(gameLoop);
     }
 
-    // --- 初始化下拉選單選項 ---
+    // --- 排行榜選單同步更新：加入加法選項 ---
     function initTypeSelectOptions() {
-      const opts = [TYPE_ALL, ...Array.from({length:10},(_,i)=>`${i+1} 的乘法`), '混合', TYPE_UNTAGGED];
+      const opts = [
+        TYPE_ALL, 
+        ...Array.from({length:10},(_,i)=>`${i+1} 的乘法`), 
+        '混合', 
+        '1位數加法', '2位數加法', '3位數加法',
+        TYPE_UNTAGGED
+      ];
       typeSelectEl.innerHTML = '';
       opts.forEach(label=>{
         const opt = document.createElement('option');
@@ -746,9 +807,9 @@
       typeSelectEl.value = leaderboardType;
     }
 
-    // 下拉選單事件
     typeSelectEl.addEventListener('change', ()=>{
       leaderboardType = typeSelectEl.value;
+      drawScreen(); 
     });
     typeSelectEl.addEventListener('click', e=>e.stopPropagation());
 
