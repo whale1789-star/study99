@@ -726,31 +726,56 @@
       } catch (e) { }
     }
 
-    async function fetchLeaderboard(){
-      isLeaderboardLoading = true;
-      requestRender();
+   // --- 修正版：混合式高彈性查詢（免建複合索引、保留讀取配額限制） ---
+async function fetchLeaderboard(){
+  isLeaderboardLoading = true;
+  requestRender();
 
-      if (!db) { leaderboardData=[]; isLeaderboardLoading=false; requestRender(); return; }
-      try{
-        let query = db.collection('leaderboard');
-        if (leaderboardType !== TYPE_ALL && leaderboardType !== TYPE_UNTAGGED) {
-          query = query.where('type', '==', leaderboardType);
-        }
-        
-        const snap = await query.orderBy('score', 'desc').orderBy('time', 'asc').limit(50).get();
-        let scores = snap.docs.map(d=>d.data());
-
-        if (leaderboardType === TYPE_UNTAGGED) {
-          scores = scores.filter(e => typeof e.type === 'undefined');
-        }
-
-        leaderboardData = scores;
-      } catch (e) { 
-        leaderboardData=[]; 
-      }
-      isLeaderboardLoading = false;
-      requestRender();
+  if (!db) { leaderboardData=[]; isLeaderboardLoading=false; requestRender(); return; }
+  try{
+    let query = db.collection('leaderboard');
+    
+    if (leaderboardType !== TYPE_ALL && leaderboardType !== TYPE_UNTAGGED) {
+      // 1. 若有選擇特定題型：使用單一條件篩選，並限制抓取最新/最熱門的 100 筆
+      query = query.where('type', '==', leaderboardType).limit(100);
+    } else {
+      // 2. 若為「全部」：直接依照分數抓取前 100 名（單一欄位排序，不需複合索引）
+      query = query.orderBy('score', 'desc').limit(100);
     }
+    
+    const snap = await query.get();
+    let scores = snap.docs.map(d => d.data());
+
+    // 處理「未標記」的歷史舊資料
+    if (leaderboardType === TYPE_UNTAGGED) {
+      scores = scores.filter(e => typeof e.type === 'undefined');
+    }
+
+    // 3. 在前端記憶體中進行毫秒級的雙重精確排序：
+    // 第一順位：分數遞減 (高分在前)
+    // 第二順位：耗時遞增 (秒數少者在同分時排前面)
+    // 第三順位：挑戰時間遞減 (越新挑戰的排前面)
+    scores.sort((a, b) => {
+      const scoreDiff = (b.score || 0) - (a.score || 0);
+      if (scoreDiff !== 0) return scoreDiff;
+      
+      const timeDiff = (a.time || 9999) - (b.time || 9999);
+      if (timeDiff !== 0) return timeDiff;
+
+      const aSec = a.createdAt?.seconds || 0;
+      const bSec = b.createdAt?.seconds || 0;
+      return bSec - aSec;
+    });
+
+    leaderboardData = scores;
+  } catch (e) { 
+    // 輸出詳細錯誤至開發者控制台 (F12 -> Console)，不再靜默吞掉
+    console.error("Firebase 讀取失敗，詳細原因：", e);
+    leaderboardData = []; 
+  }
+  isLeaderboardLoading = false;
+  requestRender();
+}
 
     function initializeAudio(){
       if (audioInitialized || typeof Tone==='undefined') return;
