@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>幼兒調色盤幼兒園</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      touch-action: none; /* 阻止平板預設滾動，提升拖拉體驗 */
+      user-select: none;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      background-color: #f7f9fc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      font-family: sans-serif;
+      overflow: hidden;
+    }
+
+    /* 上方調色區域 */
+    .palette-area {
+      position: relative;
+      width: 90vw;
+      height: 55vh;
+      margin-top: 20px;
+      background: #ffffff;
+      border: 8px solid #e0e0e0;
+      border-radius: 40px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    /* 調色混合結果顯示 */
+    .color-blob {
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      background-color: #ffffff;
+      border: 4px dashed #ccc;
+      transition: background-color 0.5s ease, transform 0.2s ease;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+    }
+
+    /* 邊緣水桶（重置按鈕） */
+    .reset-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 70px;
+      height: 70px;
+      background-color: #ffed4a;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .reset-btn:active { transform: scale(0.9); }
+    .reset-btn svg { width: 40px; height: 40px; fill: #333; }
+
+    /* 下方基本顏料列 */
+    .paint-bar {
+      width: 100vw;
+      height: 25vh;
+      background: #ffffff;
+      border-top-left-radius: 30px;
+      border-top-right-radius: 30px;
+      box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+      display: flex;
+      justify-content: space-evenly;
+      align-items: center;
+      padding: 0 10px;
+    }
+
+    /* 顏料滴管/圓塊 */
+    .paint-drop {
+      width: 75px;
+      height: 75px;
+      border-radius: 50%;
+      cursor: grab;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+      transition: transform 0.1s ease;
+    }
+    .paint-drop:active { transform: scale(1.15); cursor: grabbing; }
+
+    /* 拖拉中的懸浮物件 */
+    .dragging-clone {
+      position: fixed;
+      pointer-events: none;
+      z-index: 1000;
+      width: 75px;
+      height: 75px;
+      border-radius: 50%;
+      opacity: 0.85;
+      transform: translate(-50%, -50%) scale(1.1);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 上方：調色盤區 -->
+  <div class="palette-area" id="dropZone">
+    <!-- 重置水桶 Icon -->
+    <button class="reset-btn" id="resetBtn" title="Reset">
+      <svg viewBox="0 0 24 24">
+        <!-- 洗滌水桶/水滴圖示 -->
+        <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,6E10,10 0 0,0 7,15H17A10,10 0 0,0 12,6Z"/>
+      </svg>
+    </button>
+
+    <div class="color-blob" id="colorBlob"></div>
+  </div>
+
+  <!-- 下方：顏料選擇區 -->
+  <div class="paint-bar">
+    <div class="paint-drop" data-rgb="255,0,0" style="background-color: #ff0000;"></div>     <!-- 紅 -->
+    <div class="paint-drop" data-rgb="255,230,0" style="background-color: #ffe600;"></div>   <!-- 黃 -->
+    <div class="paint-drop" data-rgb="0,100,255" style="background-color: #0064ff;"></div>   <!-- 藍 -->
+    <div class="paint-drop" data-rgb="255,255,255" style="background-color: #ffffff; border: 2px solid #ddd;"></div> <!-- 白 -->
+    <div class="paint-drop" data-rgb="30,30,30" style="background-color: #1e1e1e;"></div>     <!-- 黑 -->
+  </div>
+
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const colorBlob = document.getElementById('colorBlob');
+    const resetBtn = document.getElementById('resetBtn');
+    const paintDrops = document.querySelectorAll('.paint-drop');
+
+    // 紀錄已混合的顏料 RGB 陣列
+    let mixedColors = [];
+
+    // 重置調色盤
+    function resetPalette() {
+      mixedColors = [];
+      colorBlob.style.backgroundColor = '#ffffff';
+      colorBlob.style.border = '4px dashed #ccc';
+      
+      // 水桶抖動效果
+      resetBtn.style.transform = 'scale(1.2) rotate(-10deg)';
+      setTimeout(() => resetBtn.style.transform = 'none', 200);
+    }
+
+    resetBtn.addEventListener('click', resetPalette);
+
+    // 計算平均混合顏色 (簡化版減法/均值邏輯)
+    function calculateMixedColor() {
+      if (mixedColors.length === 0) return '#ffffff';
+
+      let r = 0, g = 0, b = 0;
+      mixedColors.forEach(color => {
+        r += color[0];
+        g += color[1];
+        b += color[2];
+      });
+
+      r = Math.round(r / mixedColors.length);
+      g = Math.round(g / mixedColors.length);
+      b = Math.round(b / mixedColors.length);
+
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+
+    // 通用 Pointer Touch/Mouse 拖拉邏輯
+    paintDrops.forEach(drop => {
+      drop.addEventListener('pointerdown', (e) => {
+        const rgbStr = drop.getAttribute('data-rgb');
+        const rgb = rgbStr.split(',').map(Number);
+        const colorStyle = drop.style.backgroundColor;
+
+        // 建立跟隨手指的克隆體
+        const clone = document.createElement('div');
+        clone.className = 'dragging-clone';
+        clone.style.backgroundColor = colorStyle;
+        clone.style.left = `${e.clientX}px`;
+        clone.style.top = `${e.clientY}px`;
+        document.body.appendChild(clone);
+
+        function onPointerMove(moveEvent) {
+          clone.style.left = `${moveEvent.clientX}px`;
+          clone.style.top = `${moveEvent.clientY}px`;
+        }
+
+        function onPointerUp(upEvent) {
+          document.removeEventListener('pointermove', onPointerMove);
+          document.removeEventListener('pointerup', onPointerUp);
+
+          // 判斷是否投遞到調色區
+          const rect = dropZone.getBoundingClientRect();
+          if (
+            upEvent.clientX >= rect.left &&
+            upEvent.clientX <= rect.right &&
+            upEvent.clientY >= rect.top &&
+            upEvent.clientY <= rect.bottom
+          ) {
+            // 加入混合
+            mixedColors.push(rgb);
+            colorBlob.style.border = 'none';
+            colorBlob.style.backgroundColor = calculateMixedColor();
+
+            // 彈跳動畫回饋
+            colorBlob.style.transform = 'scale(1.08)';
+            setTimeout(() => colorBlob.style.transform = 'scale(1)', 150);
+          }
+
+          document.body.removeChild(clone);
+        }
+
+        document.addEventListener('pointermove', onPointerMove);
+        document.addEventListener('pointerup', onPointerUp);
+      });
+    });
+  </script>
+</body>
+</html>
