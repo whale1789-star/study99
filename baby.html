@@ -25,24 +25,24 @@
       overflow: hidden;
     }
 
-    /* 上方：佔據 70%+ 螢幕高度的不規則大調色盤 */
+    /* 上方不規則大調色盤區 (佔螢幕 70%+ 高度) */
     .palette-container {
       position: relative;
       width: 94vw;
-      height: 72vh; /* 佔螢幕 70% 以上 */
+      height: 72vh;
       margin-top: 1.5vh;
       display: flex;
       justify-content: center;
       align-items: center;
     }
 
-    /* 不規則水彩畫板形狀 */
+    /* 不規則水彩斑點形狀調色盤 */
     .palette-area {
       position: relative;
       width: 100%;
       height: 100%;
       background: #ffffff;
-      border-radius: 60% 40% 50% 70% / 50% 60% 40% 50%; /* 不規則水彩有機形狀 */
+      border-radius: 60% 40% 50% 70% / 50% 60% 40% 50%;
       box-shadow: 0 15px 35px rgba(0,0,0,0.1), inset 0 0 40px rgba(0,0,0,0.03);
       display: flex;
       justify-content: center;
@@ -63,14 +63,20 @@
       box-shadow: inset 0 0 30px rgba(0,0,0,0.06);
     }
 
-    /* 重置/清空按鈕 (無文字 Icon) */
-    .reset-btn {
+    /* 右上角按鈕組 */
+    .action-btn-group {
       position: absolute;
       top: 15px;
       right: 15px;
+      display: flex;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    /* 幼兒視覺通用按鈕樣式 */
+    .icon-btn {
       width: 75px;
       height: 75px;
-      background: linear-gradient(135deg, #ffed4a, #ffc107);
       border: 4px solid #ffffff;
       border-radius: 50%;
       cursor: pointer;
@@ -78,13 +84,23 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      z-index: 10;
       transition: transform 0.15s ease;
     }
-    .reset-btn:active { transform: scale(0.85) rotate(-15deg); }
-    .reset-btn svg { width: 45px; height: 45px; fill: #5d4037; }
+    .icon-btn:active { transform: scale(0.85) rotate(-10deg); }
 
-    /* 下方：彩虹七色顏料區 */
+    /* 清空/洗水桶按鈕 */
+    .reset-btn {
+      background: linear-gradient(135deg, #ffed4a, #ffc107);
+    }
+    .reset-btn svg { width: 42px; height: 42px; fill: #5d4037; }
+
+    /* 還原成白紙按鈕 */
+    .paper-btn {
+      background: linear-gradient(135deg, #ffffff, #e0e0e0);
+    }
+    .paper-btn svg { width: 42px; height: 42px; fill: #333333; }
+
+    /* 下方彩虹七色顏料區 */
     .paint-bar {
       width: 100vw;
       height: 23vh;
@@ -98,7 +114,7 @@
       padding: 0 8px;
     }
 
-    /* 彩虹顏料水滴塊 */
+    /* 顏料水滴塊 */
     .paint-drop {
       width: 12vw;
       max-width: 70px;
@@ -141,18 +157,29 @@
   <!-- 上方：佔據 70%+ 螢幕高度的不規則大調色盤 -->
   <div class="palette-container">
     <div class="palette-area" id="dropZone">
-      <!-- 重置水桶 Icon -->
-      <button class="reset-btn" id="resetBtn" aria-label="Clear Palette">
-        <svg viewBox="0 0 24 24">
-          <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/>
-        </svg>
-      </button>
+      
+      <!-- 右上角按鈕組 -->
+      <div class="action-btn-group">
+        <!-- 還原白紙按鈕 -->
+        <button class="icon-btn paper-btn" id="paperBtn" title="Restore White Paper" aria-label="Restore White Paper">
+          <svg viewBox="0 0 24 24">
+            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+          </svg>
+        </button>
+
+        <!-- 洗筆/清空水桶按鈕 -->
+        <button class="icon-btn reset-btn" id="resetBtn" title="Clear Palette" aria-label="Clear Palette">
+          <svg viewBox="0 0 24 24">
+            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/>
+          </svg>
+        </button>
+      </div>
 
       <div class="color-blob" id="colorBlob"></div>
     </div>
   </div>
 
-  <!-- 下方：彩虹七色顏料區 (紅、橘、黃、綠、藍、靛、紫) -->
+  <!-- 下方：彩虹七色顏料區 -->
   <div class="paint-bar">
     <div class="paint-drop" data-rgb="255,0,0" style="background-color: #ff0000;"></div>     <!-- 紅 -->
     <div class="paint-drop" data-rgb="255,127,0" style="background-color: #ff7f00;"></div>   <!-- 橘 -->
@@ -167,23 +194,38 @@
     const dropZone = document.getElementById('dropZone');
     const colorBlob = document.getElementById('colorBlob');
     const resetBtn = document.getElementById('resetBtn');
+    const paperBtn = document.getElementById('paperBtn');
     const paintDrops = document.querySelectorAll('.paint-drop');
 
     let mixedColors = [];
 
-    // 重置調色盤
     function resetPalette() {
       mixedColors = [];
       colorBlob.style.backgroundColor = '#ffffff';
       colorBlob.style.border = '6px dashed #e0e0e0';
-      
-      resetBtn.style.transform = 'scale(1.25) rotate(-20deg)';
-      setTimeout(() => resetBtn.style.transform = 'none', 200);
     }
 
-    resetBtn.addEventListener('click', resetPalette);
+    // 洗筆水桶按鈕事件
+    resetBtn.addEventListener('click', () => {
+      resetPalette();
+      resetBtn.style.transform = 'scale(1.25) rotate(-20deg)';
+      setTimeout(() => resetBtn.style.transform = 'none', 200);
+    });
 
-    // 混色演算法
+    // 還原成白紙按鈕事件
+    paperBtn.addEventListener('click', () => {
+      resetPalette();
+      paperBtn.style.transform = 'scale(1.25) rotate(15deg)';
+      colorBlob.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
+      colorBlob.style.opacity = '0.3';
+
+      setTimeout(() => {
+        paperBtn.style.transform = 'none';
+        colorBlob.style.opacity = '1';
+        colorBlob.style.transition = 'background-color 0.5s ease, transform 0.2s ease';
+      }, 200);
+    });
+
     function calculateMixedColor() {
       if (mixedColors.length === 0) return '#ffffff';
 
@@ -201,7 +243,6 @@
       return `rgb(${r}, ${g}, ${b})`;
     }
 
-    // 支援觸控與滑鼠拖拽
     paintDrops.forEach(drop => {
       drop.addEventListener('pointerdown', (e) => {
         const rgbStr = drop.getAttribute('data-rgb');
